@@ -7,11 +7,11 @@ import java.util.Map;
  */
 public interface LocalStoreProvider {
 
-    void setAll(Map<String,String> map);
-
     void set(String key,String val);
 
     String get(String key);
 
     void remove(String key);
+
+    void persist();
 }

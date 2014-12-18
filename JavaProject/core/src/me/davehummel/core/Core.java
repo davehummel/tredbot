@@ -9,20 +9,26 @@ import me.davehummel.core.providers.ui.UIProvider;
  */
 public class Core {
 
-    public void setSerialPortProvider(SerialPortProvider serialPortProvider){
+    SerialPortProvider spp;
 
+    UIProvider uip;
+
+    LocalStoreProvider lsp;
+
+    public void setSerialPortProvider(SerialPortProvider serialPortProvider){
+        this.spp = serialPortProvider;
     }
 
     public void setUIProvider(UIProvider uiProvider){
-
+        this.uip = uiProvider;
     }
 
     public void start(){
-
+        UIIntegration uiIntegration = new UIIntegration(spp,lsp);
     }
 
     public void setLocalStoreProvider(LocalStoreProvider localStoreProvider){
-
+        this.lsp = localStoreProvider;
     }
 
 }

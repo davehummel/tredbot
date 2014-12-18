@@ -6,6 +6,8 @@ import me.davehummel.core.providers.localstore.LocalStoreProvider;
 import me.davehummel.core.robot.RobotConnection;
 import me.davehummel.core.robot.RobotSettings;
 
+import java.util.List;
+
 /**
  * Created by davidhummel on 12/16/14.
  */
@@ -13,32 +15,38 @@ public class UIIntegration {
 
     private SerialPortProvider spp;
     private LocalStoreProvider lsp;
+    private RobotConnection connection;
 
-    public void setRobotSettings(RobotSettings settings){
-        lsp.setAll(settings.getMap());
+    public UIIntegration(SerialPortProvider spp, LocalStoreProvider lsp) {
+        this.spp = spp;
+        this.lsp = lsp;
+    }
+
+    public void storeRobotSettings(RobotSettings robotSettings){
+        robotSettings.writeToStore(lsp);
     }
 
     public RobotSettings getRobotSettingsFromStore(){
-        return null;
+        return new RobotSettings(lsp);
     }
 
     public RobotSettings getRobotSettingsFromRobot(){
-
-        return null;
+        return new RobotSettings(connection);
     }
 
-    public String[] getSerialPortNames(){
-
-        return null;
+    public List<String> getSerialPortNames(){
+        return spp.getSerialPortNames();
     }
 
-    public RobotConnection connectPort(String portName) throws PortConnectionException {
-
-        return null;
+    public void connectToPort(String portName) throws PortConnectionException {
+        connection = spp.connectToPort(portName);
     }
 
     public void exit(){
-
+        if (connection!=null){
+            connection.disconnect();
+        }
+        lsp.persist();
     }
 
 }

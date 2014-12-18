@@ -15,6 +15,14 @@
 #define GREENLITE 5
 #define BLUELITE 6
 
+#define STATUS_COMMAND 's'
+#define UPDATE_COMMAND 'u'
+#define DEBUG_COMMAND 'd'
+#define EXECUTE_COMMAND 'e'
+#define PING_COMMAND 'p'
+#define CONFIG_COMMAND 'c'
+#define GET_CONFIG_COMMAND 'g'
+
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
@@ -24,8 +32,8 @@ const long MAX_STEP_INTERVAL = 255;
 const long SLEEP_INTERVAL = 5000;
 const int MIN_STOPPED_TURN_INTERVAL = 1000;
 const int MIN_FAST_TURN_INTERVAL = 400;
-const int MAX_STOPPED_TURN_TOTAL = 320;
-const int MAX_FAST_TURN_TOTAL = 80;
+const int MAX_STOPPED_TURN_SPEED = 320;
+const int MAX_FAST_TURN_SPEED = 80;
 const int MAX_SPEED_DELTA_INTERVAL = 20;
 const unsigned int MAX_UNSIGNED_INT = 65535;
 const String BLANKLINE = "                ";
@@ -71,8 +79,8 @@ bool execute=false,debug=false;
 bool lForward = true,rForward = true;
 int stopped_turn_interval = MIN_STOPPED_TURN_INTERVAL*2;
 int fast_turn_interval = MIN_FAST_TURN_INTERVAL*2;
-int stopped_turn_total = MAX_STOPPED_TURN_TOTAL/2;
-int fast_turn_total = MAX_FAST_TURN_TOTAL /2;
+int stopped_turn_speed = MAX_STOPPED_TURN_SPEED/2;
+int fast_turn_speed = MAX_FAST_TURN_SPEED /2;
 int speed_delta_interval = MAX_SPEED_DELTA_INTERVAL/2;
 int step_interval = MIN_STEP_INTERVAL*2;
 
@@ -176,7 +184,7 @@ void updateSpeed(int &currentSpeed, int targetSpeed){
 void updateDifferential(int currentSpeed, bool turnLeft, bool turnRight, long timeDelta, unsigned int &turnRemaining, int &leftDif, int &rightDif){
   float slowFrac = (1.0-currentSpeed/255.0);
   float fastFrac = (currentSpeed/255.0);
-  float difAmount = slowFrac*stopped_turn_total+fastFrac*fast_turn_total;
+  float difAmount = slowFrac*stopped_turn_total+fastFrac*fast_turn_speed;
   float turnTime = slowFrac*stopped_turn_interval+fastFrac*fast_turn_interval;
   float frac = timeDelta/turnTime;
   int turnStep = frac*MAX_UNSIGNED_INT;
@@ -306,7 +314,7 @@ void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetS
   Serial.readBytes(command,1);
 
   switch (command[0]){
-   case 'u': // updaet -- command to execute a movement with rotation and velocity
+   case UPDATE_COMMAND: // update -- command to execute a movement with rotation and velocity
      targetSpeed = Serial.parseInt();
      turnStart=turnRemaining = Serial.parseInt();
      // Read Direction
@@ -327,23 +335,23 @@ void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetS
      Serial.print(turnRemaining);
      return;
    break;
-   case 'd':  // debug -- execute and test
+   case DEBUG_COMMAND:  // debug -- execute and test
      debug = !debug;
      Serial.write("\nDebug:");
      Serial.write(debug?"True":"False");
      return;
-   case 'e': // test -- command to print a movement with rotation and velocity
+   case EXECUTE_COMMAND: // test -- command to print a movement with rotation and velocity
      execute = !execute;
      Serial.write("\nExecute:");
      Serial.write(execute?"True":"False");
      return;
    break;
-   case 'p': // ping -- does nothing but keep from sleeping
+   case PING_COMMAND: // ping -- does nothing but keep from sleeping
      return;
-   case 's': // status -- return status
+   case STATUS_COMMAND: // status -- return status
      sendStatus(targetSpeed,currentSpeed,turnRemaining);
      return;
-   case 'c': // configure
+   case CONFIG_COMMAND: // configure
      step_interval = Serial.parseInt();
      if (step_interval<MIN_STEP_INTERVAL){
        step_interval = MIN_STEP_INTERVAL;
@@ -358,19 +366,22 @@ void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetS
      if (fast_turn_interval<MIN_FAST_TURN_INTERVAL){
        fast_turn_interval = MIN_FAST_TURN_INTERVAL; 
      }
-     stopped_turn_total =  Serial.parseInt();
-     if (stopped_turn_total>MAX_STOPPED_TURN_TOTAL){
-       stopped_turn_total = MAX_STOPPED_TURN_TOTAL; 
+     stopped_turn_speed =  Serial.parseInt();
+     if (stopped_turn_speed>MAX_STOPPED_TURN_SPEED){
+       stopped_turn_speed = MAX_STOPPED_TURN_SPEED; 
      }
-     fast_turn_total =  Serial.parseInt();
-     if (fast_turn_total>MAX_FAST_TURN_TOTAL){
-       fast_turn_total = MAX_FAST_TURN_TOTAL;
+     fast_turn_speed =  Serial.parseInt();
+     if (fast_turn_speed>MAX_FAST_TURN_SPEED){
+       fast_turn_speed = MAX_FAST_TURN_SPEED;
      }
      speed_delta_interval =  Serial.parseInt();
      Serial.readBytes(command,1);
      if (speed_delta_interval>MAX_SPEED_DELTA_INTERVAL){
        speed_delta_interval=MAX_SPEED_DELTA_INTERVAL;
      }
+     return;
+   case GET_CONFIG_COMMAND: // get configuration
+     TODO WRITE CODE HERE !!!
      return;
    default:
      Serial.write("\nUnknown Command:");
