@@ -326,38 +326,40 @@ void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetS
      }else if ('l'==command[0]){
        turnLeft = true;
      }
-     Serial.write("\nUpdate: speed=");
-     Serial.println(targetSpeed);
-     if (turnLeft)
-     Serial.write(" turn L:");
-     else if (turnRight)
-     Serial.write(" turn R:");
-     Serial.print(turnRemaining);
+     Serial.write("OK\n");
      return;
    break;
-   case DEBUG_COMMAND:  // debug -- execute and test
+   case DEBUG_COMMAND:  // debug -- command to print a movement with rotation and velocity
      debug = !debug;
-     Serial.write("\nDebug:");
-     Serial.write(debug?"True":"False");
+     Serial.write("OK:");
+     Serial.write(debug?"true\n":"false\n");
      return;
-   case EXECUTE_COMMAND: // test -- command to print a movement with rotation and velocity
+   case EXECUTE_COMMAND: // execute -- command to determine if movements are executed by motors or just simulated
      execute = !execute;
-     Serial.write("\nExecute:");
-     Serial.write(execute?"True":"False");
+     Serial.write("OK:");
+     Serial.write(execute?"true\n":"talse\n");
      return;
    break;
    case PING_COMMAND: // ping -- does nothing but keep from sleeping
+     Serial.write("OK\n");
      return;
    case STATUS_COMMAND: // status -- return status
      sendStatus(targetSpeed,currentSpeed,turnRemaining);
      return;
    case CONFIG_COMMAND: // configure
+   
      step_interval = Serial.parseInt();
      if (step_interval<MIN_STEP_INTERVAL){
        step_interval = MIN_STEP_INTERVAL;
      }else if(step_interval>MAX_STEP_INTERVAL){
        step_interval=MAX_STEP_INTERVAL; 
      }
+
+     speed_delta_interval =  Serial.parseInt();
+     if (speed_delta_interval>MAX_SPEED_DELTA_INTERVAL){
+       speed_delta_interval=MAX_SPEED_DELTA_INTERVAL;
+     }
+
      stopped_turn_interval = Serial.parseInt();
      if (stopped_turn_interval<MIN_STOPPED_TURN_INTERVAL){
        stopped_turn_interval = MIN_STOPPED_TURN_INTERVAL;
@@ -374,18 +376,26 @@ void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetS
      if (fast_turn_speed>MAX_FAST_TURN_SPEED){
        fast_turn_speed = MAX_FAST_TURN_SPEED;
      }
-     speed_delta_interval =  Serial.parseInt();
-     Serial.readBytes(command,1);
-     if (speed_delta_interval>MAX_SPEED_DELTA_INTERVAL){
-       speed_delta_interval=MAX_SPEED_DELTA_INTERVAL;
-     }
+
+      Serial.readBytes(command,1);
+      Serial.write("OK\n");
      return;
    case GET_CONFIG_COMMAND: // get configuration
-     TODO WRITE CODE HERE !!!
+     Serial.print(step_interval);
+     Serial.write(' ');
+     Serial.print(speed_delta_interval);
+     Serial.write(' ');
+     Serial.print(stopped_turn_interval);
+     Serial.write(' ');
+     Serial.print(fast_turn_interval);
+     Serial.write(' ');
+     Serial.print(stopped_turn_speed);
+     Serial.write(' ');
+     Serial.print(fast_turn_speed);
+        Serial.write('\n');
      return;
    default:
-     Serial.write("\nUnknown Command:");
-     Serial.write(command[0]); 
+     Serial.write("Unknown Command\n");
   }
   return;
 }
