@@ -1,7 +1,7 @@
 package me.davehummel.core.lifecycle;
 
 import me.davehummel.core.IntegrationService;
-import me.davehummel.core.providers.connection.PortConnectionException;
+import me.davehummel.core.SettingsScreenResponse;
 import me.davehummel.core.providers.ui.ConnectionScreenResponse;
 import me.davehummel.core.providers.ui.RCScreenResponse;
 
@@ -16,7 +16,7 @@ public class LifeCycleController {
         this.integration = integration;
     }
 
-    public void start(){
+    public void start() {
         ConnectionScreenResponse connectionResponse = null;
         while (true) {
             if (connectionResponse == null) {
@@ -27,30 +27,34 @@ public class LifeCycleController {
                     connectionResponse = null;
                     continue;
                 }
-            }
-
-            try {
-                integration.connectToPort(connectionResponse.portName);
-            } catch (PortConnectionException e) {
-                integration.showErrorScreen("Unable to connect to port:"+connectionResponse.portName,e);
-                connectionResponse = null;
-                continue;
+                if (connectionResponse.error != null) {
+                    integration.showErrorScreen("Connection Failed", "Unable to connect to port:" + connectionResponse.portName, connectionResponse.error);
+                    connectionResponse = null;
+                    continue;
+                }
             }
 
             // Show touch screen
 
             RCScreenResponse rcScreenResponse = integration.showRCScreen();
 
-            if (rcScreenResponse == RCScreenResponse.LostConnection){
+            if (rcScreenResponse == RCScreenResponse.LostConnection) {
+                integration.showErrorScreen("Lost Connection", "Unable to communicate with robot.", null);
                 integration.disconnect();
                 connectionResponse = null;
                 continue;
             }
-            if (rcScreenResponse == RCScreenResponse.Settings){
-               integration.showSettingsScreen();
-               continue;
+            if (rcScreenResponse == RCScreenResponse.Settings) {
+                SettingsScreenResponse response = integration.showSettingsScreen();
+                if (response == SettingsScreenResponse.LostConnection) {
+                    integration.showErrorScreen("Lost Connection", "Unable to send settings to robot.", null);
+                    integration.disconnect();
+                    connectionResponse = null;
+                    continue;
+                }
+                continue;
             }
-            if (rcScreenResponse == RCScreenResponse.Exit){
+            if (rcScreenResponse == RCScreenResponse.Exit) {
                 integration.exit();
                 return;
             }

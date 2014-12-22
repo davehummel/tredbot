@@ -4,17 +4,21 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Dialog;
 import javafx.stage.Stage;
 import me.davehummel.core.SettingsScreenResponse;
 import me.davehummel.core.lifecycle.LifeCycleController;
 import me.davehummel.core.platforms.windows.ui.ConnectionScreenController;
 import me.davehummel.core.platforms.windows.ui.WindowsJFXApplication;
+import me.davehummel.core.providers.connection.PortConnectionException;
 import me.davehummel.core.providers.ui.ConnectionScreenResponse;
 import me.davehummel.core.providers.ui.RCScreenResponse;
 import me.davehummel.core.providers.ui.UIProvider;
 import me.davehummel.core.robot.RobotSettings;
 import me.davehummel.core.robot.StatusReceiver;
 import me.davehummel.core.robot.UpdateSender;
+import org.controlsfx.control.action.Action;
+import org.controlsfx.dialog.Dialogs;
 
 import java.io.File;
 import java.io.IOException;
@@ -91,5 +95,14 @@ public class WindowsUIProvider implements UIProvider {
     @Override
     public RCScreenResponse showRCScreen(StatusReceiver statusReceiver, UpdateSender updateSender) {
         return null;
+    }
+
+    @Override
+    public void showErrorScreen(String title, String message, Exception error) {
+        if (error!=null){
+            Action response = Dialogs.create().title(title).message(message).showException(error);
+        }else{
+            Action response = Dialogs.create().title(title).message(message).showError();
+        }
     }
 }

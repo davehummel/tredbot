@@ -33,6 +33,10 @@ public class IntegrationService {
         this.uip = uip;
     }
 
+    public void sendRobotSettings(RobotSettings robotSettings) throws IOException {
+        robotSettings.writeToRobot(connection);
+    }
+
     public void storeRobotSettings(RobotSettings robotSettings) {
         robotSettings.writeToStore(lsp);
     }
@@ -47,10 +51,6 @@ public class IntegrationService {
 
     public List<String> getSerialPortNames() {
         return spp.getSerialPortNames();
-    }
-
-    public void connectToPort(String portName) throws PortConnectionException {
-        connection = spp.connectToPort(portName);
     }
 
     public void updateSpeed(int speed, int turn, boolean turnLeft) throws IOException {
@@ -88,14 +88,23 @@ public class IntegrationService {
     public ConnectionScreenResponse showConnectionScreen() {
         String lastUsedPort = lsp.get(LAST_USED_PORT);
         ConnectionScreenResponse response = uip.showConnectionScreen(lastUsedPort, spp.getSerialPortNames());
-        if (response != null)
+        if (response == ConnectionScreenResponse.REFRESH)
+            return response;
+        if (response != null) {
             lsp.set(LAST_USED_PORT, response.portName);
+            try {
+                connection = spp.connectToPort(response.portName);
+                return response;
+            } catch (PortConnectionException e) {
+                return new ConnectionScreenResponse(response.portName,e);
+            }
+
+        }
+
         return response;
     }
 
     public RCScreenResponse showRCScreen() {
-        ;
-
         RCScreenResponse response = uip.showRCScreen(connection.getStatusReceiver(), connection.getUpdateSender());
         return response;
     }
@@ -122,7 +131,7 @@ public class IntegrationService {
             connection.disconnect();
     }
 
-    public void showErrorScreen(String message, PortConnectionException error) {
-        uip.showErrorScreen(message,error);
+    public void showErrorScreen(String title, String message, Exception error) {
+        uip.showErrorScreen(title,message,error);
     }
 }

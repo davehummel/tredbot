@@ -24,5 +24,5 @@ public interface UIProvider {
 
     RCScreenResponse showRCScreen(StatusReceiver statusReceiver, UpdateSender updateSender);
 
-    void showErrorScreen(String message, PortConnectionException error);
+    void showErrorScreen(String title, String message, Exception error);
 }

@@ -1,5 +1,6 @@
 package me.davehummel.core.providers.ui;
 
+import me.davehummel.core.platforms.windows.ui.ConnectionScreenController;
 import me.davehummel.core.robot.RobotConnection;
 
 /**
@@ -11,8 +12,16 @@ public class ConnectionScreenResponse {
 
     public final String portName;
 
+    public final Exception error;
+
     public ConnectionScreenResponse(String portName) {
         this.portName = portName;
+        this.error = null;
+    }
+
+    public ConnectionScreenResponse(String portName, Exception e){
+        this.portName = portName;
+        this.error = e;
     }
 
 }
