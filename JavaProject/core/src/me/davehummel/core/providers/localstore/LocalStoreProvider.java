@@ -14,4 +14,6 @@ public interface LocalStoreProvider {
     void remove(String key);
 
     void persist();
+
+    void shutdown();
 }

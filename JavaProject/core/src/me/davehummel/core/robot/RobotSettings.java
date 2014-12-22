@@ -2,6 +2,8 @@ package me.davehummel.core.robot;
 
 import me.davehummel.core.providers.localstore.LocalStoreProvider;
 
+import java.io.IOException;
+
 
 /**
  * Created by davidhummel on 12/16/14.
@@ -75,7 +77,7 @@ public class RobotSettings {
         fastTurnSpeed = temp;
     }
 
-    public RobotSettings(RobotConnection connection){
+    public RobotSettings(RobotConnection connection) throws IOException {
         String response = connection.ask(RobotConnection.GET_CONFIG_COMMAND,null);
         String[] values = response.split(" ");
         int temp ;
@@ -123,7 +125,7 @@ public class RobotSettings {
         fastTurnSpeed = temp;
     }
 
-    public void writeToRobot(RobotConnection connection){
+    public void writeToRobot(RobotConnection connection) throws IOException {
         StringBuilder message = new StringBuilder();
         message.append(Integer.toString(stepInterval));
         message.append(' ');

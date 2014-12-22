@@ -6,5 +6,7 @@ package me.davehummel.core.providers.connection;
 public class PortConnectionException extends Exception {
 
 
-
+    public PortConnectionException(String s) {
+        super(s);
+    }
 }

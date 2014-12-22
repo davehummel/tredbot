@@ -48,6 +48,8 @@ const long STARTTIME = 1000*(millis()/1000);
 
 void setup() {
   Serial.begin(57600);
+  pinMode(13, OUTPUT);   
+  
   AFMS.begin();  // create with the default frequency 1.6KHz
   digitalWrite(13,HIGH);
   myMotorL->setSpeed(MAXSPEED);
@@ -66,13 +68,31 @@ void setup() {
   
   lcd.begin(16, 2);
   pixels.begin();
-  Serial.write("TredBot Ready!");
+  Serial.write("TredBot Ready!\n");
   setTop("Ready!");
   setBottom("0 s");
 }
 
+ long readVcc() {
+  long result;
+  // Read 1.1V reference against AVcc
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  delay(2); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Convert
+  while (bit_is_set(ADCSRA,ADSC));
+  result = ADCL;
+  result |= ADCH<<8;
+  result = 1125300L / result; // Back-calculate AVcc in mV
+  return result;
+}
 
 
+double voltageIn(){
+  unsigned int ADCValue;
+  double Vcc = readVcc()/1000.0;
+  ADCValue = analogRead(0);
+  return (ADCValue / 1023.0) * 5;
+}
 
 uint8_t lSpeed = 0,rSpeed = 0;
 bool execute=false,debug=false;
@@ -105,7 +125,7 @@ void loop() {
       if (lastDisplayUpdate<now-1000){
         lastDisplayUpdate = now;
         if (sleeping){
-           setBottom(String((lastDisplayUpdate - STARTTIME)/1000)+" s");
+           setBottom(String(voltageIn())+"v");
         }
         setBacklight(r,g,b);
       }
@@ -115,7 +135,7 @@ void loop() {
            if (factor<0)
               factor = factor * -1;
            factor = factor+.01;
-           drawCircle(100*factor,10*factor,180*factor);
+           drawCircle(20*factor,255*fact,10*factor);
       }
       timeDelta = now - previousTime;
       previousTime = now;
@@ -149,6 +169,8 @@ void loop() {
         else
            setTop("Turning Right");
         drawTurn(turnTotal,turnRemaining, turnLeft,r,g,b);
+      
+       
         updateDifferential( currentSpeed, turnLeft, turnRight,timeDelta, turnRemaining,leftDif, rightDif);
         updateMotor = true;
       } else if (turnLeft|turnRight){
@@ -164,7 +186,12 @@ void loop() {
       
       if (updateMotor) {
         setMotorSpeeds(currentSpeed,leftDif,rightDif);
+          Serial.write(turnLeft?">L:":">R:");
+          Serial.print(turnRemaining);
+          Serial.write(":");
+          Serial.println(currentSpeed);
       }
+      
     }
   }
 }
@@ -184,7 +211,7 @@ void updateSpeed(int &currentSpeed, int targetSpeed){
 void updateDifferential(int currentSpeed, bool turnLeft, bool turnRight, long timeDelta, unsigned int &turnRemaining, int &leftDif, int &rightDif){
   float slowFrac = (1.0-currentSpeed/255.0);
   float fastFrac = (currentSpeed/255.0);
-  float difAmount = slowFrac*stopped_turn_total+fastFrac*fast_turn_speed;
+  float difAmount = slowFrac*stopped_turn_speed+fastFrac*fast_turn_speed;
   float turnTime = slowFrac*stopped_turn_interval+fastFrac*fast_turn_interval;
   float frac = timeDelta/turnTime;
   int turnStep = frac*MAX_UNSIGNED_INT;
@@ -210,7 +237,7 @@ void updateDifferential(int currentSpeed, bool turnLeft, bool turnRight, long ti
 
 void setMotorSpeeds(int currentSpeed, int leftDif, int rightDif){
  if (debug){
-   Serial.write("\nT+");
+   Serial.write("T+");
    Serial.print((millis() - STARTTIME)/(float)1000);
    Serial.write("s>CS|LD|RD|SC|TL|TR>"); 
    Serial.print(currentSpeed);
@@ -288,6 +315,7 @@ void setMotorSpeeds(int currentSpeed, int leftDif, int rightDif){
     Serial.write(lForward?"F|":"B|");
     Serial.print(rSpeed);
     Serial.write(rForward?"F<":"B<");
+    Serial.write("\n");
   }
 }
 
@@ -337,11 +365,10 @@ void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetS
    case EXECUTE_COMMAND: // execute -- command to determine if movements are executed by motors or just simulated
      execute = !execute;
      Serial.write("OK:");
-     Serial.write(execute?"true\n":"talse\n");
+     Serial.write(execute?"true\n":"false\n");
      return;
    break;
    case PING_COMMAND: // ping -- does nothing but keep from sleeping
-     Serial.write("OK\n");
      return;
    case STATUS_COMMAND: // status -- return status
      sendStatus(targetSpeed,currentSpeed,turnRemaining);
@@ -404,13 +431,13 @@ void setTop(String topLine){
   lcd.setCursor(0,0);
   lcd.print(BLANKLINE);
   lcd.setCursor(0,0);
- lcd.print(topLine);
+  lcd.print(topLine);
 }
 void setBottom(String bottomLine){
   lcd.setCursor(0,1);
-   lcd.print(BLANKLINE);
-     lcd.setCursor(0,1);
- lcd.print(bottomLine);
+  lcd.print(BLANKLINE);
+  lcd.setCursor(0,1);
+  lcd.print(bottomLine);
 }
 
 void setBacklight(uint8_t r, uint8_t g, uint8_t b) {
@@ -467,13 +494,13 @@ void drawTurn(unsigned int turnTotal, unsigned int currentTurn, boolean turnLeft
        darkSpot+=NUMPIXELS;
   }
   
-  Serial.write("[");
-  Serial.print(brightSpot);
-  Serial.write(",");
-  Serial.print(darkSpot);
-  Serial.write("]");
+//  Serial.write("[");
+//  Serial.print(brightSpot);
+//  Serial.write(",");
+//  Serial.print(darkSpot);
+//  Serial.write("]");
   
-    for (int i =0; i< NUMPIXELS; i ++){
+  for (int i =0; i< NUMPIXELS; i ++){
     pixels.setPixelColor(i,pixels.Color(0,0,0));
   }
   

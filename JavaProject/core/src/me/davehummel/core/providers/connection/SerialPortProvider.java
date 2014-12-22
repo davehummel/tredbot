@@ -11,6 +11,7 @@ public interface SerialPortProvider {
 
     List<String> getSerialPortNames();
 
-    RobotConnection connectToPort(String portName);
+    RobotConnection connectToPort(String portName) throws PortConnectionException;
 
+    void shutdown();
 }
