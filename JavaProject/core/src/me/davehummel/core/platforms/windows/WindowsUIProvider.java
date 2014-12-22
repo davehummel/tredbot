@@ -26,6 +26,7 @@ import java.util.List;
 public class WindowsUIProvider implements UIProvider {
 
     private Parent connectionScreen = null;
+    private ConnectionScreenController connectionScreenController;
     static private Stage stage;
     static volatile private LifeCycleController lifecycle;
     static volatile private Application app = null;
@@ -54,11 +55,11 @@ public class WindowsUIProvider implements UIProvider {
             try {
                 File file = new File("resources/ConnectionScreen.fxml");
                 FXMLLoader fxmlLoader = new FXMLLoader(file.toURL());
-                ConnectionScreenController controller = new ConnectionScreenController();
-                controller.setInitialValues(lastUsedPort,serialPortNames);
+                connectionScreenController = new ConnectionScreenController();
+                connectionScreenController.setInitialValues(lastUsedPort,serialPortNames);
 
-                fxmlLoader.setController(controller);
-                connectionScreen = fxmlLoader.load();
+                fxmlLoader.setController(connectionScreenController);
+                connectionScreen = (Parent) fxmlLoader.load();
             } catch (IOException e) {
                 e.printStackTrace();
                 return null;
@@ -67,8 +68,8 @@ public class WindowsUIProvider implements UIProvider {
 
         stage.setTitle("Choose Serial Port");
         stage.setScene(new Scene(connectionScreen));
-        stage.show();
-        return null;
+        stage.showAndWait();
+        return connectionScreenController.getResponse();
     }
 
     @Override

@@ -1,6 +1,7 @@
 package me.davehummel.core.lifecycle;
 
 import me.davehummel.core.IntegrationService;
+import me.davehummel.core.providers.connection.PortConnectionException;
 import me.davehummel.core.providers.ui.ConnectionScreenResponse;
 import me.davehummel.core.providers.ui.RCScreenResponse;
 
@@ -22,15 +23,26 @@ public class LifeCycleController {
                 connectionResponse = integration.showConnectionScreen();
                 if (connectionResponse == null)
                     return;
-                if (connectionResponse == ConnectionScreenResponse.REFRESH)
+                if (connectionResponse == ConnectionScreenResponse.REFRESH) {
+                    connectionResponse = null;
                     continue;
+                }
             }
+
+            try {
+                integration.connectToPort(connectionResponse.portName);
+            } catch (PortConnectionException e) {
+                integration.showErrorScreen("Unable to connect to port:"+connectionResponse.portName,e);
+                connectionResponse = null;
+                continue;
+            }
+
             // Show touch screen
 
             RCScreenResponse rcScreenResponse = integration.showRCScreen();
 
             if (rcScreenResponse == RCScreenResponse.LostConnection){
-                connectionResponse.connection.disconnect();
+                integration.disconnect();
                 connectionResponse = null;
                 continue;
             }

@@ -27,17 +27,17 @@ public class IntegrationService {
     private RobotConnection connection;
     private CloseListener closeListener;
 
-    public IntegrationService(SerialPortProvider spp, LocalStoreProvider lsp,UIProvider uip) {
+    public IntegrationService(SerialPortProvider spp, LocalStoreProvider lsp, UIProvider uip) {
         this.spp = spp;
         this.lsp = lsp;
         this.uip = uip;
     }
 
-    public void storeRobotSettings(RobotSettings robotSettings){
+    public void storeRobotSettings(RobotSettings robotSettings) {
         robotSettings.writeToStore(lsp);
     }
 
-    public RobotSettings getRobotSettingsFromStore(){
+    public RobotSettings getRobotSettingsFromStore() {
         return new RobotSettings(lsp);
     }
 
@@ -45,7 +45,7 @@ public class IntegrationService {
         return new RobotSettings(connection);
     }
 
-    public List<String> getSerialPortNames(){
+    public List<String> getSerialPortNames() {
         return spp.getSerialPortNames();
     }
 
@@ -54,27 +54,27 @@ public class IntegrationService {
     }
 
     public void updateSpeed(int speed, int turn, boolean turnLeft) throws IOException {
-        if (connection!=null){
-            connection.ask(RobotConnection.UPDATE_COMMAND,speed+","+turn+(turnLeft?"l":"r"));
+        if (connection != null) {
+            connection.ask(RobotConnection.UPDATE_COMMAND, speed + "," + turn + (turnLeft ? "l" : "r"));
         }
     }
 
     public boolean switchDebugMode() throws IOException {
-        if (connection!=null){
-          return  connection.ask(RobotConnection.DEBUG_COMMAND,"").endsWith("true");
+        if (connection != null) {
+            return connection.ask(RobotConnection.DEBUG_COMMAND, "").endsWith("true");
         }
         return false;
     }
 
     public boolean switchExecuteMode() throws IOException {
-        if (connection!=null){
-            connection.ask(RobotConnection.EXECUTE_COMMAND,"").endsWith("true");
+        if (connection != null) {
+            connection.ask(RobotConnection.EXECUTE_COMMAND, "").endsWith("true");
         }
         return false;
     }
 
-    public void exit(){
-        if (connection!=null){
+    public void exit() {
+        if (connection != null) {
             connection.disconnect();
         }
         lsp.persist();
@@ -87,9 +87,9 @@ public class IntegrationService {
 
     public ConnectionScreenResponse showConnectionScreen() {
         String lastUsedPort = lsp.get(LAST_USED_PORT);
-        ConnectionScreenResponse response= uip.showConnectionScreen(lastUsedPort, spp.getSerialPortNames());
-        if (response!=null)
-            lsp.set(LAST_USED_PORT,response.portName);
+        ConnectionScreenResponse response = uip.showConnectionScreen(lastUsedPort, spp.getSerialPortNames());
+        if (response != null)
+            lsp.set(LAST_USED_PORT, response.portName);
         return response;
     }
 
@@ -104,16 +104,25 @@ public class IntegrationService {
         RobotSettings localSettings = new RobotSettings(lsp);
         try {
             RobotSettings robotSettings = new RobotSettings(connection);
-            SettingsScreenResponse response = uip.showSettingsScreen(localSettings,robotSettings);
-            if (response.isUpload){
+            SettingsScreenResponse response = uip.showSettingsScreen(localSettings, robotSettings);
+            if (response.isUpload) {
                 response.robotSettings.writeToRobot(connection);
             }
-            if (response.isSave){
+            if (response.isSave) {
                 response.robotSettings.writeToStore(lsp);
             }
             return SettingsScreenResponse.Done;
         } catch (IOException e) {
             return SettingsScreenResponse.LostConnection;
         }
+    }
+
+    public void disconnect() {
+        if (connection != null)
+            connection.disconnect();
+    }
+
+    public void showErrorScreen(String message, PortConnectionException error) {
+        uip.showErrorScreen(message,error);
     }
 }

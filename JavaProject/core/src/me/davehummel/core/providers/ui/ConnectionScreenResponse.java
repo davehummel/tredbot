@@ -7,15 +7,12 @@ import me.davehummel.core.robot.RobotConnection;
  */
 public class ConnectionScreenResponse {
 
-    public static final ConnectionScreenResponse REFRESH = new ConnectionScreenResponse(null,null);
+    public static final ConnectionScreenResponse REFRESH = new ConnectionScreenResponse(null);
 
     public final String portName;
-    public final RobotConnection connection;
 
-
-    public ConnectionScreenResponse(String portName, RobotConnection connection) {
+    public ConnectionScreenResponse(String portName) {
         this.portName = portName;
-        this.connection = connection;
     }
 
 }

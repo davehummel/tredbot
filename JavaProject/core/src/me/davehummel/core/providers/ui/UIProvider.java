@@ -2,6 +2,7 @@ package me.davehummel.core.providers.ui;
 
 import me.davehummel.core.SettingsScreenResponse;
 import me.davehummel.core.lifecycle.LifeCycleController;
+import me.davehummel.core.providers.connection.PortConnectionException;
 import me.davehummel.core.robot.RobotSettings;
 import me.davehummel.core.robot.StatusReceiver;
 import me.davehummel.core.robot.UpdateSender;
@@ -23,5 +24,5 @@ public interface UIProvider {
 
     RCScreenResponse showRCScreen(StatusReceiver statusReceiver, UpdateSender updateSender);
 
-
+    void showErrorScreen(String message, PortConnectionException error);
 }
