@@ -1,5 +1,6 @@
 package me.davehummel.core.providers.connection.rxtx;
 
+import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
 import gnu.io.PortInUseException;
 import gnu.io.SerialPort;
@@ -23,10 +24,11 @@ public class RXTXSerialPortProvider implements SerialPortProvider {
     @Override
     public List<String> getSerialPortNames() {
         Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
+
         List<String> ports = new ArrayList<String>();
-        while (portEnum.hasMoreElements()){
+        do {
             ports.add(((CommPortIdentifier) portEnum.nextElement()).getName());
-        }
+        } while (portEnum.hasMoreElements());
         return ports;
     }
 
