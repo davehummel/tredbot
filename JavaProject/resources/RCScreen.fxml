@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.shape.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="background" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: BLACK;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <CheckBox layoutX="14.0" layoutY="369.0" mnemonicParsing="false" style="-fx-text-fill: grey;" text="Debug" AnchorPane.bottomAnchor="14.0" AnchorPane.leftAnchor="14.0" />
+      <Group fx:id="settingsButton" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="14.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="148.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="14.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#008d13" />
+                        <Stop color="#028a0bd1" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="40.0" layoutY="38.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Settings">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button1" layoutY="134.0" AnchorPane.topAnchor="68.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="14.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="38.0" strokeType="OUTSIDE" strokeWidth="0.0" text="1">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button2" layoutX="50.0" layoutY="71.0" AnchorPane.leftAnchor="68.0" AnchorPane.topAnchor="68.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="14.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="38.0" strokeType="OUTSIDE" strokeWidth="0.0" text="2">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button3" layoutY="71.0" AnchorPane.leftAnchor="122.0" AnchorPane.topAnchor="68.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="14.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="3">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button4" layoutX="10.0" layoutY="81.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="122.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="4">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="exitButton" layoutY="251.0" AnchorPane.bottomAnchor="46.0" AnchorPane.leftAnchor="14.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="148.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="14.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#a10000" />
+                        <Stop color="#9e0000d1" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="66.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Exit">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button5" layoutX="54.0" layoutY="112.0" AnchorPane.leftAnchor="68.0" AnchorPane.topAnchor="122.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="5">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button6" layoutX="108.0" layoutY="112.0" AnchorPane.leftAnchor="122.0" AnchorPane.topAnchor="122.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="6">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button7" layoutY="177.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="176.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="7">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button8" layoutX="50.0" layoutY="177.0" AnchorPane.leftAnchor="68.0" AnchorPane.topAnchor="176.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="8">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <Group fx:id="button9" layoutX="108.0" layoutY="177.0" AnchorPane.leftAnchor="122.0" AnchorPane.topAnchor="176.0">
+         <children>
+            <Rectangle arcHeight="30.0" arcWidth="20.0" height="40.0" layoutX="14.0" layoutY="10.0" stroke="BLACK" strokeType="INSIDE" width="40.0">
+               <fill>
+                  <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+                     <stops>
+                        <Stop color="#0096a1" />
+                        <Stop color="#225259d2" offset="1.0" />
+                     </stops>
+                  </RadialGradient>
+               </fill>
+            </Rectangle>
+            <Text fill="#ffffffbf" layoutX="27.0" layoutY="39.0" strokeType="OUTSIDE" strokeWidth="0.0" text="9">
+               <font>
+                  <Font name="Arial Rounded MT Bold" size="24.0" />
+               </font>
+            </Text>
+         </children>
+      </Group>
+      <ImageView fx:id="circleImage" fitHeight="150.0" fitWidth="200.0" layoutY="14.0" pickOnBounds="true" preserveRatio="true" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="14.0" />
+      <Circle fx:id="robotPoint" layoutX="0.0" layoutY="0.0" radius="15.0" stroke="#f5000091" strokeType="INSIDE">
+         <fill>
+            <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+               <stops>
+                  <Stop color="#bf1717" />
+                  <Stop color="#9e474700" offset="1.0" />
+               </stops>
+            </RadialGradient>
+         </fill>
+      </Circle>
+      <Circle fx:id="touchPoint" layoutX="0.0" layoutY="0.0" radius="15.0" stroke="#ffffff92" strokeType="INSIDE">
+         <fill>
+            <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+               <stops>
+                  <Stop color="#f5f5f5" />
+                  <Stop color="#ffffff00" offset="1.0" />
+               </stops>
+            </RadialGradient>
+         </fill>
+      </Circle>
+   </children>
+</AnchorPane>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <TextField fx:id="stepInterval" layoutX="170.0" layoutY="14.0" AnchorPane.leftAnchor="170.0" AnchorPane.topAnchor="14.0" />
+      <Label layoutX="14.0" layoutY="18.0" text="Step Interval (ms)" AnchorPane.topAnchor="18.0" />
+      <Label layoutX="14.0" layoutY="52.0" text="Max speed delta" AnchorPane.topAnchor="52.0" />
+      <TextField fx:id="maxSpeedDelta" layoutX="170.0" layoutY="48.0" AnchorPane.leftAnchor="170.0" AnchorPane.topAnchor="48.0" />
+      <Label layoutX="14.0" layoutY="89.0" text="Stopped Turn Interval" AnchorPane.topAnchor="86.0" />
+      <TextField fx:id="stoppedTurnInterval" layoutX="170.0" layoutY="85.0" AnchorPane.leftAnchor="170.0" AnchorPane.topAnchor="82.0" />
+      <Label layoutX="14.0" layoutY="120.0" text="Fast Turn Interval" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="120.0" />
+      <TextField fx:id="fastTurnInterval" layoutX="170.0" layoutY="116.0" AnchorPane.leftAnchor="170.0" AnchorPane.topAnchor="116.0" />
+      <Label layoutX="14.0" layoutY="154.0" text="Stopped Turn Speed" AnchorPane.topAnchor="154.0" />
+      <TextField fx:id="stoppedTurnSpeed" layoutX="170.0" layoutY="150.0" AnchorPane.leftAnchor="170.0" AnchorPane.topAnchor="150.0" />
+      <TextField fx:id="fastTurnSpeed" layoutX="170.0" layoutY="184.0" AnchorPane.leftAnchor="170.0" AnchorPane.topAnchor="184.0" />
+      <Label layoutX="14.0" layoutY="188.0" text="Fast Turn Speed" AnchorPane.topAnchor="188.0" />
+      <Button fx:id="saveButton" layoutX="248.0" layoutY="222.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="71.0" text="Save" />
+      <CheckBox fx:id="rememberCheck" layoutX="22.0" layoutY="226.0" mnemonicParsing="false" selected="true" text="Remember" AnchorPane.leftAnchor="22.0" AnchorPane.topAnchor="226.0" />
+   </children>
+</AnchorPane>

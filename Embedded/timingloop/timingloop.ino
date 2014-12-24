@@ -103,7 +103,7 @@ int stopped_turn_speed = MAX_STOPPED_TURN_SPEED/2;
 int fast_turn_speed = MAX_FAST_TURN_SPEED /2;
 int speed_delta_interval = MAX_SPEED_DELTA_INTERVAL/2;
 int step_interval = MIN_STEP_INTERVAL*2;
-
+boolean isSetup = false;
 
 void loop() {
   uint8_t r=90,g=200,b=255;
@@ -135,7 +135,7 @@ void loop() {
            if (factor<0)
               factor = factor * -1;
            factor = factor+.01;
-           drawCircle(20*factor,255*fact,10*factor);
+           drawCircle(20*factor,50*factor,100*factor);
       }
       timeDelta = now - previousTime;
       previousTime = now;
@@ -403,11 +403,14 @@ void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetS
      if (fast_turn_speed>MAX_FAST_TURN_SPEED){
        fast_turn_speed = MAX_FAST_TURN_SPEED;
      }
-
+      isSetup = true;
       Serial.readBytes(command,1);
       Serial.write("OK\n");
      return;
    case GET_CONFIG_COMMAND: // get configuration
+     Serial.write("OK:");
+     Serial.print(isSetup);
+     Serial.print(' ');
      Serial.print(step_interval);
      Serial.write(' ');
      Serial.print(speed_delta_interval);
