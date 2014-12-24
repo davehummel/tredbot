@@ -123,6 +123,14 @@ public class RCScreenController extends UIController implements Initializable {
             }
         });
 
+        button2.setOnMouseClicked(event -> {
+            try {
+                updateSender.sendUpdate(-80,0,true);
+            } catch (PortConnectionException e) {
+                complete(RCScreenResponse.LostConnection);
+            }
+        });
+
         ((Shape) button1.getChildren().get(0)).setFill(disabledFill);
 
         exitButton.setOnMouseClicked(event -> {
