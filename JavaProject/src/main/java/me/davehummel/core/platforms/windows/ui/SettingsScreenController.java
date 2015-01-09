@@ -28,16 +28,16 @@ public class SettingsScreenController extends UIController implements Initializa
     private TextField maxSpeedDelta;
 
     @FXML
-    private TextField stoppedTurnInterval;
+    private TextField angleStopped;
 
     @FXML
-    private TextField fastTurnInterval;
+    private TextField angleFast;
 
     @FXML
-    private TextField stoppedTurnSpeed;
+    private TextField tredDeltaStopped;
 
     @FXML
-    private TextField fastTurnSpeed;
+    private TextField tredDeltaFast;
 
     @FXML
     private Button saveButton;
@@ -51,7 +51,7 @@ public class SettingsScreenController extends UIController implements Initializa
     public void initialize(URL location, ResourceBundle resources) {
             saveButton.setOnAction(event -> {
                 try {
-                    RobotSettings robotSettings = new RobotSettings(getInt(stepInterval),getInt(maxSpeedDelta),getInt(stoppedTurnInterval),getInt(fastTurnInterval),getInt(stoppedTurnSpeed),getInt(fastTurnSpeed));
+                    RobotSettings robotSettings = new RobotSettings(getInt(stepInterval),getInt(maxSpeedDelta),getFloat(angleStopped),getFloat(angleFast),getInt(tredDeltaStopped),getInt(tredDeltaFast));
                     complete(new SettingsScreenResponse(rememberCheck.isSelected(),true,robotSettings));
                 } catch (NullPointerException e){
                     return;
@@ -59,16 +59,16 @@ public class SettingsScreenController extends UIController implements Initializa
             });
 
         RobotSettings active = fileSettings;
-        if (fileSettings.getStepInterval() == -1){
+        if (fileSettings.isCustom() == false){
             active = remoteSettings;
         }
 
         stepInterval.setText(Integer.toString(active.getStepInterval()));
         maxSpeedDelta.setText(Integer.toString(active.getSpeedDeltaPerInterval()));
-        stoppedTurnInterval.setText(Integer.toString(active.getStoppedTurnTime()));
-        fastTurnInterval.setText(Integer.toString(active.getFastTurnTime()));
-        stoppedTurnSpeed.setText(Integer.toString(active.getStoppedTurnSpeed()));
-        fastTurnSpeed.setText(Integer.toString(active.getFastTurnSpeed()));
+        angleStopped.setText(Float.toString(active.getExpAnglePerIntervalStopped()));
+        angleFast.setText(Float.toString(active.getExpAnglePerIntervalFast()));
+        tredDeltaStopped.setText(Integer.toString(active.getDefTredDeltaStopped()));
+        tredDeltaFast.setText(Integer.toString(active.getDefTredDeltaFast()));
     }
 
     public void setInitialValues(RobotSettings fileSettings,RobotSettings remoteSettings){
@@ -79,6 +79,17 @@ public class SettingsScreenController extends UIController implements Initializa
     private int getInt(TextField field) {
         try{
             int i =  Integer.parseInt(field.getText());
+            field.setBackground(null);
+            return i;
+        } catch (Exception e){
+            setError(field);
+            throw new NullPointerException();
+        }
+    }
+
+    private float getFloat(TextField field) {
+        try{
+            float i =  Float.parseFloat(field.getText());
             field.setBackground(null);
             return i;
         } catch (Exception e){

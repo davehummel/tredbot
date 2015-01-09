@@ -1,8 +1,5 @@
 package me.davehummel.core.providers.ui;
 
-import me.davehummel.core.platforms.windows.ui.ConnectionScreenController;
-import me.davehummel.core.robot.RobotConnection;
-
 /**
  * Created by Dave on 12/20/2014.
  */
@@ -14,14 +11,24 @@ public class ConnectionScreenResponse implements ScreenResponse{
 
     public final Exception error;
 
+    public final String extra;
+
     public ConnectionScreenResponse(String portName) {
         this.portName = portName;
         this.error = null;
+        this.extra = null;
     }
 
     public ConnectionScreenResponse(String portName, Exception e){
         this.portName = portName;
         this.error = e;
+        this.extra = null;
+    }
+
+    public ConnectionScreenResponse(String portName,  String extra){
+        this.portName = portName;
+        this.error = null;
+        this.extra = extra;
     }
 
 }

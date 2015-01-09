@@ -1,8 +1,5 @@
 package me.davehummel.core.providers.ui;
 
-import me.davehummel.core.robot.StatusReceiver;
-import me.davehummel.core.robot.UpdateSender;
-
 /**
  * Created by Dave on 12/20/2014.
  */

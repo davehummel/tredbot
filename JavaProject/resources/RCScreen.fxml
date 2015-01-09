@@ -223,16 +223,6 @@
          </children>
       </Group>
       <ImageView fx:id="circleImage" fitHeight="150.0" fitWidth="200.0" layoutY="14.0" pickOnBounds="true" preserveRatio="true" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="14.0" />
-      <Circle fx:id="robotPoint" layoutX="0.0" layoutY="0.0" radius="15.0" stroke="#f5000091" strokeType="INSIDE">
-         <fill>
-            <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
-               <stops>
-                  <Stop color="#bf1717" />
-                  <Stop color="#9e474700" offset="1.0" />
-               </stops>
-            </RadialGradient>
-         </fill>
-      </Circle>
       <Circle fx:id="touchPoint" layoutX="0.0" layoutY="0.0" radius="15.0" stroke="#ffffff92" strokeType="INSIDE">
          <fill>
             <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
@@ -243,5 +233,16 @@
             </RadialGradient>
          </fill>
       </Circle>
+      <Circle fx:id="robotPoint" layoutX="10.0" layoutY="10.0" radius="15.0" stroke="#ffffff92" strokeType="INSIDE">
+         <fill>
+            <RadialGradient centerX="0.5" centerY="0.5" radius="0.5">
+               <stops>
+                  <Stop color="#c70606f2" />
+                  <Stop color="#ff0d0d07" offset="1.0" />
+               </stops>
+            </RadialGradient>
+         </fill>
+      </Circle>
+      <Circle fx:id="centerPoint" fill="#c7bdbd34" radius="100.0" stroke="#790909" strokeType="INSIDE" strokeWidth="3.0" />
    </children>
 </AnchorPane>
