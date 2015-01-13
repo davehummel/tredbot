@@ -2,6 +2,7 @@ package me.davehummel.core.providers.ui;
 
 import me.davehummel.core.IntegrationService;
 import me.davehummel.core.lifecycle.LifeCycleController;
+import me.davehummel.core.robot.LineReceiver;
 import me.davehummel.core.robot.RobotSettings;
 import me.davehummel.core.robot.StatusReceiver;
 import me.davehummel.core.robot.UpdateSender;
@@ -24,4 +25,6 @@ public interface UIProvider {
     void showRCScreen(StatusReceiver statusReceiver, UpdateSender updateSender, IntegrationService integrationService);
 
     void showErrorScreen(String title, String message, Exception error);
+
+    void showGyroScreen(LineReceiver lineReceiver, IntegrationService integrationService);
 }

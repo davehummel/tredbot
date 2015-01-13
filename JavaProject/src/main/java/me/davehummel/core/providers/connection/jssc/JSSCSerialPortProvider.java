@@ -53,6 +53,7 @@ public class JSSCSerialPortProvider implements SerialPortProvider {
                 @Override
                 protected void sendLine(String line) throws PortConnectionException {
                     try {
+                        System.out.println("Sending:"+line);
                         serialPort.writeString(line);
                     } catch (SerialPortException e) {
                         e.printStackTrace();

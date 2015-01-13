@@ -25,9 +25,9 @@ import java.util.ResourceBundle;
  */
 public class RCScreenController extends UIController implements Initializable {
 
-    private static final int MINSPEED = 30;
+    private static final int MINSPEED = 25;
     private static final int MAX_UNSIGNED_INT = 65535;
-    private static final int MINTURN = 3000;
+    private static final int MINTURN = 2000;
     private Paint disabledFill, enabledFill = null;
 
 
@@ -68,20 +68,17 @@ public class RCScreenController extends UIController implements Initializable {
     @FXML
     private Circle robotPoint;
 
-    volatile private double referenceTurn = 0;
+    @FXML
+    private Circle centerPoint;
 
-    volatile private double referenceSpeed = 0;
+    volatile private int currentAngle = 0;
 
-    volatile private boolean referenceTL = false;
-
-    volatile private double refrenceAngle = 0;
+    volatile private int currentSpeed = 0;
 
 
-    private double targetTurn = 0;
+    private int targetAngle = 0;
 
-    private double targetSpeed = 0;
-
-    private boolean targetTL = false;
+    private int targetSpeed = 0;
 
     private UpdateSender updateSender;
     private StatusReceiver statusReceiver;
@@ -92,27 +89,26 @@ public class RCScreenController extends UIController implements Initializable {
         enabledFill = ((Shape) button1.getChildren().get(0)).getFill();
         disabledFill = Color.FIREBRICK;
 
-        statusReceiver.setListener((speed, turnRemaining, turnLeft) -> {
-            referenceSpeed = speed;
-            referenceTurn = targetTurn - turnRemaining;
-            if (turnRemaining == 0){
-                referenceTL = targetTL;
-            }else {
-                referenceTL = turnLeft;
-            }
+        statusReceiver.setListener((speed, angle) -> {
+            currentSpeed = speed;
+            currentAngle = angle;
+
             Platform.runLater(() -> {
-                robotPoint.setVisible(referenceSpeed > 0);
-                touchPoint.setVisible(referenceTurn != targetTurn);
-                updatePoint(robotPoint, referenceSpeed, referenceTurn, referenceTL);
+
+                touchPoint.setVisible(currentAngle != targetAngle);
+                updatePoint(robotPoint, currentSpeed, currentAngle);
             });
 
         });
 
-        robotPoint.setVisible(false);
+        robotPoint.setVisible(true);
         touchPoint.setVisible(false);
+        centerPoint.setVisible(true);
 
         touchPoint.setMouseTransparent(true);
         robotPoint.setMouseTransparent(true);
+        centerPoint.setMouseTransparent(true);
+
 
         button1.setOnMouseClicked(event -> {
             try {
@@ -125,13 +121,31 @@ public class RCScreenController extends UIController implements Initializable {
 
         button2.setOnMouseClicked(event -> {
             try {
-                updateSender.sendUpdate(-80,0,true);
+                boolean enabled = updateSender.switchDebugMode();
+                ((Shape) button2.getChildren().get(0)).setFill(enabled ? enabledFill : disabledFill);
+            } catch (PortConnectionException e) {
+                complete(RCScreenResponse.LostConnection);
+            }
+        });
+
+        button3.setOnMouseClicked(event -> {
+            try {
+                updateSender.zeroCommand();
+            } catch (PortConnectionException e) {
+                complete(RCScreenResponse.LostConnection);
+            }
+        });
+
+        button4.setOnMouseClicked(event -> {
+            try {
+                updateSender.sendUpdate(-100,targetAngle);
             } catch (PortConnectionException e) {
                 complete(RCScreenResponse.LostConnection);
             }
         });
 
         ((Shape) button1.getChildren().get(0)).setFill(disabledFill);
+        ((Shape) button2.getChildren().get(0)).setFill(disabledFill);
 
         exitButton.setOnMouseClicked(event -> {
             complete(RCScreenResponse.Exit);
@@ -152,8 +166,8 @@ public class RCScreenController extends UIController implements Initializable {
 
 
         circleImage.setOnTouchPressed(value -> {
-            int speed = 0, turnAmount = 0;
-            boolean turnLeft = false;
+            int speed = 0, angle = 0;
+
             double x, y;
             x = value.getTouchPoint().getX() / circleImage.getFitWidth();
             y = value.getTouchPoint().getY() / circleImage.getFitHeight();
@@ -181,47 +195,53 @@ public class RCScreenController extends UIController implements Initializable {
             if (speed < MINSPEED)
                 speed = 0;
 
-            double deg = Math.atan2(y, x) * (180 / Math.PI) + 90;
-            if (deg > 180)
-                deg = deg - 360;
-
-            if (deg < 0) {
-                turnLeft = true;
-                deg = -deg;
-            } else {
-                turnLeft = false;
+            double rads = Math.atan2(y, x);
+            rads = rads+ Math.PI/2;
+            while (rads <0 || rads > 2*Math.PI){
+                if (rads < 0)
+                    rads+= 2*Math.PI;
+                else
+                    rads-= 2*Math.PI;
             }
-            turnAmount = (int) ((deg / 180d) * MAX_UNSIGNED_INT);
+            angle = (int) (rads/(2*Math.PI) * MAX_UNSIGNED_INT);
 
-            if (turnAmount < MINTURN)
-                turnAmount = 0;
+            if (Math.abs(Math.abs(angle)-Math.abs(currentAngle)) < MINTURN)
+                angle = currentAngle;
 
             if (speed > 0) {
                 touchPoint.setVisible(true);
-                targetTurn = turnAmount;
+                targetAngle = angle;
                 targetSpeed = speed;
-                targetTL = turnLeft;
             } else {
                 touchPoint.setVisible(false);
-                targetTurn = 0;
                 targetSpeed = 0;
-                targetTL = turnLeft;
             }
 
-            updatePoint(touchPoint, targetSpeed, targetTurn, targetTL);
+            updatePoint(touchPoint, targetSpeed, targetAngle);
             try {
-                updateSender.sendUpdate((int) targetSpeed, (int) targetTurn, targetTL);
+                updateSender.sendUpdate(targetSpeed, targetAngle);
             } catch (PortConnectionException e) {
                 complete(RCScreenResponse.LostConnection);
             }
-
-            // System.out.println("X:"+x+" Y:"+y+" s:"+speed+" tA:"+turnAmount+" tL:"+turnLeft);
         });
 
-        // circleImage.setOnTouchMoved(circleImage.getOnTouchPressed());
+ //       circleImage.setOnTouchMoved(circleImage.getOnTouchPressed());
+
+        circleImage.layoutXProperty().addListener(observable -> {
+            double x = .5 * circleImage.getFitWidth();
+            centerPoint.setCenterX(x + circleImage.getLayoutX());
+        });
+
+        circleImage.layoutYProperty().addListener(observable -> {
+            double y = .5 * circleImage.getFitHeight();
+            centerPoint.setCenterY(y + circleImage.getLayoutY());
+        });
 
 
-        InvalidationListener sizeListener = observable -> {
+    }
+
+    public void attacheResizeListeners(){
+        InvalidationListener listener = observable-> {
             double height = background.getHeight() - 38;
             double width = background.getWidth() - 38;
 
@@ -233,23 +253,40 @@ public class RCScreenController extends UIController implements Initializable {
                 circleImage.setFitHeight(height);
                 circleImage.setFitWidth(height);
             }
+
+            double x = .5 * circleImage.getFitWidth();
+            double y = .5 * circleImage.getFitHeight();
+
+            x = x + circleImage.getLayoutX();
+            y = y + circleImage.getLayoutY();
+
+            centerPoint.setRadius(circleImage.getFitWidth() / 17.0);
+            centerPoint.setCenterY(y);
+            centerPoint.setCenterX(x);
+
             touchPoint.setRadius(circleImage.getFitWidth() / 14.0);
             robotPoint.setRadius(circleImage.getFitWidth() / 16.0);
         };
-
-        background.widthProperty().addListener(sizeListener);
-        background.heightProperty().addListener(sizeListener);
+        background.getScene().widthProperty().addListener(listener);
+        background.getScene().heightProperty().addListener(listener);
+      ;
+        Platform.runLater(()-> {
+            listener.invalidated(null);
+        });
 
     }
 
-    private void updatePoint(Circle touchPoint, double speed, double angle, boolean turnLeft) {
+    private void updatePoint(Circle touchPoint, int currentSpeed, int currentAngle) {
         double x, y;
-        angle = (angle / MAX_UNSIGNED_INT) * Math.PI;
-        if (turnLeft) {
-            angle = -angle;
-        }
+        double angle  = ((double)currentAngle / (double)MAX_UNSIGNED_INT) * 2*Math.PI;
+      // TODO shift Angle
         angle = angle - Math.PI / 2;
+        double speed = currentSpeed;
+        if (speed<MINSPEED)
+            speed = MINSPEED;
         speed = speed / 255.0;
+        if (speed < .05)
+            speed = .1;
 
         x = Math.cos(angle) * speed;
         y = Math.sin(angle) * speed;

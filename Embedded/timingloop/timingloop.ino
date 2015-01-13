@@ -3,13 +3,16 @@
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 #include <Adafruit_NeoPixel.h>
+#include <DaveH_HeadingUtils.h>
+#include <Adafruit_LSM9DS0.h>
+
 
 // Which pin on the Arduino is connected to the NeoPixels?
 #define PIXEL_PIN            2
 
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS      16
-#define FRONTLEFT      5
+#define FRONTPIXEL      6
 
 #define REDLITE 3
 #define GREENLITE 5
@@ -22,436 +25,506 @@
 #define PING_COMMAND 'p'
 #define CONFIG_COMMAND 'c'
 #define GET_CONFIG_COMMAND 'g'
+#define ZERO_COMMAND 'z'
 
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+//Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
-const long MIN_STEP_INTERVAL = 20;
-const long MAX_STEP_INTERVAL = 255;
-const long SLEEP_INTERVAL = 5000;
-const int MIN_STOPPED_TURN_INTERVAL = 1000;
-const int MIN_FAST_TURN_INTERVAL = 400;
-const int MAX_STOPPED_TURN_SPEED = 320;
-const int MAX_FAST_TURN_SPEED = 80;
+//const float PI = 3.14159265;
+const int MIN_STEP_INTERVAL = 10;
+const int MAX_STEP_INTERVAL = 255;
+const int MAX_TRUE_SIDE_DIF = 360;
+const int SLEEP_INTERVAL = 5000;
 const int MAX_SPEED_DELTA_INTERVAL = 20;
-const unsigned int MAX_UNSIGNED_INT = 65535;
+
 const String BLANKLINE = "                ";
 
-Adafruit_MotorShield AFMS = Adafruit_MotorShield();  
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *myMotorR = AFMS.getMotor(1);
 Adafruit_DCMotor *myMotorL = AFMS.getMotor(2);
 
-const uint8_t MAXSPEED = 255;
-
-const long STARTTIME = 1000*(millis()/1000);
+const long STARTTIME = 1000 * (millis() / 1000);
 
 void setup() {
   Serial.begin(57600);
-  pinMode(13, OUTPUT);   
-  
+  Serial.write("TredBot Starting!\n");
+  pinMode(13, OUTPUT);
+  delay(1000);
   AFMS.begin();  // create with the default frequency 1.6KHz
-  digitalWrite(13,HIGH);
-  myMotorL->setSpeed(MAXSPEED);
+  digitalWrite(13, HIGH);
+  myMotorL->setSpeed(200);
   myMotorL->run(FORWARD);
-  // turn on motor
-  myMotorL->run(RELEASE);
-  myMotorR->setSpeed(MAXSPEED);
+
+  myMotorR->setSpeed(200);
   myMotorR->run(FORWARD);
   // turn on motor
   myMotorR->run(RELEASE);
-  digitalWrite(13,LOW);
-  
+  myMotorL->run(RELEASE);
+  digitalWrite(13, LOW);
+
   pinMode(REDLITE, OUTPUT);
   pinMode(GREENLITE, OUTPUT);
   pinMode(BLUELITE, OUTPUT);
-  
+
   lcd.begin(16, 2);
-  pixels.begin();
+  //pixels.begin();
   Serial.write("TredBot Ready!\n");
   setTop("Ready!");
-  setBottom("0 s");
 }
 
- long readVcc() {
+long readVcc() {
   long result;
   // Read 1.1V reference against AVcc
   ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
   delay(2); // Wait for Vref to settle
   ADCSRA |= _BV(ADSC); // Convert
-  while (bit_is_set(ADCSRA,ADSC));
+  while (bit_is_set(ADCSRA, ADSC));
   result = ADCL;
-  result |= ADCH<<8;
+  result |= ADCH << 8;
   result = 1125300L / result; // Back-calculate AVcc in mV
   return result;
 }
 
 
-double voltageIn(){
-  unsigned int ADCValue;
-  double Vcc = readVcc()/1000.0;
-  ADCValue = analogRead(0);
-  return (ADCValue / 1023.0) * 5;
-}
-
-uint8_t lSpeed = 0,rSpeed = 0;
-bool execute=false,debug=false;
-bool lForward = true,rForward = true;
-int stopped_turn_interval = MIN_STOPPED_TURN_INTERVAL*2;
-int fast_turn_interval = MIN_FAST_TURN_INTERVAL*2;
-int stopped_turn_speed = MAX_STOPPED_TURN_SPEED/2;
-int fast_turn_speed = MAX_FAST_TURN_SPEED /2;
-int speed_delta_interval = MAX_SPEED_DELTA_INTERVAL/2;
-int step_interval = MIN_STEP_INTERVAL*2;
+uint8_t lSpeed = 0, rSpeed = 0;
+bool execute = false, debug = true, justPinged = false;
+bool lForward = true, rForward = true;
+int expSideDif = MAX_TRUE_SIDE_DIF / 2;
+int expAngleDelta = 270;
+int headingDelta = 0;
+int minMotorSpeed = 0;
+int speedDeltaPerInterval = MAX_SPEED_DELTA_INTERVAL / 2;
+int stepInterval = MIN_STEP_INTERVAL * 2;
+int turnDeadZoneHalf = 100;
 boolean isSetup = false;
+Heading_Util *navUtil;
 
 void loop() {
-  uint8_t r=90,g=200,b=255;
-  long previousTime=0;
-  long timeDelta=0;
-  long prevCommandTime=0;
+  uint8_t r = 90, g = 200, b = 255;
+  long previousTime = 0;
+  long timeDelta = 0;
+  long prevCommandTime = 0;
   bool sleeping = false;
-  unsigned int turnTotal = 0;
-  unsigned int turnRemaining = 0;
-  int targetSpeed=0,currentSpeed=0;
-  int leftDif=0, rightDif=0;
-  bool turnLeft=false,turnRight=false;
+  unsigned int currentAngle = 0;
+  unsigned int targetAngle = 0;
+  int angleRemainder = 0;
+  int targetSpeed = 0, currentSpeed = 0;
+  int sideDif = 0;
+  int prevSideDif;
+  int prevHeadingDelta;
   long lastDisplayUpdate = 0;
   lcd.blink();
-  while(true){
+  Serial.println("Starting Sensor...");
+  setTop("starting sensor");
+  navUtil = new Heading_Util(Adafruit_LSM9DS0::LSM9DS0_ACCELRANGE_2G, Adafruit_LSM9DS0::LSM9DS0_MAGGAIN_2GAUSS, Adafruit_LSM9DS0::LSM9DS0_GYROSCALE_500DPS);
+  if (!navUtil->begin()) {
+    setBottom("Failed!");
+    while (true);
+  }
+  runCalibrationCycle();
+  Serial.println("Calibrated, now running...");
+  while (true) {
     long now = millis();
 
-    if (previousTime<=now-step_interval){
-      if (lastDisplayUpdate<now-1000){
+    if (previousTime <= now - stepInterval) {
+      if (lastDisplayUpdate < now - 1000) {
         lastDisplayUpdate = now;
-        if (sleeping){
-           setBottom(String(voltageIn())+"v");
+        if (sleeping) {
+          setTop("Sleeping...");
+          setBottom(String((now - STARTTIME) / 1000) + "s " + String(readVcc() / 1000.0) + "v");
         }
-        setBacklight(r,g,b);
+
       }
       // This manages the sleeping light effect
-      if (sleeping){
-         float factor = (now%10000-5000)/20000.0;
-           if (factor<0)
-              factor = factor * -1;
-           factor = factor+.01;
-           drawCircle(20*factor,50*factor,100*factor);
+      if (sleeping) {
+        sleepLighting(now);
       }
       timeDelta = now - previousTime;
       previousTime = now;
-      if (Serial.available()){
+      if (Serial.available()) {
+        if (sleeping) {
+          setStatusOnDisplay(currentSpeed,  targetSpeed, currentAngle, targetAngle);
+        }
         sleeping = false;
         prevCommandTime = now;
-        setTop("Awake!");
-        readInput(turnTotal,turnRemaining,targetSpeed,turnLeft,turnRight,currentSpeed);
+
+        setBacklight(0, 255, 0);
+        readInput(targetAngle, targetSpeed);
       } else {
-        if (!sleeping && prevCommandTime<=now-SLEEP_INTERVAL){
+        if (!sleeping && prevCommandTime <= now - SLEEP_INTERVAL) {
           sleeping = true;
-          turnRemaining=0;
+          currentAngle = targetAngle;
           targetSpeed = 0;
-          setTop("Sleeping...");
         }
       }
       bool updateMotor = false;
-      if (currentSpeed != targetSpeed){
-        if (currentSpeed>targetSpeed)
-            setBottom("Speed up to "+String(targetSpeed));
-        else
-            setBottom("Slow to "+String(targetSpeed));
-        updateSpeed(currentSpeed, targetSpeed); 
+      if (currentSpeed != targetSpeed) {
+        updateSpeed(currentSpeed, targetSpeed);
         updateMotor = true;
-      }else if (!sleeping){
-        setBottom("Speed = "+String(currentSpeed));
       }
-      if (turnRemaining > 0 ){
-        if (turnLeft)
-           setTop("Turning Left");
-        else
-           setTop("Turning Right");
-        drawTurn(turnTotal,turnRemaining, turnLeft,r,g,b);
       
-       
-        updateDifferential( currentSpeed, turnLeft, turnRight,timeDelta, turnRemaining,leftDif, rightDif);
+      navUtil->readGyro(true);
+      headingDelta = currentAngle;
+      currentAngle = navUtil->heading;
+      headingDelta = currentAngle-headingDelta;
+        angleRemainder = targetAngle - currentAngle;
+      if (angleRemainder>MAX_ANGLE_RANGE / 2)
+        angleRemainder = MAX_ANGLE_RANGE - angleRemainder;  
+      if (abs(angleRemainder)>turnDeadZoneHalf) {
+        int temp = sideDif;
+        updateDifferential( currentSpeed, angleRemainder,headingDelta, timeDelta, sideDif,prevSideDif,prevHeadingDelta );
+        prevSideDif = sideDif;
+        prevHeadingDelta = headingDelta;
         updateMotor = true;
-      } else if (turnLeft|turnRight){
-        setTop("Straight Ahead!!");
-        drawTurn(0,0,false,r,g,b);
+      }else if (sideDif!=0){
+        sideDif = 0;
         updateMotor = true;
-        leftDif = 0;
-        rightDif = 0;
-        turnLeft = false;
-        turnRight = false;
-        turnTotal = 0;
       }
       
       if (updateMotor) {
-        setMotorSpeeds(currentSpeed,leftDif,rightDif);
-          Serial.write(turnLeft?">L:":">R:");
-          Serial.print(turnRemaining);
-          Serial.write(":");
-          Serial.println(currentSpeed);
+        sendNavStats(currentSpeed, currentAngle);
+        //drawTurn(currentAngle, targetAngle, currentSpeed);
+        setStatusOnDisplay(currentSpeed,  targetSpeed, currentAngle, targetAngle);
+        setMotorSpeeds(currentSpeed, sideDif);
+
+      } else if (justPinged) {
+        justPinged = false;
+        sendNavStats(currentSpeed, currentAngle);
       }
+
+    }
+  }
+}
+
+void sendNavStats(int currentSpeed, unsigned int currentAngle) {
+  Serial.write(">");
+  Serial.print(currentSpeed);
+  Serial.write(":");
+  Serial.println(currentAngle);
+}
+
+void updateSpeed(int &currentSpeed, int targetSpeed) {
+  
+  int dif = targetSpeed - currentSpeed;
+  if (dif > 0) {
+    if (dif > speedDeltaPerInterval)
+      dif = speedDeltaPerInterval;
+  } else {
+    if (dif * -1 > speedDeltaPerInterval)
+      dif = -1 * speedDeltaPerInterval;
+  }
+  currentSpeed += dif;
+}
+
+void updateDifferential(int currentSpeed, int angleRemainder, int angleDelta, int timeDelta, int &sideDif, int prevSideDif, int prevAngleDelta) {
+
+//  
+//  float expAngleDelta = expAnglePerIntervalStopped*stopFrac + expAnglePerIntervalFast*fastFrac;
+//  expAngleDelta*=timeDelta;
+//  
+  bool isLeft = angleRemainder<0;
+//  
+//  if (isLeft)
+//     expAngleDelta*=-1;
+//  
+  if(debug){
+  Serial.write("Time Delta:");
+  Serial.println(timeDelta);
+  Serial.print("Angle Remaining:");
+  Serial.println(angleRemainder);
+  Serial.print("Act Delta:");
+  Serial.println(angleDelta);
+  }
+//
+//  // First try or Someone is moving the bot the opposite direction we are trying to go .. revert to default turn speed
+//  if ( sideDif == 0 || (expAngleDelta>0 && angleDelta<0) || (expAngleDelta<0 && angleDelta>0)){
+//    sideDif=isLeft?expSideDif*-1:expSideDif;
+//    angleDelta = expAngleDelta;
+//  }
+//  
+//  if (isLeft){
+//    if (expAngleDelta<angleRemainder){
+//      expAngleDelta= angleRemainder;
+//    }
+//  }else{
+//    if (expAngleDelta>angleRemainder){
+//      expAngleDelta = angleRemainder;
+//    }
+//  }
+//  
+//    if (angleDelta == 0){
+//      expAngleDelta = 2;
+//    }else{
+//      expAngleDelta = expAngleDelta/angleDelta;
+//    }
+//    if (expAngleDelta > 2)
+//      expAngleDelta = 2;
+
+    int effectiveDelta = 0;
+    
+    if (sideDif == 0){
+      if (isLeft){
+        sideDif=-expSideDif;
+        effectiveDelta = -expAngleDelta;
+      }else{
+        sideDif=expSideDif;
+        effectiveDelta = expAngleDelta;
+      }
+    } else{
+      effectiveDelta = (angleDelta +prevAngleDelta )/2;
+    }
+    float reducer = 1;
+    if (effectiveDelta != 0){  
+      reducer = angleRemainder/(effectiveDelta*8.0);
+      if (reducer>1.3)
+        reducer = 1.3;
+      if ( reducer > 0)
+         sideDif *= reducer;
+      else // Going the wrong direction
+         sideDif = 0;
+    }
+  
+    if (sideDif>MAX_TRUE_SIDE_DIF)
+      sideDif = MAX_TRUE_SIDE_DIF;
+    else if (sideDif<-MAX_TRUE_SIDE_DIF)
+      sideDif = -MAX_TRUE_SIDE_DIF;
+    else if (sideDif >1 && sideDif < minMotorSpeed)
+      sideDif = minMotorSpeed *.8;
+    else if (sideDif <-1 && sideDif > -minMotorSpeed)
+      sideDif = minMotorSpeed *-.8;
       
-    }
-  }
-}
-
-void updateSpeed(int &currentSpeed, int targetSpeed){
-   int dif = targetSpeed - currentSpeed;
-   if (dif > 0){
-     if (dif > speed_delta_interval)
-       dif = speed_delta_interval;
-   } else {
-     if (dif*-1> speed_delta_interval)
-        dif = -1*speed_delta_interval;
-   }
-   currentSpeed+=dif;
-}
-
-void updateDifferential(int currentSpeed, bool turnLeft, bool turnRight, long timeDelta, unsigned int &turnRemaining, int &leftDif, int &rightDif){
-  float slowFrac = (1.0-currentSpeed/255.0);
-  float fastFrac = (currentSpeed/255.0);
-  float difAmount = slowFrac*stopped_turn_speed+fastFrac*fast_turn_speed;
-  float turnTime = slowFrac*stopped_turn_interval+fastFrac*fast_turn_interval;
-  float frac = timeDelta/turnTime;
-  int turnStep = frac*MAX_UNSIGNED_INT;
-  // if this is the last partial step of a turn
-  if (turnStep>turnRemaining){
-    difAmount = difAmount*turnRemaining/(float)turnStep;
     
-    turnRemaining = 0;
-  }else{
-    turnRemaining -= turnStep;
-  }
-  // use this to both add and subtract
-  difAmount=difAmount/2;
-  if (turnLeft){
-    leftDif=-difAmount;
-    rightDif=difAmount;
-  }else if (turnRight){
-    leftDif=difAmount;
-    rightDif=-difAmount;
-  }
-  
-}
-
-void setMotorSpeeds(int currentSpeed, int leftDif, int rightDif){
- if (debug){
-   Serial.write("T+");
-   Serial.print((millis() - STARTTIME)/(float)1000);
-   Serial.write("s>CS|LD|RD|SC|TL|TR>"); 
-   Serial.print(currentSpeed);
-   Serial.write("|");
-   Serial.print(leftDif);
-   Serial.write("|");
-   Serial.print(rightDif);
-   Serial.write("|");
- }
-  float left = leftDif+currentSpeed;
-  float right = rightDif+currentSpeed;
-  
-  if (left>255 || right > 255 || left<-255 || right<-255){
-    float scaleFactor=0;
-    
-    if (left>0){
-      scaleFactor = left;
-    }else{
-      scaleFactor = -left;
-    }
-    if (right>0){
-      if (right>scaleFactor)
-        scaleFactor = right;
-    } else {
-      if (right*-1 > scaleFactor)
-        scaleFactor = right*-1;
-    }
-   
-    scaleFactor = 255.0/scaleFactor;
-    
-    left*=scaleFactor;
-    right*=scaleFactor; 
     if (debug){
-      Serial.print(scaleFactor);
+    Serial.print(angleRemainder);
+    Serial.print("/");
+    Serial.print(effectiveDelta);
+    Serial.print("=");
+    Serial.println(reducer);
     }
+ 
+}
+
+void setMotorSpeeds(int currentSpeed, int sideDif) {
+//  if (sideDif<0){
+//        myMotorL->setSpeed(0);
+//        myMotorR->setSpeed(0);
+//        for (int i = 0 ; i < 10; i++){
+//          navUtil->readGyro(true);
+//          Serial.print("}}");
+//          Serial.println(navUtil->heading);
+//          delay(40);
+//        }
+//        delay(1000000);
+//        execute = false;
+//  }
+    
+  if (debug) {
+    Serial.write("T+");
+    Serial.print((millis() - STARTTIME) / (float)1000);
+    Serial.write("s>CS|SD|TL|TR>");
+    Serial.print(currentSpeed);
+    Serial.write("|");
+    Serial.print(sideDif);
+    Serial.write("|");
   }
+  if (sideDif>MAX_TRUE_SIDE_DIF)
+     sideDif = MAX_TRUE_SIDE_DIF;
+  if (sideDif<-MAX_TRUE_SIDE_DIF)
+     sideDif = -MAX_TRUE_SIDE_DIF;
   
-  if (left==0){
-   lForward = true;
-   myMotorL->run(FORWARD);
-   lSpeed = 0; 
-  }else if (left>0){
-   lForward = true;
-   myMotorL->run(FORWARD);
-   lSpeed = (left/255.0)*MAXSPEED;
+  
+  
+  int left = currentSpeed;
+  int right = currentSpeed;
+  
+  int offset = sideDif/2;
+  
+  if (sideDif < 0 && offset*-1<minMotorSpeed){
+    right-=sideDif;
+  }else if (sideDif>0 && offset<minMotorSpeed){
+    left+=sideDif;
   } else {
-   lForward = false;
-   myMotorL->run(BACKWARD);
-   lSpeed = (left/-255.0)*MAXSPEED;
+    left+=offset;
+    right-=offset;
   }
 
-  if (right==0){
-   rForward = true;
-     myMotorR->run(FORWARD);
-   rSpeed = 0; 
-  }else if (right>0){
-   rForward = true;
-     myMotorR->run(FORWARD);
-   rSpeed = (right/255.0)*MAXSPEED;
-  } else {
-   rForward = false;
-     myMotorR->run(BACKWARD);
-   rSpeed = (right/-255.0)*MAXSPEED;
+  // If only one component is too big, shift
+  if (left > 255) {
+    right -= left - 255;
+    left = 255;
+  } else if (left < -255) {
+    right += left + 255;
+    left = -255;
+  } else if (right > 255) {
+    left -= right - 255;
+    right = 255;
+  } else if (right < -255) {
+    left += right + 255;
+    right = -255;
   }
-  if (execute){
+  
+  //left = right = currentSpeed;
+
+  if (left == 0) {
+    lForward = true;
+    myMotorL->run(BACKWARD);
+    lSpeed = 0;
+  } else if (left > 0) {
+    lForward = true;
+    myMotorL->run(BACKWARD);
+    lSpeed = left;
+  } else {
+    lForward = false;
+    myMotorL->run(FORWARD);
+    lSpeed = -left;
+  }
+
+  if (right == 0) {
+    rForward = true;
+    myMotorR->run(BACKWARD);
+    rSpeed = 0;
+  } else if (right > 0) {
+    rForward = true;
+    myMotorR->run(BACKWARD);
+    rSpeed = right;
+  } else {
+    rForward = false;
+    myMotorR->run(FORWARD);
+    rSpeed = -right;
+  }
+ // lSpeed = map(lSpeed,0,255,minLeftSpeed,255);
+ // rSpeed = map(rSpeed,0,255,minRightSpeed,255);
+  if (execute) {
     myMotorL->setSpeed(lSpeed);
     myMotorR->setSpeed(rSpeed);
   } else {
     myMotorL->setSpeed(0);
-    myMotorR->setSpeed(0);  
+    myMotorR->setSpeed(0);
   }
-  if (debug){
+  if (debug) {
     Serial.write("|");
     Serial.print(lSpeed);
-    Serial.write(lForward?"F|":"B|");
+    Serial.write(lForward ? "F|" : "B|");
     Serial.print(rSpeed);
-    Serial.write(rForward?"F<":"B<");
+    Serial.write(rForward ? "F<" : "B<");
     Serial.write("\n");
   }
 }
 
-void sendStatus(int targetSpeed, int currentSpeed,unsigned int turnRemaining){
- Serial.write("\nLeft Speed=");
- Serial.print(lSpeed);
- Serial.write(lForward?" forward ":" backward");
- Serial.write(" Right Speed=");
- Serial.print(rSpeed);
- Serial.write(rForward?" forward ":" backward");
- Serial.write("\nTarget Speed=");
- Serial.print(targetSpeed);
- Serial.write(" Current Speed=");
- Serial.print(currentSpeed);
- Serial.write("\nTurn Remaining=");
- Serial.print(turnRemaining);
- Serial.write("\nUp Time=");
- Serial.print((millis() - STARTTIME)/(float)1000);
- Serial.write(" seconds"); 
-}
-
-void readInput(unsigned int &turnStart, unsigned int &turnRemaining,int &targetSpeed,bool &turnLeft,bool &turnRight,int currentSpeed){
+void readInput(unsigned int &targetAngle, int &targetSpeed) {
   char command[1];
-  Serial.readBytes(command,1);
+  Serial.readBytes(command, 1);
 
-  switch (command[0]){
-   case UPDATE_COMMAND: // update -- command to execute a movement with rotation and velocity
-     targetSpeed = Serial.parseInt();
-     turnStart=turnRemaining = Serial.parseInt();
-     // Read Direction
-     turnRight = false;
-     turnLeft = false;
-     Serial.readBytes(command,1);
-     if ('r'==command[0]){
-       turnRight = true;
-     }else if ('l'==command[0]){
-       turnLeft = true;
-     }
-     Serial.write("OK\n");
-     return;
-   break;
-   case DEBUG_COMMAND:  // debug -- command to print a movement with rotation and velocity
-     debug = !debug;
-     Serial.write("OK:");
-     Serial.write(debug?"true\n":"false\n");
-     return;
-   case EXECUTE_COMMAND: // execute -- command to determine if movements are executed by motors or just simulated
-     execute = !execute;
-     Serial.write("OK:");
-     Serial.write(execute?"true\n":"false\n");
-     return;
-   break;
-   case PING_COMMAND: // ping -- does nothing but keep from sleeping
-     return;
-   case STATUS_COMMAND: // status -- return status
-     sendStatus(targetSpeed,currentSpeed,turnRemaining);
-     return;
-   case CONFIG_COMMAND: // configure
-   
-     step_interval = Serial.parseInt();
-     if (step_interval<MIN_STEP_INTERVAL){
-       step_interval = MIN_STEP_INTERVAL;
-     }else if(step_interval>MAX_STEP_INTERVAL){
-       step_interval=MAX_STEP_INTERVAL; 
-     }
+  switch (command[0]) {
+    case UPDATE_COMMAND: // update -- command to execute a movement with rotation and velocity
+      targetSpeed = Serial.parseInt();
+      if (targetSpeed > 255)
+        targetSpeed = 255;
+      else if (targetSpeed < -255)
+        targetSpeed = -255;
+      targetAngle = Serial.parseInt();
 
-     speed_delta_interval =  Serial.parseInt();
-     if (speed_delta_interval>MAX_SPEED_DELTA_INTERVAL){
-       speed_delta_interval=MAX_SPEED_DELTA_INTERVAL;
-     }
-
-     stopped_turn_interval = Serial.parseInt();
-     if (stopped_turn_interval<MIN_STOPPED_TURN_INTERVAL){
-       stopped_turn_interval = MIN_STOPPED_TURN_INTERVAL;
-     }
-     fast_turn_interval =  Serial.parseInt();
-     if (fast_turn_interval<MIN_FAST_TURN_INTERVAL){
-       fast_turn_interval = MIN_FAST_TURN_INTERVAL; 
-     }
-     stopped_turn_speed =  Serial.parseInt();
-     if (stopped_turn_speed>MAX_STOPPED_TURN_SPEED){
-       stopped_turn_speed = MAX_STOPPED_TURN_SPEED; 
-     }
-     fast_turn_speed =  Serial.parseInt();
-     if (fast_turn_speed>MAX_FAST_TURN_SPEED){
-       fast_turn_speed = MAX_FAST_TURN_SPEED;
-     }
-      isSetup = true;
-      Serial.readBytes(command,1);
+      Serial.readBytes(command, 1);
       Serial.write("OK\n");
-     return;
-   case GET_CONFIG_COMMAND: // get configuration
-     Serial.write("OK:");
-     Serial.print(isSetup);
-     Serial.print(' ');
-     Serial.print(step_interval);
-     Serial.write(' ');
-     Serial.print(speed_delta_interval);
-     Serial.write(' ');
-     Serial.print(stopped_turn_interval);
-     Serial.write(' ');
-     Serial.print(fast_turn_interval);
-     Serial.write(' ');
-     Serial.print(stopped_turn_speed);
-     Serial.write(' ');
-     Serial.print(fast_turn_speed);
-        Serial.write('\n');
-     return;
-   default:
-     Serial.write("Unknown Command\n");
+      return;
+      break;
+    case DEBUG_COMMAND:  // debug -- command to print a movement with rotation and velocity
+      debug = !debug;
+      Serial.write("OK:");
+      Serial.write(debug ? "true\n" : "false\n");
+      return;
+    case EXECUTE_COMMAND: // execute -- command to determine if movements are executed by motors or just simulated
+      execute = !execute;
+      Serial.write("OK:");
+      Serial.write(execute ? "true\n" : "false\n");
+      return;
+      break;
+    case PING_COMMAND: // ping -- does nothing but keep from sleeping
+      justPinged = true;
+      return;
+    case CONFIG_COMMAND: // configure
+
+      stepInterval = Serial.parseInt();
+      if (stepInterval < MIN_STEP_INTERVAL) {
+        stepInterval = MIN_STEP_INTERVAL;
+      } else if (stepInterval > MAX_STEP_INTERVAL) {
+        stepInterval = MAX_STEP_INTERVAL;
+      }
+
+      speedDeltaPerInterval =  Serial.parseInt();
+      if (speedDeltaPerInterval > MAX_SPEED_DELTA_INTERVAL) {
+        speedDeltaPerInterval = MAX_SPEED_DELTA_INTERVAL;
+      } else if (speedDeltaPerInterval < 1) {
+        speedDeltaPerInterval = 1;
+      }
+
+ 
+      expSideDif =  Serial.parseInt();
+      if (expSideDif < 1)
+        expSideDif = 1;
+      if (expSideDif>500)
+        expSideDif = 500;
+     
+      isSetup = true;
+      Serial.readBytes(command, 1);
+      Serial.write("OK\n");
+      return;
+    case ZERO_COMMAND: // zero sensors
+      Serial.write("OK:");
+
+          runCalibrationCycle(); 
+      
+      return;
+    case GET_CONFIG_COMMAND: // get configuration
+      Serial.write("OK:");
+      Serial.print(isSetup);
+      Serial.print(' ');
+      Serial.print(stepInterval);
+      Serial.write(' ');
+      Serial.print(speedDeltaPerInterval);
+      Serial.write(' ');
+      Serial.print(expSideDif);
+      Serial.write('\n');
+      return;
+    default:
+      Serial.write("Unknown Command\n");
   }
   return;
 }
 
-void setTop(String topLine){
-  lcd.setCursor(0,0);
+void setTop(String topLine) {
+  lcd.setCursor(0, 0);
   lcd.print(BLANKLINE);
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(topLine);
 }
-void setBottom(String bottomLine){
-  lcd.setCursor(0,1);
+void setBottom(String bottomLine) {
+  lcd.setCursor(0, 1);
   lcd.print(BLANKLINE);
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(bottomLine);
 }
 
+void setStatusOnDisplay(int currentSpeed, int targetSpeed, unsigned int currentAngle, unsigned int targetAngle) {
+  lcd.setCursor(0, 0);
+  lcd.print(BLANKLINE);
+  lcd.setCursor(0, 1);
+  lcd.print(BLANKLINE);
+
+  lcd.setCursor(0, 0);
+  lcd.print(currentSpeed);
+  lcd.setCursor(7, 0);
+  lcd.print("->");
+  lcd.print(targetSpeed);
+  lcd.setCursor(0, 1);
+  lcd.print(currentAngle);
+  lcd.setCursor(7, 1);
+  lcd.print("->");
+  lcd.print(targetAngle);
+}
+
 void setBacklight(uint8_t r, uint8_t g, uint8_t b) {
-  // normalize the red LED - its brighter than the rest!
-//  r = map(r, 0, 255, 0, 100);
-//  g = map(g, 0, 255, 0, 150);
-// 
-//  r = map(r, 0, 255, 0, brightness);
-//  g = map(g, 0, 255, 0, brightness);
-//  b = map(b, 0, 255, 0, brightness);
- 
   // common anode so invert!
   r = map(r, 0, 255, 255, 0);
   g = map(g, 0, 255, 255, 0);
@@ -463,60 +536,159 @@ void setBacklight(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 
-void drawTurn(unsigned int turnTotal, unsigned int currentTurn, boolean turnLeft, uint8_t r, uint8_t g, uint8_t b){
-     if (turnTotal == 0){
-        for (turnTotal = 0; turnTotal < NUMPIXELS ; turnTotal++){
-          if (turnTotal == FRONTLEFT || turnTotal == FRONTLEFT+1){
-            pixels.setPixelColor(turnTotal,pixels.Color(r,g,b));
-          }else{
-            pixels.setPixelColor(turnTotal,pixels.Color(0,0,0));
-          }
-        }
-        pixels.show();
-        turnTotal = 0;
-        return;
-     }   
-  int brightSpot,darkSpot; 
-  brightSpot = ((float)(currentTurn-1)/MAX_UNSIGNED_INT)*(NUMPIXELS/2);
-  darkSpot = ((float)(turnTotal-1)/MAX_UNSIGNED_INT)*(NUMPIXELS/2);
-
-  
-  if (turnLeft){
-    brightSpot+=FRONTLEFT+1;
-    if (brightSpot>=NUMPIXELS)
-       brightSpot-=NUMPIXELS;
-    darkSpot+=FRONTLEFT+1;
-    if (darkSpot>=NUMPIXELS)
-       darkSpot-=NUMPIXELS;
-  }else{
-    brightSpot=FRONTLEFT-brightSpot;
-    if (brightSpot<0)
-       brightSpot+=NUMPIXELS;
-    darkSpot=FRONTLEFT-darkSpot;
-    if (darkSpot<0)
-       darkSpot+=NUMPIXELS;
-  }
-  
-//  Serial.write("[");
-//  Serial.print(brightSpot);
-//  Serial.write(",");
-//  Serial.print(darkSpot);
-//  Serial.write("]");
-  
-  for (int i =0; i< NUMPIXELS; i ++){
-    pixels.setPixelColor(i,pixels.Color(0,0,0));
-  }
-  
-   pixels.setPixelColor(brightSpot,pixels.Color(r,g,b));
-   pixels.setPixelColor(darkSpot,pixels.Color(r/5,g/5,b/5));
-  
-  
-    pixels.show();
+void drawTurn(unsigned int currentAngle, unsigned int targetAngle, int currentSpeed) {
+//  int r = currentSpeed / 4, g = 0, b = currentSpeed;
+//  if (currentAngle == targetAngle) {
+//    if (currentSpeed > 0) {
+//      for (int turnTotal = 0; turnTotal < NUMPIXELS ; turnTotal++) {
+//        if (turnTotal == FRONTPIXEL) {
+//          pixels.setPixelColor(turnTotal, pixels.Color(r, g, b));
+//        } else {
+//          pixels.setPixelColor(turnTotal, pixels.Color(0, 10, 0));
+//        }
+//      }
+//      pixels.show();
+//      return;
+//    } else if (currentSpeed < 0) {
+//      int backPixel = FRONTPIXEL - NUMPIXELS / 2;
+//      if (backPixel < 0) backPixel += NUMPIXELS;
+//      for (int turnTotal = 0; turnTotal < NUMPIXELS ; turnTotal++) {
+//        if (turnTotal == backPixel) {
+//          pixels.setPixelColor(turnTotal, pixels.Color(255, 0, 0));
+//        } else {
+//          pixels.setPixelColor(turnTotal, pixels.Color(20, 0, 0));
+//        }
+//      }
+//      pixels.show();
+//      return;
+//    } else {
+//      drawCircle(20, 30, 0);
+//      return;
+//    }
+//  }
+//  int brightSpot, darkSpot;
+//  int div = MAX_ANGLE_RANGE / NUMPIXELS;
+//  brightSpot = targetAngle / div;
+//  darkSpot = currentAngle / div;
+//
+//  brightSpot = darkSpot - brightSpot + FRONTPIXEL;
+//  darkSpot = FRONTPIXEL;
+//
+//  while (brightSpot < 0 || brightSpot >= NUMPIXELS) {
+//    if (brightSpot < 0)
+//      brightSpot += NUMPIXELS;
+//    else
+//      brightSpot -= NUMPIXELS;
+//  }
+//
+//
+//  //  Serial.write("[");
+//  //  Serial.print(brightSpot);
+//  //  Serial.write(",");
+//  //  Serial.print(darkSpot);
+//  //  Serial.write("]\n");
+//
+//  for (int i = 0; i < NUMPIXELS; i ++) {
+//    pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+//  }
+//
+//  pixels.setPixelColor(brightSpot, pixels.Color(r, g, b));
+//  pixels.setPixelColor(darkSpot, pixels.Color(r / 3, g / 3, b / 3));
+//
+//
+//  pixels.show();
 }
 
-void drawCircle(uint8_t r, uint8_t g, uint8_t b){
-  for (int i =0; i< NUMPIXELS; i ++){
-    pixels.setPixelColor(i,pixels.Color(r,g,b));
+void drawCircle(uint8_t r, uint8_t g, uint8_t b) {
+//  for (int i = 0; i < NUMPIXELS; i ++) {
+//    pixels.setPixelColor(i, pixels.Color(r, g, b));
+//  }
+//  pixels.show();
+}
+
+void sleepLighting(long now) {
+  float factor = ((now % 10000) - 5000) / 5000.0;
+  if (factor < 0)
+    factor = factor * -1;
+
+  setBacklight(120 * factor, 0, 0);
+
+  drawCircle(20.0 * factor, 0, 30 * factor);
+}
+
+void runCalibrationCycle(){
+  // Clear any residue in the sensor by doing a read
+  navUtil->readAll(false);
+  setTop("Calibrating");
+  setBottom("Gyro Sensor");
+   Serial.println(navUtil->gyroStats.min.z); 
+  navUtil->clearCalibration();
+   Serial.println(navUtil->gyroStats.min.z); 
+  navUtil->readAll(false);
+  navUtil->setCalibrating(true);
+  Serial.println(navUtil->gyroStats.min.z); 
+  for (int i =0; i < 200;i++){
+     delay(20)                                                                                                                                                                  ;
+     navUtil->readAll(false);
+     if (debug)
+       Serial.println(navUtil->gyroData.z);
   }
-  pixels.show();
+  navUtil->setCalibrating(false);
+   Serial.println(navUtil->gyroStats.min.z); 
+  minMotorSpeed = tuneMotor(false); 
+ 
+  delay(500);
+  
+  int temp = tuneMotor(true);
+   Serial.println(navUtil->gyroStats.min.z); 
+  if (temp>minMotorSpeed)
+      minMotorSpeed = temp;
+  
+  Serial.write("Gyro Z: Offset=");Serial.print(navUtil->gyroStats.error.z);
+  Serial.write(" max:");Serial.print(navUtil->gyroStats.max.z);
+  Serial.write(" min:");Serial.println(navUtil->gyroStats.min.z);
+  Serial.write(" MinMotorSpeed:");Serial.println(minMotorSpeed);
+  
+  navUtil->readAll(true);
+  
+  navUtil->heading = 0;
+  
+}
+
+int tuneMotor(bool right){
+ navUtil->readAll(false);
+ Adafruit_DCMotor *motor = right?myMotorR:myMotorL;
+  motor->setSpeed(0);
+  motor->run(BACKWARD);
+  
+  for (int i =40;i <=255; i+=5){
+    setTop("Speed:"+String(i));
+    motor->setSpeed(i);
+    delay(50);
+    float sum = 0;
+    for (int j = 0; j < 5 ; j++){
+      navUtil->readGyro(false);
+      sum+=navUtil->gyroData.z;
+    }
+    setBottom(String(sum));
+
+    if (right? sum<-5 : sum>5){
+      Serial.write("Min Motor Speed:");
+      Serial.println(i);
+      motor->setSpeed(0); 
+      return i;
+    }else if ((right?sum>5:sum<-5) || i == 255){
+      Serial.println("Motor Not Wired Properly!!");
+      setBacklight(255,0,0);
+      setTop((right?"Left Motor":"Left Motor"));
+      if (i==255)
+        setBottom("Not Connected?");
+      else
+        setBottom("Inverted?");
+      motor->setSpeed(0);
+      delay(500);
+      return -1;
+    }
+  }
+
 }

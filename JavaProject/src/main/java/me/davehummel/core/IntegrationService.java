@@ -66,6 +66,11 @@ public class IntegrationService {
         uip.showRCScreen(connection.getStatusReceiver(), connection.getUpdateSender(), this);
     }
 
+
+    public void showGyroScreen() {
+        uip.showGyroScreen(connection.getLineReceiver(),this);
+    }
+
     public void showSettingsScreen() {
         RobotSettings localSettings = new RobotSettings(lsp);
         try {
@@ -76,6 +81,7 @@ public class IntegrationService {
             showConnectionScreen();
         } catch (Exception e){
             showErrorScreen("Unknown Failure", e.getMessage(), e);
+            exit();
         }
     }
 
@@ -95,6 +101,7 @@ public class IntegrationService {
 
             if(csr.portName!=null){
                 try {
+                    lsp.set(LAST_USED_PORT,csr.portName);
                     connection = spp.connectToPort(csr.portName);
                 } catch (PortConnectionException e) {
                     response = new ConnectionScreenResponse(csr.portName,e);
@@ -128,8 +135,9 @@ public class IntegrationService {
 
     public void pushSettings() throws PortConnectionException {
         RobotSettings settings = new RobotSettings(lsp);
-        if (settings.getStepInterval() != -1){
+        if (settings.isCustom()){
             settings.writeToRobot(connection);
         }
     }
+
 }

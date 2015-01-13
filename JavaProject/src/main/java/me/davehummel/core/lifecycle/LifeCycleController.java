@@ -35,13 +35,19 @@ public class LifeCycleController {
                 integration.showErrorScreen("Connection Failed", "Unable to connect to port:" + csr.portName, csr.error);
                 return;
             }
-            try {
-                integration.pushSettings();
-            } catch (Exception e){
-                integration.showErrorScreen("Connection Failed", "Unable to connect to port:" + csr.portName, csr.error);
-                integration.showConnectionScreen();
-                return;
+            if (csr.extra!=null) {
+                if (csr.extra.equalsIgnoreCase("q")) {
+                    integration.showGyroScreen();
+                    return;
+                }
             }
+//            try {
+//                integration.pushSettings();
+//            } catch (Exception e){
+//                integration.showErrorScreen("Connection Failed", "Unable to connect to port:" + csr.portName, csr.error);
+//                integration.showConnectionScreen();
+//                return;
+//            }
             integration.showRCScreen();
             return;
         }

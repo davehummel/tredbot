@@ -24,26 +24,29 @@ public class SerialToConnectionListener implements SerialPortEventListener {
 
     @Override
     public void serialEvent(SerialPortEvent event) {
-        if(event.isRXCHAR() && event.getEventValue() > 0){
+        try{
+        if(event.isRXCHAR() && event.getEventValue() > 0) {
             try {
                 byte buffer[] = serialPort.readBytes();
-                for (byte b: buffer) {
-                    if ( (b == '\r' || b == '\n')) {
+                for (byte b : buffer) {
+                    if ((b == '\r' || b == '\n')) {
                         if (message.length() > 0) {
                             String toProcess = message.toString();
                             connection.lineReceived(toProcess);
                             message.setLength(0);
                         }
-                    }
-                    else {
-                        message.append((char)b);
+                    } else {
+                        message.append((char) b);
                     }
                 }
-            }
-            catch (SerialPortException ex) {
+            } catch (SerialPortException ex) {
                 ex.printStackTrace();
                 connection.disconnect();
             }
+        }
+        }catch(Exception e){
+                e.printStackTrace();
+
         }
     }
 }

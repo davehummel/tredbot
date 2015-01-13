@@ -9,11 +9,9 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import me.davehummel.core.IntegrationService;
 import me.davehummel.core.lifecycle.LifeCycleController;
-import me.davehummel.core.platforms.windows.ui.ConnectionScreenController;
-import me.davehummel.core.platforms.windows.ui.RCScreenController;
-import me.davehummel.core.platforms.windows.ui.SettingsScreenController;
-import me.davehummel.core.platforms.windows.ui.WindowsJFXApplication;
+import me.davehummel.core.platforms.windows.ui.*;
 import me.davehummel.core.providers.ui.UIProvider;
+import me.davehummel.core.robot.LineReceiver;
 import me.davehummel.core.robot.RobotSettings;
 import me.davehummel.core.robot.StatusReceiver;
 import me.davehummel.core.robot.UpdateSender;
@@ -35,13 +33,15 @@ public class WindowsUIProvider implements UIProvider {
     private RCScreenController rcScreenController;
     private Parent settingsScreen = null;
     private SettingsScreenController settingsScreenController;
+    private Parent gyroScreen = null;
+    private GyroScreenController gyroScreenController;
 
     static private Stage stage;
     static volatile private LifeCycleController lifecycle;
     static volatile private Application app = null;
 
     public static void setup(Stage stage, Application app) {
-//        stage.setFullScreen(true);
+ //       stage.setFullScreen(true);
 //        stage.setAlwaysOnTop(true);
         WindowsUIProvider.stage = stage;
         WindowsUIProvider.app = app;
@@ -132,6 +132,27 @@ public class WindowsUIProvider implements UIProvider {
 
 
         updateStage("Drive!", rcScreen, () -> integrationService.exit());
+        rcScreenController.attacheResizeListeners();
+    }
+
+    @Override
+    public void showGyroScreen(LineReceiver lineReceiver, IntegrationService integrationService) {
+        try {
+            File file = new File("resources/GyroScreen.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader(file.toURL());
+            gyroScreenController = new GyroScreenController();
+            gyroScreenController.setIntegrationService(integrationService);
+            fxmlLoader.setController(gyroScreenController);
+            gyroScreenController.setInitialValues(lineReceiver);
+            gyroScreen = fxmlLoader.load();
+        } catch (IOException e) {
+            e.printStackTrace();
+            integrationService.exit();
+        }
+
+
+        updateStage("Gyro!", gyroScreen, () -> integrationService.exit());
+
     }
 
     @Override
