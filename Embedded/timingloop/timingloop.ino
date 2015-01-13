@@ -649,8 +649,9 @@ void runCalibrationCycle(){
   Serial.write(" min:");Serial.println(navUtil->gyroStats.min.z);
   Serial.write(" MinMotorSpeed:");Serial.println(minMotorSpeed);
   
-  navUtil->heading = 0;
+  navUtil->readAll(true);
   
+  navUtil->heading = 0;
   
 }
 
@@ -683,7 +684,7 @@ int tuneMotor(bool right){
       if (i==255)
         setBottom("Not Connected?");
       else
-        setBottom("Not Inverted?");
+        setBottom("Inverted?");
       motor->setSpeed(0);
       delay(500);
       return -1;
