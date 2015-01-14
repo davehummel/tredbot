@@ -174,7 +174,7 @@ void loop() {
       if (abs(angleRemainder)>turnDeadZoneHalf) {
         int temp = sideDif;
         updateDifferential( currentSpeed, angleRemainder,headingDelta, timeDelta, sideDif,prevSideDif,prevHeadingDelta );
-        prevSideDif = sideDif;
+        prevSideDif = temp;
         prevHeadingDelta = headingDelta;
         updateMotor = true;
       }else if (sideDif!=0){
@@ -236,40 +236,27 @@ void updateDifferential(int currentSpeed, int angleRemainder, int angleDelta, in
   Serial.print("Act Delta:");
   Serial.println(angleDelta);
   }
-//
-//  // First try or Someone is moving the bot the opposite direction we are trying to go .. revert to default turn speed
-//  if ( sideDif == 0 || (expAngleDelta>0 && angleDelta<0) || (expAngleDelta<0 && angleDelta>0)){
-//    sideDif=isLeft?expSideDif*-1:expSideDif;
-//    angleDelta = expAngleDelta;
-//  }
-//  
-//  if (isLeft){
-//    if (expAngleDelta<angleRemainder){
-//      expAngleDelta= angleRemainder;
-//    }
-//  }else{
-//    if (expAngleDelta>angleRemainder){
-//      expAngleDelta = angleRemainder;
-//    }
-//  }
-//  
-//    if (angleDelta == 0){
-//      expAngleDelta = 2;
-//    }else{
-//      expAngleDelta = expAngleDelta/angleDelta;
-//    }
-//    if (expAngleDelta > 2)
-//      expAngleDelta = 2;
+
 
     int effectiveDelta = 0;
     
     if (sideDif == 0){
       if (isLeft){
-        sideDif=-expSideDif;
+        sideDif=-minMotorSpeed;
         effectiveDelta = -expAngleDelta;
       }else{
-        sideDif=expSideDif;
+        sideDif=minMotorSpeed;
         effectiveDelta = expAngleDelta;
+      }
+      if (currentSpeed<minMotorSpeed/2){
+        sideDif*=3;
+      }
+      else if (currentSpeed<minMotorSpeed){
+        sideDif*=2;
+        effectiveDelta*.75;
+      } else if (currentSpeed>minMotorSpeed*3){
+        sideDif/2;
+        effectiveDelta/=2;
       }
     } else{
       effectiveDelta = (angleDelta +prevAngleDelta )/2;
