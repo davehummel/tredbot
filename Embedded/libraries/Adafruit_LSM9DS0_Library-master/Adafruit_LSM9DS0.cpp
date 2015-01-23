@@ -46,7 +46,7 @@ bool Adafruit_LSM9DS0::begin()
     return false;
 
   // Enable the accelerometer continous
-  write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG1_XM, 0x67); // 100hz XYZ
+  write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG1_XM, 0b00001111); // 100hz XYZ
   write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG5_XM, 0b11110000);
   // enable mag continuous
   write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG7_XM, 0b00000000);
@@ -192,11 +192,36 @@ void Adafruit_LSM9DS0::setupMag ( lsm9ds0MagGain_t gain )
 void Adafruit_LSM9DS0::setupGyro ( lsm9ds0GyroScale_t scale )
 {
   uint8_t reg = read8(GYROTYPE, LSM9DS0_REGISTER_CTRL_REG4_G);
-  reg &= ~(0b00110000);
-  reg |= scale;
+  reg = 0b0000,0000;
   write8(GYROTYPE, LSM9DS0_REGISTER_CTRL_REG4_G, reg );
+  reg = 0x88;
+  write8(GYROTYPE, LSM9DS0_REGISTER_CTRL_REG3_G, reg );
+  reg = 0x00;
+  write8(GYROTYPE, LSM9DS0_REGISTER_CTRL_REG2_G, reg );
 
 }
+
+void Adafruit_LSM9DS0::highPassOn(bool on)
+{
+    write8(GYROTYPE, LSM9DS0_REGISTER_CTRL_REG4_G, on? 0b00010000:0b00000000 );
+}
+
+void Adafruit_LSM9DS0::printRegisters(){
+    Serial.println("Gyro Registers");
+    for (int i = 0 ; i < 5 ; i++){
+      uint8_t reg = read8(GYROTYPE, 0x20 + i);
+      Serial.write("Reg ");
+      Serial.print(i+1);
+      Serial.write(" : ");
+      Serial.println(reg,BIN);
+    }
+}
+
+void Adafruit_LSM9DS0::selfTest(bool on){
+   
+}
+
+
 
 
 /***************************************************************************

@@ -63,8 +63,10 @@ class Adafruit_LSM9DS0
     {
       LSM9DS0_REGISTER_WHO_AM_I_G          = 0x0F,
       LSM9DS0_REGISTER_CTRL_REG1_G         = 0x20,
+      LSM9DS0_REGISTER_CTRL_REG2_G         = 0x21,
       LSM9DS0_REGISTER_CTRL_REG3_G         = 0x22,
       LSM9DS0_REGISTER_CTRL_REG4_G         = 0x23,
+      LSM9DS0_REGISTER_CTRL_REG5_G         = 0x24,
       LSM9DS0_REGISTER_OUT_X_L_G           = 0x28,
       LSM9DS0_REGISTER_OUT_X_H_G           = 0x29,
       LSM9DS0_REGISTER_OUT_Y_L_G           = 0x2A,
@@ -151,9 +153,9 @@ class Adafruit_LSM9DS0
     
     typedef struct vector_s
     {
-      float x;
-      float y;
-      float z;
+      int16_t x;
+      int16_t y;
+      int16_t z;
     } lsm9ds0Vector_t;
     
     lsm9ds0Vector_t accelData;    // Last read accelerometer data will be available here
@@ -173,8 +175,9 @@ class Adafruit_LSM9DS0
     void    write8      ( boolean type, byte reg, byte value );
     byte    read8       ( boolean type, byte reg);
     byte    readBuffer  ( boolean type, byte reg, byte len, uint8_t *buffer);
-    
- 
+    void highPassOn(bool on);
+    void printRegisters();
+    void selfTest(bool on);
   private:
     boolean _i2c;
     int8_t  _csg, _csxm, _mosi, _miso, _clk;
