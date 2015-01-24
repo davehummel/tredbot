@@ -84,14 +84,6 @@ public:
 
 	void processGyroUpdate(uint32_t timeMicros);
 
-	void setExternalFeedback(bool isMoving){
-		externalFeedbackIsMoving = isMoving;
-	}
-
-	bool getMoving(){
-		return isMoving;
-	}
-
 	bool initAndVerify(bool gyroHigh,bool xmHigh);
 
 	void setGyroDrBw(gyro_dr_bw dr_bw){
@@ -176,14 +168,20 @@ public:
 
 	void updateSettings();
 
-	Logger *logger;
+	Logger *logger = NULL;
+
+	void readRawGyro();
 
 		// Gyro raw values
 	int16_t gx=0,gy=0,gz=0;
 
 private:
 
-	uint8_t gyroAddr; // I2C address for Gyro .. either 
+	bool isMoving = true;
+
+	uint8_t gyroAddr = 0; // I2C address for Gyro .. either 
+
+	float gyroScaleFactor = 1;
 
 	uint8_t changedGyroRegisterMap=0b00011111;
 
@@ -221,11 +219,6 @@ private:
 	uint8_t gyroINT1Select = 0; //0-3
 	uint8_t gyroOUTSelect = 0; //0-3
 
-
-	bool isMoving;
-	bool externalFeedbackIsMoving;
-
-	void readRawGyro();
 
 	///////////////////
 	// I2C Functions //

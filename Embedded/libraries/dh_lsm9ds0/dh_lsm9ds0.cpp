@@ -8,6 +8,7 @@
 #endif
 
 #include <dh_logger.h>
+#include "dh_movement.h"
 
 bool LSM9DS0::initAndVerify(bool gyroHigh,bool xmHigh){
 
@@ -125,12 +126,6 @@ void LSM9DS0::updateSettings(){
 	changedGyroRegisterMap = 0;
 }
 
-void LSM9DS0::processGyroUpdate(uint32_t timeMicros){
-	readRawGyro();
-}
-
-// PRIVATE
-
 void LSM9DS0::readRawGyro(){
 	uint8_t temp[6]; // We'll read six bytes from the gyro into temp
 	I2CreadBytes(gyroAddr,G_OUT_X_L, temp, 6); // Read 6 bytes, beginning at OUT_X_L_G
@@ -138,6 +133,9 @@ void LSM9DS0::readRawGyro(){
 	gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
 	gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
 }
+
+// PRIVATE
+
 
 void LSM9DS0::initI2C()
 {
