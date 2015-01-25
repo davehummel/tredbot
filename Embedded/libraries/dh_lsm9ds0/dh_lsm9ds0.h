@@ -166,6 +166,12 @@ public:
 		changedGyroRegisterMap |= 0b10000;
 	}
 
+	void convertRawGyro(){
+		dpsX = gyroScaleFactor*gx;
+		dpsY = gyroScaleFactor*gy;
+		dpsZ = gyroScaleFactor*gz;
+	}
+
 	void updateSettings();
 
 	Logger *logger = NULL;
@@ -174,6 +180,8 @@ public:
 
 		// Gyro raw values
 	int16_t gx=0,gy=0,gz=0;
+
+	float dpsX=0,dpsY=0,dpsZ=0;
 
 private:
 

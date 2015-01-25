@@ -8,7 +8,6 @@
 #endif
 
 #include <dh_logger.h>
-#include "dh_movement.h"
 
 bool LSM9DS0::initAndVerify(bool gyroHigh,bool xmHigh){
 
@@ -106,6 +105,19 @@ void LSM9DS0::updateSettings(){
 			logger->println();
 		}
 		I2CwriteByte(gyroAddr, G_CTRL_REG4,regVal );
+		// to calculate DPS/(ADC tick) based on that 2-bit value:
+	switch (gyroScale)
+	{
+	case G_SCALE_245DPS:
+		gyroScaleFactor = 245.0 / 32768.0;
+		break;
+	case G_SCALE_500DPS:
+		gyroScaleFactor = 500.0 / 32768.0;
+		break;
+	case G_SCALE_2000DPS:
+		gyroScaleFactor = 2000.0 / 32768.0;
+		break;
+	}
 	}
 	if (changedGyroRegisterMap&0b1000 == 0b10000){
 		uint8_t regVal = 0;
