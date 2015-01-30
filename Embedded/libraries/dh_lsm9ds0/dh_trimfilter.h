@@ -11,48 +11,54 @@ class TrimFilter{
 public:
 
 	TrimFilter(int16_t _gTrimX=0,int16_t _gTrimY=0,int16_t _gTrimZ=0){
-		gTrimX = new AveragedMeasure(_gTrimX);
-		gTrimY = new AveragedMeasure(_gTrimY);
-		gTrimZ = new AveragedMeasure(_gTrimZ);
+		gTrimX.setValue (_gTrimX);
+		gTrimY.setValue (_gTrimY);
+		gTrimZ.setValue (_gTrimZ);
 	}
 
 	void filterGyro(int16_t &gx,int16_t &gy,int16_t &gz){
-		gx-=gTrimX->getValue();
-		gy-=gTrimY->getValue();
-		gz-=gTrimZ->getValue();
+		gx-=gTrimX.getValue();
+		gy-=gTrimY.getValue();
+		gz-=gTrimZ.getValue();
 	}
 
 	void movementDetected(){
-		xDrop = gTrimX->dropQueue();
-		yDrop = gTrimY->dropQueue();
-		zDrop = gTrimZ->dropQueue();
+		gTrimX.dropQueue();
+		gTrimY.dropQueue();
+		gTrimZ.dropQueue();
 	}
 
-	void addStoppedGyroData(int16_t gx, int16_t gy, int16_t gz){
-		gTrimX->addMeasure(gx);
-		gTrimY->addMeasure(gy);
-		gTrimZ->addMeasure(gz);
+	void addStoppedGyroData(int16_t gx, int16_t gy, int16_t gz, uint32_t time){
+		gTrimX.addMeasure(gx,time);
+		gTrimY.addMeasure(gy,time);
+		gTrimZ.addMeasure(gz,time);
 	}
 
-	void setInitialGyroTrim(int16_t trimX, int16_t trimY, int16_t trimZ ){
-		gTrimX->setValue(trimX);
-		gTrimY->setValue(trimY);
-		gTrimZ->setValue(trimZ);
+	void overrideGyroTrim(int16_t trimX, int16_t trimY, int16_t trimZ ){
+		gTrimX.setValue(trimX);
+		gTrimY.setValue(trimY);
+		gTrimZ.setValue(trimZ);
 	}
 
+	void setRewindWindow(uint16_t windowDuration){
+		gTrimX.setRewindWindow(windowDuration);
+		gTrimY.setRewindWindow(windowDuration);
+		gTrimZ.setRewindWindow(windowDuration);
+	}
 
-	std::queue<int16_t> *xDrop;
+	uint16_t getRewindWindow(){
+		return rewindWindow;
+	}
 
-	std::queue<int16_t> *yDrop;
-
-	std::queue<int16_t> *zDrop;
 
 
 private:
 
-	AveragedMeasure *gTrimX;
-	AveragedMeasure *gTrimY; 
-	AveragedMeasure *gTrimZ;
+	uint16_t rewindWindow = 100;
+
+	AveragedMeasure gTrimX;
+	AveragedMeasure gTrimY; 
+	AveragedMeasure gTrimZ;
 
 
 };

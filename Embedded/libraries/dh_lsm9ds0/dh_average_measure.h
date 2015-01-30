@@ -6,62 +6,45 @@
 #include <dh_logger.h>
 #include <queue>
 
+
 class AveragedMeasure{
 
 public:
 	
-	AveragedMeasure(int16_t initVal=0, uint8_t mergeQueueLength=10){
-		value = initVal;
-		queue = new std::queue<int16_t> ();
-		if (mergeQueueLength<1)
-			mergeQueueLength = 1;
-		else if (mergeQueueLength>100)
-			mergeQueueLength = 100;
-		length = mergeQueueLength;
+	AveragedMeasure(int16_t initVal=0, uint16_t rewindWindowDur = 100);
 
-	}
+	void setValue(float val);
 
-	void setValue(int16_t val){
-		uint8_t useless = 0;
-		queue = new std::queue<int16_t> ();
-		value = val;
-	}
+	void addMeasure(int16_t measure, uint32_t time);
 
-	void addMeasure(int16_t measure){
-		if (queue->size() == length)
-			processQueue();
-		
-		queue->push(measure);
+	void dropQueue();
 
-
-	}
-
-	std::queue<int16_t> * dropQueue(){
-	
-		std::queue<int16_t>  *temp = queue;
-		queue = new std::queue<int16_t> ();
-		return temp;
-	}
-
-	int16_t getValue(){
+	float getValue(){
 		return value;
 	}
 
-private:
-
-	void processQueue(){
-
-		if (queue->empty())
-			return;
-		value = value + (queue->back()-value)/length;
-		queue->pop();
+	void setRewindWindow(uint16_t rewindWindowDur){
+		windowDur = rewindWindowDur;
 	}
 
-	int16_t value;
+	uint16_t MAX_QUEUE_SIZE = 200;
+	float SENSITIVITY = 10;
 
-	std::queue<int16_t> *queue;
+private:
+	typedef struct vector_am{
+		int16_t val=0;
+		uint8_t dur=0;
+	}amEntry;
 
-	uint8_t length = 0;
+	void processQueue(uint8_t dif);
+
+	float value;
+	uint16_t totalDur=0;
+	uint32_t lastWriteTime = 0;
+
+	std::queue<amEntry> queue;
+
+	uint16_t windowDur;
 };
 
 #endif

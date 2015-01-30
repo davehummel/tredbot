@@ -82,8 +82,6 @@ public:
 	};
 
 
-	void processGyroUpdate(uint32_t timeMicros);
-
 	bool initAndVerify(bool gyroHigh,bool xmHigh);
 
 	void setGyroDrBw(gyro_dr_bw dr_bw){

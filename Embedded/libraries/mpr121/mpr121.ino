@@ -22,16 +22,16 @@
 bool touchStates[SENSORS];    // holds the current touch/prox state of all sensors
 bool activeSensors[SENSORS] = {1,1,1,1,1,1,1,1,1,1,1,1,1}; // holds which sensors are active (0=inactive, 1=active)
 bool newData = false;         // flag that is set to true when new data is available from capacitive sensor
-int irqpin = 2;               // pin that connects to notifies when data is available from capacitive sensor
+int irqpin = 4;               // pin that connects to notifies when data is available from capacitive sensor
 
 void setup(){
 
   // attach interrupt to pin - interrupt 1 is on pin 2 of the arduino (confusing I know)
-  attachInterrupt(2, dataAvailable, LOW);
+  attachInterrupt(irqpin, dataAvailable, LOW);
 
   // set-up the Serial and I2C/Wire connections
-  Serial.begin(115200);
-  Serial.println("READT");
+  Serial1.begin(115200);
+  Serial1.println("READT");
   Wire.begin();
   delay(100);
   // set the registers on the capacitive sensing IC
@@ -40,9 +40,9 @@ void setup(){
 
 void loop(){
       int sensorValue = analogRead(A0);
-    Serial.print("<");  
-   Serial.print(sensorValue);
-   Serial.print(">");
+    Serial1.print("<");  
+   Serial1.print(sensorValue);
+   Serial1.print(">");
  // readCapacitiveSensor();
   
 
@@ -65,7 +65,7 @@ void dataAvailable() {
 void readCapacitiveSensor(){
 
   if(newData){  
- Serial.print(">");
+ Serial1.print(">");
     //read the touch state from the MPR121
     Wire.requestFrom(0x5A,2); 
     byte tLSB = Wire.read();
@@ -95,17 +95,17 @@ void readCapacitiveSensor(){
         if(touched & (1<<i)){      
           // if current pin was not previously touched send a serial message
           if(touchStates[i] == 0){          
-            Serial.print(sensor_id);        
-            Serial.print(":");
-            Serial.println("1");
+            Serial1.print(sensor_id);        
+            Serial1.print(":");
+            Serial1.println("1");
           } 
           touchStates[i] = 1;      
         } else {
           // if current pin was just touched send serial message
           if(touchStates[i] == 1){
-            Serial.print(sensor_id);
-            Serial.print(":");
-            Serial.println("0");
+            Serial1.print(sensor_id);
+            Serial1.print(":");
+            Serial1.println("0");
           }
           touchStates[i] = 0;
         }        

@@ -23,7 +23,7 @@ bool LSM9DS0::initAndVerify(bool gyroHigh,bool xmHigh){
 	uint8_t test = I2CreadByte(gyroAddr,WHO_AM_I);		// Read the gyro WHO_AM_I
 
 	if (logger){
-		logger->print(" gyroID=");
+		logger->print("gyroID=");
 		logger->print(test,HEX);
 		logger->println();
 	}

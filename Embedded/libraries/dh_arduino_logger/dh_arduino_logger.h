@@ -31,6 +31,7 @@ public:
 	void println (void);
 
 private:
+	Stream *serial;
 	uint8_t serialNumber = 0;
 };
 
