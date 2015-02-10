@@ -36,7 +36,7 @@ uint32_t Now = 0;           // used to calculate integration interval
 
 void setup()
 {
-  Serial.begin(57600);
+  Serial1.begin(115200);
 
   // Set up interrupt pins as inputs:
   pinMode(INT1XM, INPUT);
@@ -48,10 +48,10 @@ void setup()
   // make sure communication was successful.
   uint32_t status = dof.begin();
  
-  Serial.print("LSM9DS0 WHO_AM_I's returned: 0x");
-  Serial.println(status, HEX);
-  Serial.println("Should be 0x49D4");
-  Serial.println();
+  Serial1.print("LSM9DS0 WHO_AM_I's returned: 0x");
+  Serial1.println(status, HEX);
+  Serial1.println("Should be 0x49D4");
+  Serial1.println();
 
  // Set data output ranges; choose lowest ranges for maximum resolution
  // Accelerometer scale can be: A_SCALE_2G, A_SCALE_4G, A_SCALE_6G, A_SCALE_8G, or A_SCALE_16G   
@@ -79,7 +79,8 @@ void setup()
  // Use the FIFO mode to average accelerometer and gyro readings to calculate the biases, which can then be removed from
  // all subsequent measurements.
     dof.calLSM9DS0(gbias, abias);
-
+  Serial1.println("REadey");
+  Serial1.println();
  }
 
  void loop()
@@ -122,7 +123,7 @@ void setup()
 	  lastUpdate = Now;
 
 
-	  if (Serial.available()){
+	  if (Serial1.available()){
 	  	char c = Serial.read();
 	  	switch (c){
 	  		case 'g':
@@ -137,14 +138,14 @@ void setup()
 	  		case 'd':
 	  			 double delta = ((Now - startTime)/1000000.0f);
 	  			 startTime = Now;
-	  			 Serial.print("Avg Cycle:");
-	  			 Serial.println(delta/countTotal,8);
-	  			 Serial.print("Avg Gyro:");
-	  			 Serial.println(delta/countGyro,8);
-	  			 Serial.print("Avg Accel:");
-	  			 Serial.println(delta/countAccel,8);
-	  			 Serial.print("Avg Mag:");
-	  			 Serial.println(delta/countMag,8);
+	  			 Serial1.print("Avg Cycle:");
+	  			 Serial1.println(delta/countTotal,8);
+	  			 Serial1.print("Avg Gyro:");
+	  			 Serial1.println(delta/countGyro,8);
+	  			 Serial1.print("Avg Accel:");
+	  			 Serial1.println(delta/countAccel,8);
+	  			 Serial1.print("Avg Mag:");
+	  			 Serial1.println(delta/countMag,8);
 	  			 countTotal = countGyro = countAccel = countMag = 0;
 	  			break;
 	  		}

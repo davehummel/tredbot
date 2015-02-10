@@ -32,6 +32,7 @@ bool LSM9DS0::initAndVerify(bool gyroHigh,bool xmHigh){
 	if (test != LSM9DS0_G_ID){
 		return false;
 	}
+	return true;
 }
 
 void LSM9DS0::updateSettings(){

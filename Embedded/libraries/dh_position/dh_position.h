@@ -99,7 +99,8 @@ public:
 	}
 
 	void printState(){
-		
+		double val[3];
+		getHeading(val);
 	}
 
 

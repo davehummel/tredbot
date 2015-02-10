@@ -23,6 +23,7 @@ public:
 	void print(int16_t val);
 	void print(uint32_t val);
 	void print(int32_t val);
+	void print(bool val);
 
 	void print(float val, uint8_t prec=4);
 	void print(double val, uint8_t prec=4);

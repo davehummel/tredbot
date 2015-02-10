@@ -1,0 +1,242 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"analo",
+				"analogWriteFrequency"
+			],
+			[
+				"analogWrite",
+				"analogWriteResolution"
+			],
+			[
+				"setTex",
+				"setTextSize"
+			],
+			[
+				"Pow",
+				"powerMonitor"
+			],
+			[
+				"u_",
+				"uint32_t"
+			],
+			[
+				"sensor",
+				"sensorValue"
+			],
+			[
+				"sens",
+				"sensorValue"
+			],
+			[
+				"filter",
+				"filterGyro"
+			],
+			[
+				"int_",
+				"int16_t"
+			],
+			[
+				"gyro",
+				"gyroTrim1"
+			],
+			[
+				"I2C",
+				"I2CreadByte"
+			],
+			[
+				"init",
+				"initI2C"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/c/program files (x86)/arduino/examples/Teensy/Tutorial2/PWM/PWM.pde",
+		"/C/Users/dmhum_000/Documents/Arduino/libraries/dh_lsm9ds0/dh_lsm9ds0.cpp",
+		"/C/dev/tredbot/Embedded/libraries/Adafruit_INA219-master/examples/getcurrent/getcurrent.pde",
+		"/C/dev/tredbot/Embedded/libraries/Adafruit_INA219-master/Adafruit_INA219.cpp",
+		"/C/dev/tredbot/Embedded/libraries/dh_powermonitor/dh_powermonitor.h",
+		"/C/dev/tredbot/Embedded/libraries/mpr121/mpr121.ino",
+		"/C/dev/tredbot/Embedded/libraries/MPR121_Capacitive_Touch_Keypad-master/Firmware/MPR121_Keypad_Example/mpr121.h",
+		"/C/dev/tredbot/Embedded/libraries/MPR121_Capacitive_Touch_Keypad-master/Firmware/MPR121_Keypad_Example/types.h",
+		"/C/Users/dmhum_000/Documents/Arduino/libraries/dh_lsm9ds0/dh_lsm9ds0.h",
+		"/C/dev/tredbot/Embedded/libraries/DH_LSM9DS0/dh_lsm9ds0.h",
+		"/C/Program Files (x86)/Arduino/hardware/arduino/avr/cores/arduino/Print.cpp",
+		"/C/Program Files (x86)/Arduino/hardware/arduino/avr/cores/arduino/Print.h",
+		"/C/Program Files (x86)/Arduino/hardware/arduino/avr/cores/arduino/HardwareSerial.h",
+		"/C/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SoftwareSerial/SoftwareSerial.h",
+		"/C/Program Files (x86)/Arduino/hardware/arduino/avr/libraries/SoftwareSerial/SoftwareSerial.cpp",
+		"/c/program files (x86)/arduino/examples/01.Basics/Blink/Blink.ino",
+		"/c/program files (x86)/arduino/examples/01.Basics/Fade/Fade.ino",
+		"/C/Users/DMHUM_~1/AppData/Local/Temp/Arduino/051737/<command-line>",
+		"/C/Users/DMHUM_~1/AppData/Local/Temp/Arduino/542136/<command-line>",
+		"/C/dev/tredbot/Embedded/9dofapi/New Text Document.ino",
+		"/C/Users/DMHUM_~1/AppData/Local/Temp/Arduino/131402/<command-line>",
+		"/C/Users/dmhum_000/Documents/Arduino/libraries/Adafruit_LSM9DS0_Library-master/Adafruit_LSM9DS0.cpp",
+		"/C/Users/dmhum_000/Desktop/iotdk-ide-win/devkit-x86/sysroots/i586-poky-linux/usr/include/mraa/common.h",
+		"/C/Users/dmhum_000/AppData/Roaming/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/C/Users/dmhum_000/AppData/Roaming/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/C/Users/dmhum_000/Desktop/Adafruit_MotorShield.cpp"
+	],
+	"find":
+	{
+		"height": 23.0
+	},
+	"find_in_files":
+	{
+		"height": 90.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"readGyro",
+			"begin",
+			"&^",
+			"&",
+			"CTRL_REG2_G",
+			"setMagScale",
+			"STATUS_REG_G",
+			"REFERENCE_G",
+			"void xmreadBytes",
+			"void xmreadBytes(",
+			"xmreadBytes",
+			"GyroMeasDrift",
+			"SPCR"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"project": "sensorTest2.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

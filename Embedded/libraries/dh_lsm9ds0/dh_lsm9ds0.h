@@ -26,7 +26,7 @@
 #define LSM9DS0_GYR_I2C_SAD_H		((LSM9DS0_GYR_I2C_SADROOT<<1)| \
 							LSM9DS0_SAD0H_GYR)
 
-#define LSM9DS0_G_ID                (0b11010100)
+#define LSM9DS0_G_ID                (0xD4)
 
 #define G_CTRL_REG1	(0x20)    /* CTRL REG1 */
 #define G_CTRL_REG2	(0x21)    /* CTRL REG2 */
