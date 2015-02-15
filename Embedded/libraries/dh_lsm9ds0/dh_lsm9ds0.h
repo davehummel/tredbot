@@ -54,7 +54,16 @@
 #define	G_FIFO_CTRL_REG	(0x2E)    /* FIFO CONTROL REGISTER */
 #define G_FIFO_SRC_REG	(0x2F)    /* FIFO SOURCE REGISTER */
 
-#define M_INT_CTRL_REG	(0x12)	/** INT_CTRL_REG_M address register */
+#define M_INT_CTRL_REG	(0x12)	/** CTRL_REG0_XM address register */
+
+#define XM_CTRL_REG0	(0x1F)	/** INT_CTRL_REG_M address register */
+#define XM_CTRL_REG1	(0x20)	/** INT_CTRL_REG1_M address register */
+#define XM_CTRL_REG2	(0x21)	/** INT_CTRL_REG2_M address register */
+#define XM_CTRL_REG3	(0x22)	/** INT_CTRL_REG3_M address register */
+#define XM_CTRL_REG4	(0x23)	/** INT_CTRL_REG4_M address register */
+#define XM_CTRL_REG5	(0x24)	/** INT_CTRL_REG5_M address register */
+#define XM_CTRL_REG6	(0x25)	/** INT_CTRL_REG6_M address register */
+#define XM_CTRL_REG7	(0x26)	/** INT_CTRL_REG7_M address register */
 
 #define WHO_AM_I	(0x0F)
 
@@ -71,7 +80,7 @@ public:
 		A_SCALE_8G,	// 011:  8g
 		A_SCALE_16G	// 100:  16g
 	};
-		// accel_oder defines all possible output data rates of the accelerometer:
+		// accel_odr defines all possible output data rates of the accelerometer:
 	enum accel_odr
 	{
 		A_POWER_DOWN, 	// Power-down mode (0x0)
@@ -122,17 +131,49 @@ public:
 		G_DR_760_BW_50 , //   760         50
 		G_DR_760_BW_100 , //   760         100
 	};
-
-
-
 	enum gyro_hpmode
 	{
-		G_HP_Normal_HP_RESET_FILTER,		
-		G_HP_Reference_Signal,		
-		G_HP_Normal,		
-		G_HP_Autoreset_On_Interpupt,
+		G_HP_NORMAL_RESET,		
+		G_HP_REFSIGNAL,		
+		G_HP_NORMAL,		
+		G_HP_AUTORESET,
 	};
 
+		// mag_scale defines all possible FSR's of the magnetometer:
+	enum mag_scale
+	{
+		M_SCALE_2GS,	// 00:  2Gs
+		M_SCALE_4GS, 	// 01:  4Gs
+		M_SCALE_8GS,	// 10:  8Gs
+		M_SCALE_12GS,	// 11:  12Gs
+	};
+
+		// mag_odr defines all possible output data rates of the magnetometer:
+	enum mag_odr
+	{
+		M_ODR_3125,	// 3.125 Hz (0x00)
+		M_ODR_625,	// 6.25 Hz (0x01)
+		M_ODR_125,	// 12.5 Hz (0x02)
+		M_ODR_25,	// 25 Hz (0x03)
+		M_ODR_50,	// 50 (0x04)
+		M_ODR_100,	// 100 Hz (0x05)
+	};
+
+	enum accel_HPMode
+	{
+		A_HPM_NORMAL_RESET,
+		A_HPM_REFSIGNAL,
+		A_HPM_NORMAL,
+		A_HPM_AUTORESET
+	}
+
+	enum mag_sensormode
+	{
+		M_S_CONT,
+		M_S_SINGLE,
+		M_S_POWERDOWN,
+		M_S_POWERDOWN2
+	}
 
 	bool initAndVerify(bool gyroHigh,bool xmHigh);
 
@@ -230,10 +271,132 @@ public:
 		changedMagRegister = true;
 	}
 
-	void setAccelRate( accel_odr rate){
-
+	void setXMBoot(bool boot){
+		xmBoot = boot;
+		changedXMRegisterMap |= 0b1;
 	}
 
+	void setXMFIFOEnabled(bool fifoEnabled, bool fifoWMEnabled){
+		xmFIFOEnabled = fifoEnabled;
+		xmWTMEnabled = fifoWMEnabled;
+		changedXMRegisterMap |= 0b1;
+	}
+
+	void setXMHPFeatures(bool click, bool int1, bool int2){
+		xmHPClickEnabled = click;
+		xmHPInteruptGen1 = int1;
+		xmHPInteruptGen2 = int2;
+	}
+
+	void setAccelRate( accel_odr rate){
+		accelRate = rate;
+		changedXMRegisterMap |= 0b10;
+	}
+
+	void setXMBlockMode(bool blockUntilRead){
+		xmBlockDataUntilRead = blockUntilRead;
+		changedXMRegisterMap |= 0b10;
+	}
+
+	void setXMAxisEnabled(bool x,bool y,bool z){
+		xmAccXEnabled = x;
+		xmAccYEnabled = y;
+		xmAccZEnabled = z;
+		changedXMRegisterMap |= 0b10;
+	}
+
+	void setAccelAAFilterBW (	accel_abw abw){
+		 accelAAFilterBW = abw;
+		changedXMRegisterMap |= 0b100;
+	}
+
+	void setAccelAScale (	accel_scale scale){
+		 accelScale=scale;
+		changedXMRegisterMap |= 0b100;
+	}
+
+	void setXMTestMode (uint8_t mode){
+		xmTestMode = mode;
+		changedXMRegisterMap |= 0b100;
+	}
+
+	void setXMIntPin1( bool _xmP1Boot, bool _xmP1Tap ,	bool _xmP1Int1 ,bool _xmP1Int2 ,
+		bool _magP1IntM, bool _xmP1DRInt1, bool _magP1DRInt1 , bool _xmFIFOEmptyInt1 ){
+		xmP1Boot = _xmP1Boot;
+		xmP1Tap = _xmP1Tap;
+		xmP1Int1 = _xmP1Int1;
+		xmP1Int2 = _xmP1Int2;
+		magP1IntM = _magP1IntM;
+		xmP1DRInt = _xmP1DRInt1;
+		magP1DRInt = _magP1DRInt1;
+		xmFIFOEmptyInt1 = _xmFIFOEmptyInt1;
+
+		changedXMRegisterMap |= 0b1000;
+	}
+
+	void setXMIntPin2( bool _xmP2Tap ,	bool _xmP2Int1 ,bool _xmP2Int2 ,
+		bool _magP2IntM, bool _xmP2DRInt1, bool _magP2DRInt1 , bool _xmFIFOOverrunInt2, bool _xmFIFOWMInt2 ){
+		xmP2Tap = _xmP2Tap;
+		xmP2Int1 = _xmP2Int1;
+		xmP2Int2 = _xmP2Int2;
+		magP2IntM = _magP2IntM;
+		xmP2DRInt = _xmP2DRInt1;
+		magP2DRInt = _magP2DRInt1;
+		xmFIFOOverrunInt2 = _xmFIFOOverrunInt2;
+		xmFIFOWMInt2 = _xmFIFOWMInt2;
+		changedXMRegisterMap |= 0b10000;
+	}
+
+	void setLIR(bool int1Latched,int2Latched){
+		latchIntOnINT1_SRC = int1Latched;
+		latchIntOnINT2_SRC = int2Latched;
+		changedXMRegisterMap |= 0b100000;
+	}
+
+	void setMagRate(mag_odr rate){
+		magRate = rate;
+		changedXMRegisterMap |= 0b100000;
+	}
+
+	void setMagScale(mag_scale scale){
+		magScale = scale;
+		changedXMRegisterMap |= 0b1000000;
+	}
+
+	void setTemperatureEnabled(bool enabled){
+		tempEnabled = enabled;
+		changedXMRegisterMap |= 0b100000;
+	}
+
+	void setMagHighResMode (bool enabled){
+		magHighResMode = enabled;
+		changedXMRegisterMap |= 0b100000;
+	}
+
+	void setAccelHPMode (accel_HPMode mode){
+		accelHPMode = mode;
+		changedXMRegisterMap |= 0b10000000;
+	}
+
+	void setXMFilterDS (bool enableXMFilterData){
+		xmFilterDS = enableXMFilterDatal;
+		changedXMRegisterMap |= 0b10000000;
+	}
+
+	void setMagLowPower (bool enableLowPower){
+		magLowPower = enableLowPower;
+		changedXMRegisterMap |= 0b10000000;
+	}
+
+	void setMagLowPower (bool enableLowPower){
+		xmFilterDS = enableXMFilterDatal;
+		changedXMRegisterMap |= 0b10000000;
+	}
+
+	void setMagSensorMode (mag_sensormode sensorMode){
+		magSensorMode = sensorMode;
+		changedXMRegisterMap |= 0b10000000;
+	}
 
 	void updateSettings();
 
@@ -298,6 +461,55 @@ private:
 	bool magXMLatch = false;  // Latch interrupt request on accelerometer INT_GEN_1_SRC (31h) and INT_GEN_2_SRC (35h) registers, and magnetometer INT_SRC_REG_M (13h) register. Default value: 0. (0: interrupt request not latched; 1: interrupt request latched)
 	bool magXM4dEnabled = false; // 4D enable: 4D detection on acceleration data is enabled when 6D bit in INT_GEN_1_REG (30h) is set to 1.
 	bool magInteruptEnabled = false; 
+
+	bool xmBoot = false; //  Reboot memory content. Default value: 0 (0: normal mode; 1: reboot memory content)
+	bool xmFIFOEnabled = false; 
+	bool xmWTMEnabled = false;
+	bool xmHPClickEnabled = false;
+	bool xmHPInteruptGen1 = false;
+	bool xmHPInteruptGen2 = false;
+
+
+
+	accel_odr accelRate = 0;
+	bool xmBlockDataUntilRead =false
+	bool xmAccZEnabled =false;
+	bool xmAccYEnabled =false;
+	bool xmAccXEnabled =false;
+
+	accel_abw accelAAFilterBW = 0;
+	accel_scale accelScale=0;
+	uint8_t xmTestMode = 0;
+
+	bool xmP1Boot = false; //Boot on INT1_XM pin enable. Default value: 0
+	bool xmP1Tap = false; //Tap generator interrupt on INT1_XM pin. Default value: 0
+	bool xmP1Int1 = false; // Inertial interrupt generator 1 on INT1_XM pin. Default value: 0
+	bool xmP1Int2 = false; //Inertial interrupt generator 2 on INT1_XM pin. Default value: 0
+	bool magP1IntM = false; // Magnetic interrupt generator on INT1_XM pin. Default value: 0
+	bool xmP1DRInt = false; // Accelerometer data-ready signal on INT1_XM pin. Default value: 0
+	bool magP1DRInt = false; // A Magnetometer data-ready signal on INT1_XM pin. Default value: 0
+	bool xmFIFOEmptyInt1 = false; //FIFO empty indication on INT1_XM pin. Default value: 0
+
+	bool xmP2Tap = false; //Tap generator interrupt on INT2_XM pin. Default value: 0
+	bool xmP2Int1 = false; // Inertial interrupt generator 1 on INT2_XM pin. Default value: 0
+	bool xmP2Int2 = false; //Inertial interrupt generator 2 on INT2_XM pin. Default value: 0
+	bool magP2IntM = false; // Magnetic interrupt generator on INT2_XM pin. Default value: 0
+	bool xmP2DRInt = false; // Accelerometer data-ready signal on INT2_XM pin. Default value: 0
+	bool magP2DRInt = false; // A Magnetometer data-ready signal on INT2_XM pin. Default value: 0
+	bool xmFIFOOverrunInt2 = false; //FIFO overrun interrupt on INT2_XM pin. Default value: 0
+	bool xmFIFOWMInt2 = false; //FIFO watermark interrupt on INT2_XM pin. Default value: 0
+
+	bool tempEnabled = false;
+	mag_scale magScale = 0;
+	mag_odr magRate = 0;
+	bool magHighResMode = false; //Magnetic resolution selection. 
+	bool latchIntOnINT2_SRC = false;
+	bool latchIntOnINT1_SRC = false;
+
+	accel_HPMode accelHPMode = 0; //.High-pass filter mode selection for acceleration data. Default value: 00
+	bool xmFilterDS = false; //Filtered acceleration data selection. Default value: 0 (0: internal filter bypassed; 1: data from internal filter sent to output register and FIFO)
+	bool magLowPower = false; //  Magnetic data low-power mode. Default value: 0. If this bit is ‘1’ the MODR is set to 3.125 Hz independently from the MODR settings. 
+    mag_sensormode magSensorMode = 0;
 
 
 	///////////////////
