@@ -1,6 +1,6 @@
 
 #include <Wire.h>
-#include <dh_lsm9ds0.h>
+#include <dh_lsm9ds0.h> 
 #include "Arduino.h"
 #include <dh_logger.h>
 #include <dh_arduino_logger.h>
@@ -9,7 +9,7 @@
 #include <dh_position.h>
 #include <quaternion.h>
 
-#include <dh_sensor_processor.h>
+#include <dh_sensor_processor.h> 
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9340.h"
@@ -42,18 +42,20 @@ Adafruit_ILI9340 tft = Adafruit_ILI9340(_cs, _dc, _rst);
 
 LSM9DS0 dof1 = LSM9DS0(); 
  
-MovementEval* moveEval =new MovementEval(3,.65,.65,200000,20000);
-SensorProcessor* sensorProcessor = new SensorProcessor(200000);
+MovementEval* moveEval =new MovementEval(15,1.2,1.6,500,50);
+SensorProcessor* sensorProcessor = new SensorProcessor(200);
 
-volatile uint32_t reads = 0; 
+volatile uint32_t reads = 0;  
 volatile uint32_t time = 0;
-uint32_t lastTime = 0; 
+uint32_t lastTime = 0;
 volatile uint8_t movementAgro = 0;
 volatile float shuntvoltage ;
-volatile float busvoltage;
+volatile float busvoltage; 
 volatile float current_mA;
 volatile float loadvoltage;
-volatile bool isMoving = false;;
+volatile bool isMoving = false;
+
+volatile uint32_t step1=0,step2=0,step3=0,step4=0,step5=0;
 
 volatile float dpsX,dpsY,dpsZ,gNetX,gNetY,gNetZ,gMoveOffsetX,gMoveOffsetY,gMoveOffsetZ;
 volatile int16_t gX,gY,gZ;
@@ -66,17 +68,18 @@ boolean failed = true;
 void readGyro(){
   if (digitalRead(DRDYG1)==HIGH){
     reads++;
-    time = micros();   // WARNING - might not be able to call millis(/micros() here in an interupt?
-
+    time = millis();   // WARNING - might not be able to call millis(/micros() here in an interupt?
+      step1++;
     dof1.readRawGyro(); 
-
+     step2++;
     gX = dof1.gx;
     gY = dof1.gy;
     gZ = dof1.gz;
 
-    sensorProcessor->processGyro(dof1.gx,dof1.gy,dof1.gz,time);
-    isMoving = sensorProcessor->isMoving;
-    
+     sensorProcessor->processGyro(dof1.gx,dof1.gy,dof1.gz,time);
+     step3++;
+     isMoving = moveEval->getMoving();
+    step4++;
   
 
  
@@ -86,16 +89,18 @@ void readGyro(){
       else 
         movementAgro=255;
     } 
+ 
 
 
-
-    gNetX = moveEval->gNetX;
-    gNetY = moveEval->gNetY;
-    gNetZ = moveEval->gNetZ;
+    gNetX = sensorProcessor->netX;
+    gNetY = sensorProcessor->netY;
+    gNetZ = sensorProcessor->netZ;
 
     gMoveOffsetX = sensorProcessor->gTrimValue[0];
     gMoveOffsetY = sensorProcessor->gTrimValue[1];
     gMoveOffsetZ = sensorProcessor->gTrimValue[2];
+
+    step5++;
 
     dpsX = sensorProcessor->dpsX;
     dpsY = sensorProcessor->dpsY;
@@ -116,6 +121,8 @@ void setup(){
   pinMode(2, INPUT_PULLUP);
   Serial1.begin(115200);
   Serial1.println("Starting");
+    Serial.begin(115200);
+  Serial.println("Starting");
 
 
   tft.begin();
@@ -126,7 +133,7 @@ void setup(){
   tft.setCursor(0, 16);  
   tft.print("Starting Gyros: ");
   Serial1.println("Starting Gyros");
-  dof1.logger = new  ArduinoLogger(1);
+  //dof1.logger = new  ArduinoLogger(1);
 
   if (!dof1.initAndVerify(true,true)){
     Serial1.println("Failed LSM9DS0 init1");
@@ -144,10 +151,11 @@ void setup(){
   sensorProcessor->movement = moveEval;
 
  
-  dof1.setGyroDrBw(LSM9DS0::G_DR_95_BW_25);
+  dof1.setGyroDrBw(LSM9DS0::G_DR_380_BW_20);
+  dof1.setGyroScale(LSM9DS0::G_SCALE_500DPS);
   dof1.setGyroPowered(true);
   dof1.setGyroAxisEnabled(true,true,true);
-  dof1.setPins(false,false,false,false,true,false,false,false);
+  dof1.setGyroPins(false,false,false,false,true,false,false ,false);
   dof1.updateSettings();
   delay(100);
 
@@ -167,11 +175,11 @@ void setup(){
 
   delay(500);
   tft.fillScreen(ILI9340_BLACK);
-
+ 
   tft.setTextColor(ILI9340_YELLOW); 
   tft.setTextSize(2);
- 
-  tft.setCursor(0, 0);  
+  
+  tft.setCursor(0, 0);   
   tft.print("X");
   tft.setCursor(80, 0);  
   tft.print("|Y");
@@ -193,11 +201,11 @@ void setup(){
 uint8_t frame=0;
 void loop(){
   frame++;
-  delay(200);
+  delay(250);
   if (failed)
     return;
   readGyro();
-
+ 
   tft.setTextSize(1);
   tft.setTextColor(ILI9340_GREEN,ILI9340_BLACK);
   tft.setCursor(0, 18);  
@@ -255,7 +263,7 @@ void loop(){
 
  // float dist1 = analogRead(9);  
  // float dist2 = analogRead(8);
-
+ 
  // tft.setTextSize(3);
  //  tft.setCursor(0, 200);
  //    tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
@@ -269,7 +277,7 @@ void loop(){
   tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
    tft.setTextSize(2);  
    tft.setCursor(0, 90);
-   tft.print(time);
+   tft.print(gNetZ);
   // tft.print("  ");
   //   tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
 
@@ -284,7 +292,7 @@ void loop(){
   //  tft.setCursor(0, 150);
   //  tft.print(positionState->getHeading()*57.2957795131);
   // tft.print("  ");
-  // if (frame == 10){
+  // if (frame == 10){ 
   //   frame = 0;
   //     tft.fillRect(70,130,210,250,ILI9340_BLACK);
   // }
@@ -303,6 +311,21 @@ void loop(){
  tft.setCursor(145, 305);
    tft.print(current_mA);
      tft.print("  ");
+
+     if (frame%20 == 0){
+      Serial.print(".");
+       Serial1.print(step1);
+       Serial1.print(",");
+       Serial1.print(step2);
+       Serial1.print(",");
+       Serial1.print(step3);
+       Serial1.print(",");
+       Serial1.print(step4);
+       Serial1.print(",");
+       Serial1.print(step5);
+       Serial1.println();
+        sensorProcessor->printState();
+     }
  
 }
 

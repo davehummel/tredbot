@@ -1,7 +1,7 @@
 #include "dh_movement.h"
 #include <dh_logger.h>
-#include <dh_logger.h>
 #include <queue>
+#include <arduino.h>
 
 bool MovementEval::evaluateGyro(double gx,double gy, double gz, uint32_t time){
 		if (isGyroMoving){
@@ -15,6 +15,9 @@ bool MovementEval::evaluateGyro(double gx,double gy, double gz, uint32_t time){
 				if (logger){
 					logger->print("Gyro stayed within range for required time ");
 					logger->print(stopReqTime);
+					logger->print(" in ");
+					logger->print(readings);
+					readings = 0;
 					logger->println();
 				}
 				return true;
@@ -119,6 +122,9 @@ void MovementEval::balanceQueue(uint32_t time){
 	if (dif == 0){
 		if (queue.empty())	{
 			mEntry* entry = new mEntry();
+				if (!entry){
+		Serial.println("dead");
+	}
 			entry->time = roundedTime;
 			queue.push(entry);
 		}
@@ -127,6 +133,9 @@ void MovementEval::balanceQueue(uint32_t time){
 
 	if (queue.empty())	{
 		mEntry* entry = new mEntry();
+			if (!entry){
+		Serial.println("dead");
+	}
 		entry->time = roundedTime;
 		queue.push(entry);
 	}
@@ -157,6 +166,9 @@ void MovementEval::balanceQueue(uint32_t time){
 	}
 
 	mEntry* entry = new mEntry();
+	if (!entry){
+		Serial.println("dead");
+	}
 	entry->time = roundedTime;
 	queue.push(entry);
 
@@ -165,10 +177,12 @@ void MovementEval::balanceQueue(uint32_t time){
 void MovementEval::beginStillTest(uint32_t time){
 
 	gNetX = gNetY = gNetZ = 0;
+	readings = 0;
 
 	while (!queue.empty()){
-		delete queue.front();
+		mEntry* entry =  queue.front();
 		queue.pop();
+		delete entry;
 	}
 
 	 restartStillTest(time);
@@ -182,4 +196,5 @@ void MovementEval::restartStillTest(uint32_t time){
 		 gOffsetZMin=10000;
 		 gOffsetZMax=-10000;
 		 stopCheckStartTime = time;
+		 readings = 0;
 }

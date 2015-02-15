@@ -70,17 +70,17 @@ private:
 
 	void printQueue(std::queue<amEntry*> input){
 		Serial1.println(") [");
-		std::queue<amEntry*> myCopy(input);
-		int i = 0;
-		while (!myCopy.empty()){
-			Serial1.print(i);
-			Serial1.print(" in @ ");
-			Serial1.print(myCopy.front()->time);
-			Serial1.print("ms = ");
-			Serial1.println(myCopy.front()->val);
-			myCopy.pop();
-			i++;
-		}
+		// std::queue<amEntry*> myCopy(input);
+		// int i = 0;
+		// while (!myCopy.empty()){
+		// 	Serial1.print(i);
+		// 	Serial1.print(" in @ ");
+		// 	Serial1.print(myCopy.front()->time);
+		// 	Serial1.print("ms = ");
+		// 	Serial1.println(myCopy.front()->val);
+		// 	myCopy.pop();
+		// 	i++;
+		// }
 		Serial1.println("]");
 	}
 };
@@ -101,6 +101,10 @@ void AveragedMeasure<_amt>::addMeasure(_amt measure, uint32_t time){
 		return;
 	lastWriteTime = time;
 	amEntry* entry = new amEntry();
+	if (!entry){
+		Serial.println("DEADDD!");
+		return;
+	}
 	entry->val = measure;
 	entry->time = time;
 	frontQueue.push(entry);

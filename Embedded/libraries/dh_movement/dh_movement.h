@@ -100,7 +100,7 @@ public:
 	double gOffsetZMax=-10000;
 
 
-	Logger *logger;
+	Logger *logger = 0;
 
 private:
 
@@ -121,6 +121,7 @@ private:
 	void clearResidue(uint32_t time);
 
 	void updateGMinMax(double gx,double gy, double gz, uint32_t time){
+		readings ++;
 		if (gx>gOffsetXMax)
 			gOffsetXMax = gx;
 		if (gx<gOffsetXMin)
@@ -164,6 +165,7 @@ private:
 	double gStopRange = 0;
 	double stopCheckStartTime = 0;
 
+	uint16_t readings = 0;
 
 
 	bool isGyroMoving=false;

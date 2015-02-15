@@ -14,6 +14,7 @@ bool LSM9DS0::initAndVerify(bool gyroHigh,bool xmHigh){
 	initI2C();
 
 	gyroAddr = gyroHigh?LSM9DS0_GYR_I2C_SAD_H:LSM9DS0_GYR_I2C_SAD_L;
+	xmAddr = xmHigh?LSM9DS0_GYR_I2C_SAD_H:LSM9DS0_GYR_I2C_SAD_L
 
 	if (logger){
 		logger->print("gyroAddr=");
@@ -84,7 +85,7 @@ void LSM9DS0::updateSettings(){
 			regVal += 0b1000000;
 		if (gyroEnableInterput_Int_G)
 			regVal += 0b10000000;
-		if (logger){
+		if (logger){ 
 			logger->print("Updating Gyro Register 3:");
 			logger->print(regVal,BIN);
 			logger->println();
@@ -107,20 +108,8 @@ void LSM9DS0::updateSettings(){
 		}
 		I2CwriteByte(gyroAddr, G_CTRL_REG4,regVal );
 		// to calculate DPS/(ADC tick) based on that 2-bit value:
-	switch (gyroScale)
-	{
-	case G_SCALE_245DPS:
-		gyroScaleFactor = 245.0 / 32768.0;
-		break;
-	case G_SCALE_500DPS:
-		gyroScaleFactor = 500.0 / 32768.0;
-		break;
-	case G_SCALE_2000DPS:
-		gyroScaleFactor = 2000.0 / 32768.0;
-		break;
 	}
-	}
-	if (changedGyroRegisterMap&0b1000 == 0b10000){
+	if (changedGyroRegisterMap&0b10000 == 0b10000){
 		uint8_t regVal = 0;
 	
 		regVal += gyroBoot << 7;
@@ -136,16 +125,62 @@ void LSM9DS0::updateSettings(){
 		}
 		I2CwriteByte(gyroAddr, G_CTRL_REG5,regVal );
 	}
+	if (changedMagRegister){
+		uint8_t regVal = 0;
+	
+		regVal +=magEnableXInt << 7;
+		regVal += magEnableYInt << 6;
+		regVal += magEnableZInt << 5;
+		regVal += magPushPull_OpenDrain << 4;
+		regVal += magXMEnableActive_Int << 3;
+		regVal += magXMLatch<<2;
+		
+		regVal += magInteruptEnabled;
+
+		if (logger){
+			logger->print("Updating Mag Register5:");
+			logger->print(regVal,BIN);
+			logger->println();
+		}
+		I2CwriteByte(XMAddr, M_INT_CTRL_REG,regVal );
+	}
+	if (changedXMRegisterMap&0b1 == 0b1){
+		// TODO
+	}
 	changedGyroRegisterMap = 0;
+	changedMagRegister = false;
 }
 
 void LSM9DS0::readRawGyro(){
 	uint8_t temp[6]; // We'll read six bytes from the gyro into temp
-	I2CreadBytes(gyroAddr,G_OUT_X_L, temp, 6); // Read 6 bytes, beginning at OUT_X_L_G
+	I2CreadBytes(gyroAddr,OUT_TEMP_L_XM, temp, 2); // Read 6 bytes, beginning at OUT_X_L_G
 	gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
 	gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
 	gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
 }
+
+void LSM9DS0::readRawTemp(){
+	uint8_t temp[2]; // We'll read six bytes from the gyro into temp
+	I2CreadBytes(xmAddr,G_OUT_X_L, temp, 2); // Read 6 bytes, beginning at OUT_X_L_G
+	temperature = (((int16_t) temp[1] << 12) | temp[0] << 4 ) >> 4; // Temperature is a 12-bit signed integer
+}
+
+void LSM9DS0::readMag(){
+	uint8_t temp[6]; // We'll read six bytes from the mag into temp	
+	I2CreadBytes(xmAddr,OUT_X_L_M, temp, 6); // Read 6 bytes, beginning at OUT_X_L_M
+	mx = (temp[1] << 8) | temp[0]; // Store x-axis values into mx
+	my = (temp[3] << 8) | temp[2]; // Store y-axis values into my
+	mz = (temp[5] << 8) | temp[4]; // Store z-axis values into mz
+}
+
+void LSM9DS0::readAccel(){
+	uint8_t temp[6]; // We'll read six bytes from the accelerometer into temp	
+	I2CreadBytes(xmAddr,OUT_X_L_A, temp, 6); // Read 6 bytes, beginning at OUT_X_L_A
+	ax = (temp[1] << 8) | temp[0]; // Store x-axis values into ax
+	ay = (temp[3] << 8) | temp[2]; // Store y-axis values into ay
+	az = (temp[5] << 8) | temp[4]; // Store z-axis values into az
+}
+
 
 // PRIVATE
 

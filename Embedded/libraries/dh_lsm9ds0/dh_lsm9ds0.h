@@ -11,6 +11,14 @@
 #include <dh_logger.h>
 
 
+
+#define	ACC_G_MAX_POS		1495040	/** max positive value acc [ug] */
+#define	ACC_G_MAX_NEG		1495770	/** max negative value acc [ug] */
+#define	MAG_G_MAX_POS		983520	/** max positive value mag [ugauss] */
+#define	MAG_G_MAX_NEG		983040	/** max negative value mag [ugauss] */
+#define FS_MAX		32768
+
+
 #define LSM9DS0_SAD0L_ACC_MAG		(0x02)
 #define LSM9DS0_SAD0H_ACC_MAG		(0x01)
 #define LSM9DS0_SAD0L_GYR		(0x00)
@@ -26,6 +34,14 @@
 #define LSM9DS0_GYR_I2C_SAD_H		((LSM9DS0_GYR_I2C_SADROOT<<1)| \
 							LSM9DS0_SAD0H_GYR)
 
+/* I2C address if gyr SA0 pin to GND */
+#define LSM9DS0_ACC_MAG_I2C_SAD_L	((LSM9DS0_ACC_MAG_I2C_SADROOT<<2)| \
+							LSM9DS0_SAD0L_ACC_MAG)
+/* I2C address if gyr SA0 pin to Vdd */
+#define LSM9DS0_ACC_MAG_I2C_SAD_H	((LSM9DS0_ACC_MAG_I2C_SADROOT<<2)| \
+							LSM9DS0_SAD0H_ACC_MAG)
+
+
 #define LSM9DS0_G_ID                (0xD4)
 
 #define G_CTRL_REG1	(0x20)    /* CTRL REG1 */
@@ -38,12 +54,48 @@
 #define	G_FIFO_CTRL_REG	(0x2E)    /* FIFO CONTROL REGISTER */
 #define G_FIFO_SRC_REG	(0x2F)    /* FIFO SOURCE REGISTER */
 
+#define M_INT_CTRL_REG	(0x12)	/** INT_CTRL_REG_M address register */
 
 #define WHO_AM_I	(0x0F)
 
 
 class LSM9DS0{
 public:
+
+	// accel_scale defines all possible FSR's of the accelerometer:
+	enum accel_scale
+	{
+		A_SCALE_2G,	// 000:  2g
+		A_SCALE_4G,	// 001:  4g
+		A_SCALE_6G,	// 010:  6g
+		A_SCALE_8G,	// 011:  8g
+		A_SCALE_16G	// 100:  16g
+	};
+		// accel_oder defines all possible output data rates of the accelerometer:
+	enum accel_odr
+	{
+		A_POWER_DOWN, 	// Power-down mode (0x0)
+		A_ODR_3125,		// 3.125 Hz	(0x1)
+		A_ODR_625,		// 6.25 Hz (0x2)
+		A_ODR_125,		// 12.5 Hz (0x3)
+		A_ODR_25,		// 25 Hz (0x4)
+		A_ODR_50,		// 50 Hz (0x5)
+		A_ODR_100,		// 100 Hz (0x6)
+		A_ODR_200,		// 200 Hz (0x7)
+		A_ODR_400,		// 400 Hz (0x8)
+		A_ODR_800,		// 800 Hz (9)
+		A_ODR_1600		// 1600 Hz (0xA)
+	};
+
+      // accel_abw defines all possible anti-aliasing filter rates of the accelerometer:
+	enum accel_abw
+	{
+		A_ABW_773,		// 773 Hz (0x0)
+		A_ABW_194,		// 194 Hz (0x1)
+		A_ABW_362,		// 362 Hz (0x2)
+		A_ABW_50,		//  50 Hz (0x3)
+	};
+
 	enum gyro_scale
 	{
 		G_SCALE_245DPS,		// 00:  245 degrees per second
@@ -101,19 +153,19 @@ public:
 			changedGyroRegisterMap |= 1;
 	}
 
-	void setHPMode(gyro_hpmode mode){
+	void setGyroHPMode(gyro_hpmode mode){
 		gyroHPmode = mode;
 		changedGyroRegisterMap |= 2;
 	}
 
-	void setHPCutoff(uint8_t cutoff){  // the actual cutoff depends on ODR, but 0 = highest and 9 = lowest
+	void setGyroHPCutoff(uint8_t cutoff){  // the actual cutoff depends on ODR, but 0 = highest and 9 = lowest
 		gyroHPCutoff = cutoff;
 		if (gyroHPCutoff>9)
 			gyroHPCutoff = 9;
 		changedGyroRegisterMap |= 0b10;
 	}
 
-	void setPins(bool _enableInterput_Int_G ,bool _enableBoot_Int_G ,bool _enableActive_Int_G, bool _pushPull_OpenDrain, bool _enableDataInterup_DRDY,bool _enableWaterMark_DRDY,bool _enableFIFOOverrun_DRDY,bool _enableFIFOEmpty_DRDY){
+	void setGyroPins(bool _enableInterput_Int_G ,bool _enableBoot_Int_G ,bool _enableActive_Int_G, bool _pushPull_OpenDrain, bool _enableDataInterup_DRDY,bool _enableWaterMark_DRDY,bool _enableFIFOOverrun_DRDY,bool _enableFIFOEmpty_DRDY){
 		gyroEnableInterput_Int_G =_enableInterput_Int_G;
 		gyroEnableBoot_Int_G = _enableBoot_Int_G;
 		gyroEnableActive_Int_G = _enableActive_Int_G; 
@@ -164,11 +216,24 @@ public:
 		changedGyroRegisterMap |= 0b10000;
 	}
 
-	void convertRawGyro(){
-		dpsX = gyroScaleFactor*gx;
-		dpsY = gyroScaleFactor*gy;
-		dpsZ = gyroScaleFactor*gz;
+	void setMagXMPins(bool xEnabled, bool yEnabled, bool zEnabled, bool _pushPull_OpenDrain, bool interuptActiveHigh, bool latchMagXM, bool _4dEnable bool intEnabled){
+		magEnableXInt = xEnabled;
+		magEnableYInt = yEnabled;
+		magEnableZInt = zEnabled;
+
+		magPushPull_OpenDrain = _pushPull_OpenDrain;
+		magXMEnableActive_Int = interuptActiveHigh;
+		magXMLatch = latchMagXM;
+		magInteruptEnabled = intEnabled;
+		magXM4dEnabled = _4dEnable;
+
+		changedMagRegister = true;
 	}
+
+	void setAccelRate( accel_odr rate){
+
+	}
+
 
 	void updateSettings();
 
@@ -178,19 +243,18 @@ public:
 
 		// Gyro raw values
 	int16_t gx=0,gy=0,gz=0;
-
-	float dpsX=0,dpsY=0,dpsZ=0;
+	int16_t ax=0,ay=0,az=0;
+	int16_t mx=0, my=0, mz=0; // x, y, and z axis readings of the magnetometer
+    int16_t temperature=0;
 
 private:
 
-	bool isMoving = true;
-
-	uint8_t gyroAddr = 0; // I2C address for Gyro .. either 
-
-	float gyroScaleFactor = 1;
+	uint8_t gyroAddr = 0; // I2C address for Gyro .. either \
+	uint8_t xmAddr = 0; // I2C address for accelerometer
 
 	uint8_t changedGyroRegisterMap=0b00011111;
-
+	uint8_t changedXMRegisterMap=0b00011111;
+	bool changedMagRegister = true;
 
 	// Gyro Register 1
 	gyro_dr_bw gyroDrBW=G_DR_95_BW_125;
@@ -224,6 +288,16 @@ private:
 	bool gyroHPEnabled = false;
 	uint8_t gyroINT1Select = 0; //0-3
 	uint8_t gyroOUTSelect = 0; //0-3
+
+	bool magEnableXInt = false;
+	bool magEnableYInt = false;
+	bool magEnableZInt = false;
+
+	bool magPushPull_OpenDrain = false;	 // - Push-pull/open-drain interrupt configuration (0=push-pull, 1=od)
+	bool magXMEnableActive_Int = false;  // Interrupt polarity for both accelerometer and magnetometer. Default value: 0. (0: interrupt active-low; 1: interrupt active-high)
+	bool magXMLatch = false;  // Latch interrupt request on accelerometer INT_GEN_1_SRC (31h) and INT_GEN_2_SRC (35h) registers, and magnetometer INT_SRC_REG_M (13h) register. Default value: 0. (0: interrupt request not latched; 1: interrupt request latched)
+	bool magXM4dEnabled = false; // 4D enable: 4D detection on acceleration data is enabled when 6D bit in INT_GEN_1_REG (30h) is set to 1.
+	bool magInteruptEnabled = false; 
 
 
 	///////////////////
