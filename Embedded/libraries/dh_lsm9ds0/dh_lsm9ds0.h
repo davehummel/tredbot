@@ -44,6 +44,7 @@
 
 
 #define LSM9DS0_G_ID                (0xD4)
+#define LSM9DS0_XM_ID                (0x49)
 
 #define G_CTRL_REG1	(0x20)    /* CTRL REG1 */
 #define G_CTRL_REG2	(0x21)    /* CTRL REG2 */

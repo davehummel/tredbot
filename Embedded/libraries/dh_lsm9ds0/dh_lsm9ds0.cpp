@@ -33,6 +33,21 @@ bool LSM9DS0::initAndVerify(bool gyroHigh,bool xmHigh){
 	if (test != LSM9DS0_G_ID){
 		return false;
 	}
+
+	test = I2CreadByte(xmAddr,WHO_AM_I);		// Read the gyro WHO_AM_I
+
+	if (logger){
+		logger->print("xmID=");
+		logger->print(test,HEX);
+		logger->println();
+	}
+
+	if (test != LSM9DS0_XM_ID){
+		return false;
+	}
+
+
+
 	return true;
 }
 
@@ -126,159 +141,159 @@ void LSM9DS0::updateSettings(){
 		}
 		I2CwriteByte(gyroAddr, G_CTRL_REG5,regVal );
 	}
-	if (changedMagRegister){
-		uint8_t regVal = 0;
+	// if (changedMagRegister){
+	// 	uint8_t regVal = 0;
 	
-		regVal +=magEnableXInt << 7;
-		regVal += magEnableYInt << 6;
-		regVal += magEnableZInt << 5;
-		regVal += magPushPull_OpenDrain << 4;
-		regVal += magXMEnableActive_Int << 3;
-		regVal += magXMLatch<<2;
-		regVal += magXM4dEnabled<<1;
-		regVal += magInteruptEnabled;
+	// 	regVal +=magEnableXInt << 7;
+	// 	regVal += magEnableYInt << 6;
+	// 	regVal += magEnableZInt << 5;
+	// 	regVal += magPushPull_OpenDrain << 4;
+	// 	regVal += magXMEnableActive_Int << 3;
+	// 	regVal += magXMLatch<<2;
+	// 	regVal += magXM4dEnabled<<1;
+	// 	regVal += magInteruptEnabled;
 
-		if (logger){
-			logger->print("Updating Mag Register:");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, M_INT_CTRL_REG,regVal );
-	}
-	if (changedXMRegisterMap&0b1 == 0b1){
-		uint8_t regVal = 0;
+	// 	if (logger){
+	// 		logger->print("Updating Mag Register:");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, M_INT_CTRL_REG,regVal );
+	// }
+	// if (changedXMRegisterMap&0b1 == 0b1){
+	// 	uint8_t regVal = 0;
 	
-		regVal += xmBoot << 7;
-		regVal += xmFIFOEnabled << 6;
-		regVal += xmWTMEnabled << 5;
+	// 	regVal += xmBoot << 7;
+	// 	regVal += xmFIFOEnabled << 6;
+	// 	regVal += xmWTMEnabled << 5;
 
-		regVal += xmHPClickEnabled << 2;
-		regVal += xmHPInteruptGen1<<1;
-		regVal += xmHPInteruptGen2;
+	// 	regVal += xmHPClickEnabled << 2;
+	// 	regVal += xmHPInteruptGen1<<1;
+	// 	regVal += xmHPInteruptGen2;
 
-		if (logger){
-			logger->print("Updating XM Register0:");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG0,regVal );
-	}
-	if (changedXMRegisterMap&0b10 == 0b10){
-		uint8_t regVal = 0;
+	// 	if (logger){
+	// 		logger->print("Updating XM Register0:");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG0,regVal );
+	// }
+	// if (changedXMRegisterMap&0b10 == 0b10){
+	// 	uint8_t regVal = 0;
 	
-		regVal += accelRate << 4;
-		regVal += xmBlockDataUntilRead << 3;
-		regVal += xmAccZEnabled << 2;
-		regVal += xmAccYEnabled << 1;
-		regVal += xmAccXEnabled;
+	// 	regVal += accelRate << 4;
+	// 	regVal += xmBlockDataUntilRead << 3;
+	// 	regVal += xmAccZEnabled << 2;
+	// 	regVal += xmAccYEnabled << 1;
+	// 	regVal += xmAccXEnabled;
 		
-		if (logger){
-			logger->print("Updating XM Register1:");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG1,regVal );
-	}
-	if (changedXMRegisterMap&0b100 == 0b100){
-		uint8_t regVal = 0;
+	// 	if (logger){
+	// 		logger->print("Updating XM Register1:");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG1,regVal );
+	// }
+	// if (changedXMRegisterMap&0b100 == 0b100){
+	// 	uint8_t regVal = 0;
 	
-		regVal += accelAAFilterBW << 6;
-		regVal += accelScale << 3;
-		regVal += xmTestMode << 1;
+	// 	regVal += accelAAFilterBW << 6;
+	// 	regVal += accelScale << 3;
+	// 	regVal += xmTestMode << 1;
 		
-		if (logger){
-			logger->print("Updating XM Register2:");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG2,regVal );
-	}
-	if (changedXMRegisterMap&0b1000 == 0b1000){
-		uint8_t regVal = 0;
+	// 	if (logger){
+	// 		logger->print("Updating XM Register2:");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG2,regVal );
+	// }
+	// if (changedXMRegisterMap&0b1000 == 0b1000){
+	// 	uint8_t regVal = 0;
 	
-		regVal += xmP1Boot << 7;
-		regVal += xmP1Tap << 6;
-		regVal += xmP1Int1 << 5;
-		regVal += xmP1Int2 << 4;
-		regVal += magP1IntM << 3;
-		regVal += xmP1DRInt << 2;
-		regVal += magP1DRInt << 1; 
-		regVal += xmFIFOEmptyInt1;
+	// 	regVal += xmP1Boot << 7;
+	// 	regVal += xmP1Tap << 6;
+	// 	regVal += xmP1Int1 << 5;
+	// 	regVal += xmP1Int2 << 4;
+	// 	regVal += magP1IntM << 3;
+	// 	regVal += xmP1DRInt << 2;
+	// 	regVal += magP1DRInt << 1; 
+	// 	regVal += xmFIFOEmptyInt1;
 		
-		if (logger){
-			logger->print("Updating XM Register3:");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG3,regVal );
-	}
+	// 	if (logger){
+	// 		logger->print("Updating XM Register3:");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG3,regVal );
+	// }
 
-	if (changedXMRegisterMap&0b10000 == 0b10000){
-		uint8_t regVal = 0;
+	// if (changedXMRegisterMap&0b10000 == 0b10000){
+	// 	uint8_t regVal = 0;
 	
-		regVal += xmP2Tap << 7;
-		regVal += xmP2Int1 << 6;
-		regVal += xmP2Int2 << 5;
-		regVal += magP2IntM << 4;
-		regVal += xmP2DRInt << 3;
-		regVal += magP2DRInt << 2;
-		regVal += xmFIFOOverrunInt2 << 1;
-		regVal += xmFIFOWMInt2;
+	// 	regVal += xmP2Tap << 7;
+	// 	regVal += xmP2Int1 << 6;
+	// 	regVal += xmP2Int2 << 5;
+	// 	regVal += magP2IntM << 4;
+	// 	regVal += xmP2DRInt << 3;
+	// 	regVal += magP2DRInt << 2;
+	// 	regVal += xmFIFOOverrunInt2 << 1;
+	// 	regVal += xmFIFOWMInt2;
 		
-		if (logger){
-			logger->print("Updating XM Register4:");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG4,regVal );
-	}
+	// 	if (logger){
+	// 		logger->print("Updating XM Register4:");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG4,regVal );
+	// }
 
-	if (changedXMRegisterMap&0b100000 == 0b100000){
-		uint8_t regVal = 0;
+	// if (changedXMRegisterMap&0b100000 == 0b100000){
+	// 	uint8_t regVal = 0;
 	
-		regVal += tempEnabled << 7;
-		regVal += magHighResMode << 6;
-		regVal += magHighResMode << 5;
-		regVal += magRate << 2;
-		regVal += latchIntOnINT2_SRC << 1;
-		regVal += latchIntOnINT1_SRC;
+	// 	regVal += tempEnabled << 7;
+	// 	regVal += magHighResMode << 6;
+	// 	regVal += magHighResMode << 5;
+	// 	regVal += magRate << 2;
+	// 	regVal += latchIntOnINT2_SRC << 1;
+	// 	regVal += latchIntOnINT1_SRC;
 		
-		if (logger){
-			logger->print("Updating XM Register5:");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG5,regVal );
-	}
+	// 	if (logger){
+	// 		logger->print("Updating XM Register5:");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG5,regVal );
+	// }
 
-	if (changedXMRegisterMap&0b1000000 == 0b1000000){
-		uint8_t regVal = 0;
+	// if (changedXMRegisterMap&0b1000000 == 0b1000000){
+	// 	uint8_t regVal = 0;
 	
-		regVal += magScale << 5;
+	// 	regVal += magScale << 5;
 		
-		if (logger){
-			logger->print("Updating XM Register6");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG6,regVal );
-	}
+	// 	if (logger){
+	// 		logger->print("Updating XM Register6");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG6,regVal );
+	// }
 
-	if (changedXMRegisterMap&0b10000000 == 0b10000000){
-		uint8_t regVal = 0;
+	// if (changedXMRegisterMap&0b10000000 == 0b10000000){
+	// 	uint8_t regVal = 0;
 	
-		regVal += accelHPMode << 6;
-		regVal += xmFilterDS << 5;
-		regVal += magLowPower << 2;
-		regVal += magSensorMode ;
+	// 	regVal += accelHPMode << 6;
+	// 	regVal += xmFilterDS << 5;
+	// 	regVal += magLowPower << 2;
+	// 	regVal += magSensorMode ;
 		
-		if (logger){
-			logger->print("Updating XM Register7");
-			logger->print(regVal,BIN);
-			logger->println();
-		}
-		I2CwriteByte(xmAddr, XM_CTRL_REG7,regVal );
-	}
+	// 	if (logger){
+	// 		logger->print("Updating XM Register7");
+	// 		logger->print(regVal,BIN);
+	// 		logger->println();
+	// 	}
+	// 	I2CwriteByte(xmAddr, XM_CTRL_REG7,regVal );
+	// }
 
 
 	changedGyroRegisterMap = 0;

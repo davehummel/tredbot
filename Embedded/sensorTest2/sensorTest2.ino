@@ -24,7 +24,7 @@
 #define _sclk 13 
 #define _miso 12
 #define _mosi 11
-#define _cs 10
+#define _cs 10 
 #define _dc 9 
 #define _rst 8
 
@@ -70,7 +70,7 @@ void readGyro(){
     time = millis();   // WARNING - might not be able to call millis(/micros() here in an interupt?
       step1++;
     dof1.readRawGyro(); 
-     step2++;
+     step2++; 
     gX = dof1.gx;
     gY = dof1.gy;
     gZ = dof1.gz;
@@ -119,9 +119,7 @@ void setup(){
 
   pinMode(2, INPUT_PULLUP);
   Serial1.begin(115200);
-  Serial1.println("Starting");
-    Serial.begin(115200);
-  Serial.println("Starting");
+  Serial1.println("Starting");;
 
 
   tft.begin();
@@ -132,7 +130,7 @@ void setup(){
   tft.setCursor(0, 16);  
   tft.print("Starting Gyros: ");
   Serial1.println("Starting Gyros");
-  //dof1.logger = new  ArduinoLogger(1);
+dof1.logger = new  ArduinoLogger(1); 
 
   if (!dof1.initAndVerify(true,true)){
     Serial1.println("Failed LSM9DS0 init1");
@@ -144,9 +142,9 @@ void setup(){
   Serial1.println("Starting Sensor Filters");
 
 
- moveEval->logger = dof1.logger;
+ // moveEval->logger = dof1.logger;
 
-  sensorProcessor->logger = dof1.logger;
+ //  sensorProcessor->logger = dof1.logger;
   sensorProcessor->movement = moveEval;
 
  
