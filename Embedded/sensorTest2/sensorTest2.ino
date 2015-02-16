@@ -4,21 +4,20 @@
 #include "Arduino.h"
 #include <dh_logger.h>
 #include <dh_arduino_logger.h>
-#include <dh_averaged_measure.h>
+#include <dh_averaged_measure.h> 
 #include <dh_movement.h>  
 #include <dh_position.h>
 #include <quaternion.h>
 
 #include <dh_sensor_processor.h> 
 #include "SPI.h"
-#include "Adafruit_GFX.h"
-#include "Adafruit_ILI9340.h"
+#include "ILI9341_t3.h"
 #include <Adafruit_INA219.h>
 
 #if defined(__SAM3X8E__)
     #undef __FlashStringHelper::F(string_literal)
     #define F(string_literal) string_literal
-#endif
+#endif 
  
 // These are the pins used for the UNO
 // for Due/Mega/Leonardo use the hardware SPI pins (which are different)
@@ -37,7 +36,7 @@ const byte INT2XM = 4; // INT2XM tells us when mag data is ready
 const byte DRDYG1  = 2; // DRDYG  tells us when gyro data is ready
   
  
-Adafruit_ILI9340 tft = Adafruit_ILI9340(_cs, _dc, _rst); 
+ILI9341_t3 tft = ILI9341_t3(_cs, _dc, _rst); 
 //TouchPad touchPad = TouchPad(13);
 
 LSM9DS0 dof1 = LSM9DS0(); 
@@ -129,7 +128,7 @@ void setup(){
   Serial1.println("tft started"); 
  
   tft.setTextSize(1);
-   tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
+   tft.setTextColor(ILI9341_WHITE,ILI9341_BLACK);
   tft.setCursor(0, 16);  
   tft.print("Starting Gyros: ");
   Serial1.println("Starting Gyros");
@@ -137,7 +136,7 @@ void setup(){
 
   if (!dof1.initAndVerify(true,true)){
     Serial1.println("Failed LSM9DS0 init1");
-    tft.setTextColor(ILI9340_RED,ILI9340_BLACK);
+    tft.setTextColor(ILI9341_RED,ILI9341_BLACK);
     tft.println("Failed!");
     return;
   }
@@ -161,22 +160,22 @@ void setup(){
 
 
 
-  tft.setTextColor(ILI9340_GREEN,ILI9340_BLACK);
+  tft.setTextColor(ILI9341_GREEN,ILI9341_BLACK);
   tft.println("Started!");
-  tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
+  tft.setTextColor(ILI9341_WHITE,ILI9341_BLACK);
 
  
   tft.print("Starting Power Monitor: ");
   powerMonitor = new Adafruit_INA219();
   powerMonitor->begin();
-  tft.setTextColor(ILI9340_GREEN,ILI9340_BLACK);
+  tft.setTextColor(ILI9341_GREEN,ILI9341_BLACK);
   tft.println("Started!");
-  tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
+  tft.setTextColor(ILI9341_WHITE,ILI9341_BLACK);
 
   delay(500);
-  tft.fillScreen(ILI9340_BLACK);
+  tft.fillScreen(ILI9341_BLACK);
  
-  tft.setTextColor(ILI9340_YELLOW); 
+  tft.setTextColor(ILI9341_YELLOW); 
   tft.setTextSize(2);
   
   tft.setCursor(0, 0);   
@@ -186,7 +185,7 @@ void setup(){
   tft.setCursor(160, 0);
   tft.print("|Z");
 
-  tft.setTextColor(ILI9340_YELLOW); 
+  tft.setTextColor(ILI9341_YELLOW); 
   tft.setCursor(0, 300);  
   tft.print("V:       mA:");
   tft.setTextSize(1);
@@ -196,18 +195,19 @@ void setup(){
   attachInterrupt(2,readGyro, RISING);
 
   failed = false;
+    readGyro();
 }
 
 uint8_t frame=0;
 void loop(){
   frame++;
-  delay(250);
+  delay(500);
   if (failed)
     return;
-  readGyro();
+//  readGyro();
  
   tft.setTextSize(1);
-  tft.setTextColor(ILI9340_GREEN,ILI9340_BLACK);
+  tft.setTextColor(ILI9341_GREEN,ILI9341_BLACK);
   tft.setCursor(0, 18);  
 
   tft.print(gX);
@@ -219,7 +219,7 @@ void loop(){
   tft.print(gZ);
   tft.print("  ");
 
-  tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
+  tft.setTextColor(ILI9341_WHITE,ILI9341_BLACK);
   tft.setCursor(0, 30);  
   tft.setTextSize(2);
   tft.print(dpsX,3);
@@ -228,11 +228,11 @@ void loop(){
   tft.print(dpsY,3);
   tft.print("  ");
   tft.setCursor(160, 30);
-  tft.print(dpsZ,3);
+  tft.print(dpsZ,3); 
   tft.print("  ");
 
   tft.setTextSize(1);
-  tft.setTextColor(isMoving?ILI9340_RED:ILI9340_BLUE,ILI9340_BLACK);
+  tft.setTextColor(isMoving?ILI9341_RED:ILI9341_BLUE,ILI9341_BLACK);
   tft.setCursor(0, 48);  
 
   tft.print(gNetX,4);
@@ -255,7 +255,7 @@ void loop(){
   tft.print("  ");
  
 
-  tft.fillRect(220,0,240,20,tft.Color565(255,255 - movementAgro, 255 -movementAgro));
+  tft.fillRect(220,0,240,20,tft.color565(255,255 - movementAgro, 255 -movementAgro));
   if(movementAgro>20)
     movementAgro -=20;
   else  
@@ -274,7 +274,7 @@ void loop(){
  //   tft.print(dist2);
  //     tft.print("  ");
 
-  tft.setTextColor(ILI9340_WHITE,ILI9340_BLACK);
+  tft.setTextColor(ILI9341_WHITE,ILI9341_BLACK);
    tft.setTextSize(2);  
    tft.setCursor(0, 90);
    tft.print(gNetZ);
@@ -303,7 +303,7 @@ void loop(){
 
   //  tft.drawLine(140+pointer[0]*50,200-pointer[1]*50,140,200,ILI9340_GREEN);
   
-       tft.setTextColor(ILI9340_RED,ILI9340_BLACK);
+       tft.setTextColor(ILI9341_RED,ILI9341_BLACK);
  tft.setTextSize(2);
  tft.setCursor(25, 305);
    tft.print(loadvoltage);

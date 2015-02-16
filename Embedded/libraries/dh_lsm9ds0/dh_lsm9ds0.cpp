@@ -14,7 +14,7 @@ bool LSM9DS0::initAndVerify(bool gyroHigh,bool xmHigh){
 	initI2C();
 
 	gyroAddr = gyroHigh?LSM9DS0_GYR_I2C_SAD_H:LSM9DS0_GYR_I2C_SAD_L;
-	xmAddr = xmHigh?LSM9DS0_GYR_I2C_SAD_H:LSM9DS0_GYR_I2C_SAD_L
+	xmAddr = xmHigh?LSM9DS0_ACC_MAG_I2C_SAD_H:LSM9DS0_ACC_MAG_I2C_SAD_L;
 
 	if (logger){
 		logger->print("gyroAddr=");
@@ -143,12 +143,12 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, M_INT_CTRL_REG,regVal );
+		I2CwriteByte(xmAddr, M_INT_CTRL_REG,regVal );
 	}
 	if (changedXMRegisterMap&0b1 == 0b1){
 		uint8_t regVal = 0;
 	
-		regVal +=boot << 7;
+		regVal += xmBoot << 7;
 		regVal += xmFIFOEnabled << 6;
 		regVal += xmWTMEnabled << 5;
 
@@ -161,12 +161,12 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG0,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG0,regVal );
 	}
 	if (changedXMRegisterMap&0b10 == 0b10){
 		uint8_t regVal = 0;
 	
-		regVal += accelRate << 4
+		regVal += accelRate << 4;
 		regVal += xmBlockDataUntilRead << 3;
 		regVal += xmAccZEnabled << 2;
 		regVal += xmAccYEnabled << 1;
@@ -177,12 +177,12 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG1,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG1,regVal );
 	}
 	if (changedXMRegisterMap&0b100 == 0b100){
 		uint8_t regVal = 0;
 	
-		regVal += accelAAFilterBW << 6
+		regVal += accelAAFilterBW << 6;
 		regVal += accelScale << 3;
 		regVal += xmTestMode << 1;
 		
@@ -191,18 +191,18 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG2,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG2,regVal );
 	}
 	if (changedXMRegisterMap&0b1000 == 0b1000){
 		uint8_t regVal = 0;
 	
-		regVal += xmP1Boot << 7
+		regVal += xmP1Boot << 7;
 		regVal += xmP1Tap << 6;
 		regVal += xmP1Int1 << 5;
 		regVal += xmP1Int2 << 4;
 		regVal += magP1IntM << 3;
-		regVal += xmP1DRInt1 << 2;
-		regVal += magP1DRInt1 << 1;
+		regVal += xmP1DRInt << 2;
+		regVal += magP1DRInt << 1; 
 		regVal += xmFIFOEmptyInt1;
 		
 		if (logger){
@@ -210,7 +210,7 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG3,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG3,regVal );
 	}
 
 	if (changedXMRegisterMap&0b10000 == 0b10000){
@@ -230,15 +230,15 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG4,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG4,regVal );
 	}
 
 	if (changedXMRegisterMap&0b100000 == 0b100000){
 		uint8_t regVal = 0;
 	
 		regVal += tempEnabled << 7;
-		regVal += magHighResEnabled << 6;
-		regVal += magHighResEnabled << 5;
+		regVal += magHighResMode << 6;
+		regVal += magHighResMode << 5;
 		regVal += magRate << 2;
 		regVal += latchIntOnINT2_SRC << 1;
 		regVal += latchIntOnINT1_SRC;
@@ -248,7 +248,7 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG5,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG5,regVal );
 	}
 
 	if (changedXMRegisterMap&0b1000000 == 0b1000000){
@@ -261,7 +261,7 @@ void LSM9DS0::updateSettings(){
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG6,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG6,regVal );
 	}
 
 	if (changedXMRegisterMap&0b10000000 == 0b10000000){
@@ -270,14 +270,14 @@ void LSM9DS0::updateSettings(){
 		regVal += accelHPMode << 6;
 		regVal += xmFilterDS << 5;
 		regVal += magLowPower << 2;
-		regVal += magSensorMode 
+		regVal += magSensorMode ;
 		
 		if (logger){
 			logger->print("Updating XM Register7");
 			logger->print(regVal,BIN);
 			logger->println();
 		}
-		I2CwriteByte(XMAddr, XM_CTRL_REG7,regVal );
+		I2CwriteByte(xmAddr, XM_CTRL_REG7,regVal );
 	}
 
 
@@ -288,7 +288,7 @@ void LSM9DS0::updateSettings(){
 
 void LSM9DS0::readRawGyro(){
 	uint8_t temp[6]; // We'll read six bytes from the gyro into temp
-	I2CreadBytes(gyroAddr,OUT_TEMP_L_XM, temp, 2); // Read 6 bytes, beginning at OUT_X_L_G
+	I2CreadBytes(gyroAddr,G_OUT_X_L, temp, 2); // Read 6 bytes, beginning at OUT_X_L_G
 	gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
 	gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
 	gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
@@ -296,21 +296,21 @@ void LSM9DS0::readRawGyro(){
 
 void LSM9DS0::readRawTemp(){
 	uint8_t temp[2]; // We'll read six bytes from the gyro into temp
-	I2CreadBytes(xmAddr,G_OUT_X_L, temp, 2); // Read 6 bytes, beginning at OUT_X_L_G
+	I2CreadBytes(xmAddr,T_OUT_L, temp, 2); // Read 6 bytes, beginning at OUT_X_L_G
 	temperature = (((int16_t) temp[1] << 12) | temp[0] << 4 ) >> 4; // Temperature is a 12-bit signed integer
 }
 
-void LSM9DS0::readMag(){
+void LSM9DS0::readRawMag(){
 	uint8_t temp[6]; // We'll read six bytes from the mag into temp	
-	I2CreadBytes(xmAddr,OUT_X_L_M, temp, 6); // Read 6 bytes, beginning at OUT_X_L_M
+	I2CreadBytes(xmAddr,M_OUT_X_L, temp, 6); // Read 6 bytes, beginning at OUT_X_L_M
 	mx = (temp[1] << 8) | temp[0]; // Store x-axis values into mx
 	my = (temp[3] << 8) | temp[2]; // Store y-axis values into my
 	mz = (temp[5] << 8) | temp[4]; // Store z-axis values into mz
 }
 
-void LSM9DS0::readAccel(){
+void LSM9DS0::readRawAccel(){
 	uint8_t temp[6]; // We'll read six bytes from the accelerometer into temp	
-	I2CreadBytes(xmAddr,OUT_X_L_A, temp, 6); // Read 6 bytes, beginning at OUT_X_L_A
+	I2CreadBytes(xmAddr,A_OUT_X_L, temp, 6); // Read 6 bytes, beginning at OUT_X_L_A
 	ax = (temp[1] << 8) | temp[0]; // Store x-axis values into ax
 	ay = (temp[3] << 8) | temp[2]; // Store y-axis values into ay
 	az = (temp[5] << 8) | temp[4]; // Store z-axis values into az
