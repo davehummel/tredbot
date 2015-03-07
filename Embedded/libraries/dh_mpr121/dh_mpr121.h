@@ -1,7 +1,7 @@
 #ifndef DH_MPR121_H__
 #define DH_MPR121_H__
 
- #include <Wire.h>
+#include <i2c_t3.h>
 
 /*
     MPR121.h
@@ -65,94 +65,164 @@
 class TouchPad{
 
 public:
-	TouchPad(uint8_t irqPin){
+	
+	boolean touchStates[12]; //to keep track of the previous touch states
+	byte DEV_ADDR = 0x5B;
+
+	TouchPad(uint8_t irqPin ){
 		irqpin = irqPin;
 	}
 
-	void begin(){
-		// pinMode(irqpin, INPUT);
-  //       digitalWrite(irqpin, HIGH); //enable pullup resistor
+	void begin(void (*function)()){
 
-        Wire.begin();
+      Wire.begin();
 
-	  set_register(0x5A, ELE_CFG, 0x00); 
+	  set_register(DEV_ADDR, ELE_CFG, 0x00); 
 
 	  // Section A - Controls filtering when data is > baseline.
-	  set_register(0x5A, MHD_R, 0x01);
-	  set_register(0x5A, NHD_R, 0x01);
-	  set_register(0x5A, NCL_R, 0x00);
-	  set_register(0x5A, FDL_R, 0x00);
+	  set_register(DEV_ADDR, MHD_R, 0x01);
+	  set_register(DEV_ADDR, NHD_R, 0x01);
+	  set_register(DEV_ADDR, NCL_R, 0x00);
+	  set_register(DEV_ADDR, FDL_R, 0x00);
 
 	  // Section B - Controls filtering when data is < baseline.
-	  set_register(0x5A, MHD_F, 0x01);
-	  set_register(0x5A, NHD_F, 0x01);
-	  set_register(0x5A, NCL_F, 0xFF);
-	  set_register(0x5A, FDL_F, 0x02);
+	  set_register(DEV_ADDR, MHD_F, 0x01);
+	  set_register(DEV_ADDR, NHD_F, 0x01);
+	  set_register(DEV_ADDR, NCL_F, 0xFF);
+	  set_register(DEV_ADDR, FDL_F, 0x02);
 
 	  // Section C - Sets touch and release thresholds for each electrode
-	  set_register(0x5A, ELE0_T, TOU_THRESH);
-	  set_register(0x5A, ELE0_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE0_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE0_R, REL_THRESH);
 
-	  set_register(0x5A, ELE1_T, TOU_THRESH);
-	  set_register(0x5A, ELE1_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE1_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE1_R, REL_THRESH);
 
-	  set_register(0x5A, ELE2_T, TOU_THRESH);
-	  set_register(0x5A, ELE2_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE2_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE2_R, REL_THRESH);
 
-	  set_register(0x5A, ELE3_T, TOU_THRESH);
-	  set_register(0x5A, ELE3_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE3_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE3_R, REL_THRESH);
 
-	  set_register(0x5A, ELE4_T, TOU_THRESH);
-	  set_register(0x5A, ELE4_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE4_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE4_R, REL_THRESH);
 
-	  set_register(0x5A, ELE5_T, TOU_THRESH);
-	  set_register(0x5A, ELE5_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE5_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE5_R, REL_THRESH);
 
-	  set_register(0x5A, ELE6_T, TOU_THRESH);
-	  set_register(0x5A, ELE6_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE6_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE6_R, REL_THRESH);
 
-	  set_register(0x5A, ELE7_T, TOU_THRESH);
-	  set_register(0x5A, ELE7_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE7_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE7_R, REL_THRESH);
 
-	  set_register(0x5A, ELE8_T, TOU_THRESH);
-	  set_register(0x5A, ELE8_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE8_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE8_R, REL_THRESH);
 
-	  set_register(0x5A, ELE9_T, TOU_THRESH);
-	  set_register(0x5A, ELE9_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE9_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE9_R, REL_THRESH);
 
-	  set_register(0x5A, ELE10_T, TOU_THRESH);
-	  set_register(0x5A, ELE10_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE10_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE10_R, REL_THRESH);
 
-	  set_register(0x5A, ELE11_T, TOU_THRESH);
-	  set_register(0x5A, ELE11_R, REL_THRESH);
+	  set_register(DEV_ADDR, ELE11_T, TOU_THRESH);
+	  set_register(DEV_ADDR, ELE11_R, REL_THRESH);
 
 	  // Section D
 	  // Set the Filter Configuration
 	  // Set ESI2
-	  set_register(0x5A, FIL_CFG, 0x04);
+	  set_register(DEV_ADDR, FIL_CFG, 0x04);
 
 	  // Section E
 	  // Electrode Configuration
 	  // Set ELE_CFG to 0x00 to return to standby mode
-	  set_register(0x5A, ELE_CFG, 0x0C);  // Enables all 12 Electrodes
+	  set_register(DEV_ADDR, ELE_CFG, 0x0C);  // Enables all 12 Electrodes
 
 
 	  // Section F
 	  // Enable Auto Config and auto Reconfig
-	  /*set_register(0x5A, ATO_CFG0, 0x0B);
-	  set_register(0x5A, ATO_CFGU, 0xC9);  // USL = (Vdd-0.7)/vdd*256 = 0xC9 @3.3V   set_register(0x5A, ATO_CFGL, 0x82);  // LSL = 0.65*USL = 0x82 @3.3V
-	  set_register(0x5A, ATO_CFGT, 0xB5);*/  // Target = 0.9*USL = 0xB5 @3.3V
+	  /*set_register(DEV_ADDR, ATO_CFG0, 0x0B);
+	  set_register(DEV_ADDR, ATO_CFGU, 0xC9);  // USL = (Vdd-0.7)/vdd*256 = 0xC9 @3.3V   set_register(DEV_ADDR, ATO_CFGL, 0x82);  // LSL = 0.65*USL = 0x82 @3.3V
+	  set_register(DEV_ADDR, ATO_CFGT, 0xB5);*/  // Target = 0.9*USL = 0xB5 @3.3V
 
-	  set_register(0x5A, ELE_CFG, 0x0C);
+	  set_register(DEV_ADDR, ELE_CFG, 0x0C);
+	   
 
-
-	  attachInterrupt(irqpin,processInterrupt,CHANGE );
+	  pinMode(irqpin,INPUT_PULLUP);
+		attachInterrupt(irqpin,function,FALLING  );
+	
 	}
 
 
-	static void processInterrupt(void){
-		Serial.println("&^%%^3^&%^&%^&^%&%^&");
+	void process(void (*onPress)(uint8_t), void (*onRelease)(uint8_t) = 0){
+
+		 if(!digitalRead(irqpin)){
+	
+			  //read the touch state from the MPR121
+			  Wire.requestFrom(DEV_ADDR,2); 
+			  
+			  byte LSB = Wire.read();
+			  byte MSB = Wire.read();
+			  
+			  uint16_t touched = ((MSB << 8) | LSB); //16bits that make up the touch states
+
+			  
+			  for (int i=0; i < 12; i++){ // Check what electrodes were pressed
+			   if(touched & (1<<i)){
+			   
+			    if(touchStates[i] == 0){
+			     //pin i was just touched
+			     if (onPress)
+			     	onPress(i);		
+			    
+			    }else if(touchStates[i] == 1){
+			     //pin i is still being touched
+			    } 
+			   
+			    touchStates[i] = 1;   
+			   }else{
+			    if(touchStates[i] == 1){
+			       if (onRelease)
+			     	onRelease(i);		
+			     
+			     //pin i is no longer being touched
+			   }
+			    
+			    touchStates[i] = 0;
+			   }
+			  
+			  }
+			  
+			 }
 	}
+
+	uint16_t test(){
+		  Wire.requestFrom(DEV_ADDR,2); 
+			  
+			  byte LSB = Wire.read();
+			  byte MSB = Wire.read();
+			  
+			  return ((MSB << 8) | LSB); //16bits that make up the touch states
+	}
+
+	static char numToKey(uint16_t num){
+		switch (num){
+			case 0: return 'L';
+			case 1: return '7';
+			case 2: return '4';
+			case 3: return '1';
+			case 4: return '0';
+			case 5: return '8';
+			case 6: return '5';
+			case 7: return '2';
+			case 8: return 'R';
+			case 9: return '9';
+			case 10: return '6';
+			case 11: return '3';
+		}
+		return 'X'; 
+	}
+
 
 
 private:

@@ -22,8 +22,9 @@
 #else
  #include "WProgram.h"
 #endif
+    
+#include <i2c_t3.h>
 
-#include <Wire.h>
 
 /*=========================================================================
     I2C ADDRESS/BITS

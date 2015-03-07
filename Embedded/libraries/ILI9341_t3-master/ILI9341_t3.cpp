@@ -972,4 +972,10 @@ uint8_t ILI9341_t3::getRotation(void) {
   return rotation;
 }
 
+int16_t ILI9341_t3::getCursorX(void) {
+	return cursor_x;
+}
 
+int16_t ILI9341_t3::getCursorY(void) {
+	return cursor_y;
+}

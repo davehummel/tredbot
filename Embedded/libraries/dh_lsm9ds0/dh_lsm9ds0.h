@@ -305,7 +305,7 @@ public:
 		changedXMRegisterMap |= 0b10;
 	}
 
-	void setXMAxisEnabled(bool x,bool y,bool z){
+	void setAccelAxisEnabled(bool x,bool y,bool z){
 		xmAccXEnabled = x;
 		xmAccYEnabled = y;
 		xmAccZEnabled = z;
@@ -317,7 +317,7 @@ public:
 		changedXMRegisterMap |= 0b100;
 	}
 
-	void setAccelAScale (	accel_scale scale){
+	void setAccelScale (	accel_scale scale){
 		 accelScale=scale;
 		changedXMRegisterMap |= 0b100;
 	}
@@ -360,6 +360,16 @@ public:
 		changedXMRegisterMap |= 0b100000;
 	}
 
+	void setTemperatureEnabled(bool enabled){
+		tempEnabled = enabled;
+		changedXMRegisterMap |= 0b100000;
+	}
+
+	void setMagHighResMode (bool enabled){
+		magHighResMode = enabled;
+		changedXMRegisterMap |= 0b100000;
+	}
+
 	void setMagRate(mag_odr rate){
 		magRate = rate;
 		changedXMRegisterMap |= 0b100000;
@@ -370,15 +380,6 @@ public:
 		changedXMRegisterMap |= 0b1000000;
 	}
 
-	void setTemperatureEnabled(bool enabled){
-		tempEnabled = enabled;
-		changedXMRegisterMap |= 0b100000;
-	}
-
-	void setMagHighResMode (bool enabled){
-		magHighResMode = enabled;
-		changedXMRegisterMap |= 0b100000;
-	}
 
 	void setAccelHPMode (accel_HPMode mode){
 		accelHPMode = mode;
@@ -421,7 +422,7 @@ private:
 
 
 	uint8_t changedGyroRegisterMap=0b00011111;
-	uint8_t changedXMRegisterMap=0b00011111;
+	uint8_t changedXMRegisterMap=0b11111111;
 	bool changedMagRegister = true;
 
 	// Gyro Register 1
@@ -448,10 +449,10 @@ private:
 	bool gyroBlockDataUntilRead = false; // continuous mode
 	bool gyroBLE = false;
 	gyro_scale gyroScale = G_SCALE_245DPS;
-	uint8_t gyroTestMode = 0;
-	bool gyroSIM = 0;
+	uint8_t gyroTestMode = 0,xmTestMode = 0;
+	bool gyroSIM = 0,xmSIM = 0;
 	//Gyro Register 5
-	bool gyroBoot = false;
+	bool gyroBoot = false, xmBoot = false; //  Reboot memory content. Default value: 0 (0: normal mode; 1: reboot memory content)
 	bool gyroFIFOEnabled = false;
 	bool gyroHPEnabled = false;
 	uint8_t gyroINT1Select = 0; //0-3
@@ -467,7 +468,6 @@ private:
 	bool magXM4dEnabled = false; // 4D enable: 4D detection on acceleration data is enabled when 6D bit in INT_GEN_1_REG (30h) is set to 1.
 	bool magInteruptEnabled = false; 
 
-	bool xmBoot = false; //  Reboot memory content. Default value: 0 (0: normal mode; 1: reboot memory content)
 	bool xmFIFOEnabled = false; 
 	bool xmWTMEnabled = false;
 	bool xmHPClickEnabled = false;
@@ -482,9 +482,8 @@ private:
 	bool xmAccYEnabled =false;
 	bool xmAccXEnabled =false;
 
-	accel_abw accelAAFilterBW = A_ABW_773;
+	accel_abw accelAAFilterBW = A_ABW_362;
 	accel_scale accelScale=A_SCALE_2G;
-	uint8_t xmTestMode = 0;
 
 	bool xmP1Boot = false; //Boot on INT1_XM pin enable. Default value: 0
 	bool xmP1Tap = false; //Tap generator interrupt on INT1_XM pin. Default value: 0
@@ -514,7 +513,7 @@ private:
 	accel_HPMode accelHPMode = A_HPM_NORMAL_RESET; //.High-pass filter mode selection for acceleration data. Default value: 00
 	bool xmFilterDS = false; //Filtered acceleration data selection. Default value: 0 (0: internal filter bypassed; 1: data from internal filter sent to output register and FIFO)
 	bool magLowPower = false; //  Magnetic data low-power mode. Default value: 0. If this bit is ‘1’ the MODR is set to 3.125 Hz independently from the MODR settings. 
-    mag_sensormode magSensorMode = M_S_CONT;
+    mag_sensormode magSensorMode = M_S_POWERDOWN;
 
 
 	///////////////////

@@ -164,9 +164,9 @@ public:
 
 	bool isMoving=false;
 
-	double DPSXFACTOR = 555.0l / 32768.0l;
-	double DPSYFACTOR = 555.0l / 32768.0l;
-	double DPSZFACTOR = 555.0l / 32768.0l;
+	double DPSXFACTOR = 560.0l / 32768.0l;
+	double DPSYFACTOR = 560.0l / 32768.0l;
+	double DPSZFACTOR = 560.0l / 32768.0l;
 
 	int32_t gTrimValue[3];
 
