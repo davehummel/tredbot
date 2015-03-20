@@ -1,5 +1,5 @@
 void setup() {
-  Serial1.begin(115200);
+  Serial1.begin(115200); // I am using Serial1 (pins 9,10).  If you are using USB serial monitor, switch to Serial
   Serial3.begin(115200); // change this to 1000000 if you havent changed default baud
   Serial1.println("Hit Enter to send a command");
   pinMode(13,OUTPUT);
@@ -26,8 +26,7 @@ void prepareCommand(void){
     deviceNum = 254;
   }else if (input >='0' || input <='9'){
      deviceNum = input - '0'; 
-  }
-  if (deviceNum == 255){
+  } else {
     Serial1.println("Invalid Input");
     return;
   }
