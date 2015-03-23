@@ -260,6 +260,85 @@ void Adafruit_INA219::ina219SetCalibration_32V_1A(void)
   wireWriteRegister(INA219_REG_CONFIG, config);
 }
 
+void Adafruit_INA219::ina219SetCalibration_16V_3200mA(void) {
+  
+  // Calibration which uses the widest range and low voltages for 
+  // current measurement (10mA), at the expense of 
+  // only supporting 16V at 3200mA max.
+
+  // VBUS_MAX = 16V
+  // VSHUNT_MAX = 0.32          (Assumes Gain 8, 320mV)
+  // RSHUNT = 0.1               (Resistor value in ohms)
+  
+  // 1. Determine max possible current
+  // MaxPossible_I = VSHUNT_MAX / RSHUNT
+  // MaxPossible_I = 3.2A
+
+  // 2. Determine max expected current
+  // MaxExpected_I = 3.2A
+  
+  // 3. Calculate possible range of LSBs (Min = 15-bit, Max = 12-bit)
+  // MinimumLSB = MaxExpected_I/32767
+  // MinimumLSB = 0.0000976            
+  // MaximumLSB = MaxExpected_I/4096
+  // MaximumLSB = 0.000781              (98uA per bit)
+  
+  // 4. Choose an LSB between the min and max values
+  //    (Preferrably a roundish number close to MinLSB)
+  // CurrentLSB = 0.0001 (100uA per bit)
+  
+  // 5. Compute the calibration register
+  // Cal = trunc (0.04096 / (Current_LSB * RSHUNT))
+  // Cal = 4096 (0x1000)
+  
+  ina219_calValue = 4096;
+
+    // 6. Calculate the power LSB
+  // PowerLSB = 20 * CurrentLSB
+  // PowerLSB = 0.002 (2mW per bit)
+  
+  // 7. Compute the maximum current and shunt voltage values before overflow
+  //
+  // Max_Current = Current_LSB * 32767
+  // Max_Current = 3.2767A before overflow
+  //
+  // If Max_Current > Max_Possible_I then
+  //    Max_Current_Before_Overflow = MaxPossible_I
+  // Else
+  //    Max_Current_Before_Overflow = Max_Current
+  // End If
+  //
+  // Max_ShuntVoltage = Max_Current_Before_Overflow * RSHUNT
+  // Max_ShuntVoltage = 0.32V
+  //
+  // If Max_ShuntVoltage >= VSHUNT_MAX
+  //    Max_ShuntVoltage_Before_Overflow = VSHUNT_MAX
+  // Else
+  //    Max_ShuntVoltage_Before_Overflow = Max_ShuntVoltage
+  // End If
+  
+  // 8. Compute the Maximum Power
+  // MaximumPower = Max_Current_Before_Overflow * VBUS_MAX
+  // MaximumPower = 3.2 * 16V
+  // MaximumPower = 51.2W
+  
+  // Set multipliers to convert raw current/power values
+  ina219_currentDivider_mA = 20;  // Current LSB = 50uA per bit (1000/50 = 20)
+  ina219_powerDivider_mW = 1;     // Power LSB = 1mW per bit
+
+  // Set Calibration register to 'Cal' calculated above 
+  wireWriteRegister(INA219_REG_CALIBRATION, ina219_calValue);
+  
+  // Set Config register to take into account the settings above
+  uint16_t config = INA219_CONFIG_BVOLTAGERANGE_16V |
+                    INA219_CONFIG_GAIN_8_320MV |
+                    INA219_CONFIG_BADCRES_12BIT |
+                    INA219_CONFIG_SADCRES_12BIT_1S_532US |
+                    INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
+  wireWriteRegister(INA219_REG_CONFIG, config);
+}
+
+
 void Adafruit_INA219::ina219SetCalibration_16V_400mA(void) {
   
   // Calibration which uses the highest precision for 
@@ -329,9 +408,10 @@ void Adafruit_INA219::ina219SetCalibration_16V_400mA(void) {
   // MaximumPower = 6.4W
   
   // Set multipliers to convert raw current/power values
-  ina219_currentDivider_mA = 20;  // Current LSB = 50uA per bit (1000/50 = 20)
-  ina219_powerDivider_mW = 1;     // Power LSB = 1mW per bit
-
+  // Set multipliers to convert raw current/power values
+  ina219_currentDivider_mA = 10;  // Current LSB = 100uA per bit (1000/100 = 10)
+  ina219_powerDivider_mW = 2;     // Power LSB = 1mW per bit (2/1)
+  
   // Set Calibration register to 'Cal' calculated above 
   wireWriteRegister(INA219_REG_CALIBRATION, ina219_calValue);
   
@@ -357,13 +437,24 @@ Adafruit_INA219::Adafruit_INA219(uint8_t addr) {
 
 /**************************************************************************/
 /*! 
-    @brief  Setups the HW (defaults to 32V and 2A for calibration values)
+    @brief  Setups the HW (defaults to 16V and 400mA for calibration values)
 */
 /**************************************************************************/
 void Adafruit_INA219::begin() {
   Wire.begin();    
   // Set chip to known config values to start
   ina219SetCalibration_16V_400mA();
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Setups the HW (defaults to 16V and 3.2A for calibration values)
+*/
+/**************************************************************************/
+void Adafruit_INA219::begin() {
+  Wire.begin();    
+  // Set chip to known config values to start
+  ina219SetCalibration_16V_3200mA();
 }
 
 /**************************************************************************/
