@@ -451,7 +451,7 @@ void Adafruit_INA219::begin() {
     @brief  Setups the HW (defaults to 16V and 3.2A for calibration values)
 */
 /**************************************************************************/
-void Adafruit_INA219::begin() {
+void Adafruit_INA219::beginFullRange() {
   Wire.begin();    
   // Set chip to known config values to start
   ina219SetCalibration_16V_3200mA();
