@@ -1,6 +1,6 @@
  #include <i2c_t3.h>
  #include <Adafruit_INA219.h>
-
+ #include <dh_controller.h>
 
 
 //The Arduino Wire library uses the 7-bit version of the address, so the code example uses 0x70 instead of the 8‑bit 0xE0
@@ -15,12 +15,14 @@
 
  Adafruit_INA219 *powerMonitor;
 
- float shuntvoltage ;
+ float shuntvoltage;
  float busvoltage; 
  float current_mA;
  float loadvoltage;
 
 bool powerMonitorDataReady = false;
+
+Controller controller;
 
 void setupPowerMonitor(){
   powerMonitor = new Adafruit_INA219();
