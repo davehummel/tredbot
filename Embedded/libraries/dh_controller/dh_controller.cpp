@@ -1,6 +1,7 @@
 #include "dh_controller.h"
 #include <vector>
  #include <Arduino.h>
+ #include "Stream.h"
 using namespace std;
 void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],Controlled* controlled,bool serializeOnComplete){
 
@@ -123,3 +124,7 @@ vector<Controller::ControlledResponse>* Controller::publishResponse(vector<Contr
 	responses->push_back(response);
 	return responses;
 }
+
+void Controller::process(Stream* stream){
+	
+	

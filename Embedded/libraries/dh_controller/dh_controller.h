@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <stdint.h>
+#include "Stream.h"
 
 using namespace std;
 
@@ -38,6 +39,10 @@ public:
 	void run(uint32_t id, char command[],Controlled *controlled,bool serializeOnComplete);
 	
 	vector<ControlledResponse>* execute(uint32_t time);
+	
+	void process(Stream* serial);
+	
+	Controller::Controlled* library[25];
 
 private:
 
@@ -52,6 +57,8 @@ private:
 		uint32_t nextExecuteTime=0;
 		uint32_t nextSerializeTime=0;
 	};
+	
+
 
 	vector<Entry>* timed;
 	vector<Entry>* immediate;
@@ -60,7 +67,7 @@ private:
 	uint32_t lastProcessedMSTime;
 
 	vector<ControlledResponse>* publishResponse(vector<ControlledResponse>* responses,uint32_t id, char* content);
-
+	
 };
 
 

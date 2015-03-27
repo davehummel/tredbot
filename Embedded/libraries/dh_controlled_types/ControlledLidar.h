@@ -3,6 +3,7 @@
 #include "dh_controller.h"
 #include <i2c_t3.h>
 
+
 #define    LIDARLite_ADDRESS   0x62          // Default I2C Address of LIDAR-Lite.
 #define    RegisterMeasure     0x00          // Register to write to initiate ranging.
 #define    MeasureValue        0x04          // Value to initiate ranging.
