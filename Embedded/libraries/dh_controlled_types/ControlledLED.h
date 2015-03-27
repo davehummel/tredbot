@@ -1,10 +1,10 @@
 #ifndef DH_CONTROLLEDLED_H__
 #define DH_CONTROLLEDLED_H__
 #include <sstream> 
-#include "dh_controlled.h"
+#include "dh_controller.h"
 #include <stdint.h>
 using namespace std;
-class ControlledLED: public Controlled{
+class ControlledLED: public Controller::Controlled{
 
 public:
 
@@ -12,18 +12,19 @@ public:
 		pinMode(13, OUTPUT);
 		count = 0;
 	}
-	void execute(uint32_t time,char command[]){
+	void execute(uint32_t time,char command[], uint32_t id){
 		digitalWrite(13, flip);
 		flip = ! flip;
 		count++;
+		Serial1.println(count);
 	}
-	char* serialize(void){
+	char* serialize(char command[], uint32_t id){
 		return "hi";
 	}
-	void startSchedule(char command[]){
+	void startSchedule(char command[], uint32_t id){
 		count = 0;
 	}
-	void endSchedule(char command[]){
+	void endSchedule(char command[], uint32_t id){
 		count = 0;
 	}
 	

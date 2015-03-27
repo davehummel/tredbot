@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <list>
-#include <dh_controlled.h>
 #include <stdint.h>
 
 using namespace std;
@@ -12,7 +11,25 @@ class Controller{
 public:
 	struct ControlledResponse{
  		uint32_t id;
- 		char content[];
+ 		char* content;
+	};
+
+	class Controlled{
+
+	public:
+
+		virtual void begin(void)=0;
+		virtual void execute(uint32_t time,char command[],uint32_t id)=0;
+		virtual char* serialize(char command[],uint32_t id)=0;
+		virtual void startSchedule(char command[],uint32_t id)=0;
+		virtual void endSchedule(char command[], uint32_t id)=0;
+		
+		char error[];
+
+		Controller* controller;
+		
+	private:
+
 	};
 
 
@@ -26,17 +43,28 @@ private:
 
 	struct Entry {
 		uint32_t id;
-		char command[];
+		char* command;
 		Controlled *controlled;
 		bool serializeOnComplete;
 		uint16_t executeInterval;
 		uint16_t serializeInterval;
 		uint16_t runCount;
+		uint32_t nextExecuteTime=0;
+		uint32_t nextSerializeTime=0;
 	};
 
-	vector<Entry> entries;
+	vector<Entry>* timed;
+	vector<Entry>* immediate;
+
+	uint32_t lastProcessedMSTime;
+
+	vector<ControlledResponse>* publishResponse(vector<ControlledResponse>* responses,uint32_t id, char* content);
 
 };
+
+
+
+
 
 
 #endif
