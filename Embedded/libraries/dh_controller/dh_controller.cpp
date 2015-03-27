@@ -4,15 +4,6 @@
 using namespace std;
 void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],Controlled* controlled,bool serializeOnComplete){
 
-	if (timed){
-	for (vector<Entry>::iterator iter=timed->begin();iter!=timed->end();iter++){
-		if (iter->id == id)
-			timed->erase(iter);
-		}
-	}else{
-		timed = new vector<Entry>();
-	}
-
 	Entry entry;
 	entry.id = id;
 	entry.command = command;
@@ -24,9 +15,8 @@ void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t seriali
 
 	controlled->controller = this;
 
-	controlled->startSchedule(command, id);
 
-	timed->push_back(entry); 
+	timedCache.push_back(entry); 
 }
 
 void Controller::run(uint32_t id, char command[],Controlled* controlled,bool serializeOnComplete){
@@ -46,7 +36,6 @@ void Controller::run(uint32_t id, char command[],Controlled* controlled,bool ser
 }
 
 vector<Controller::ControlledResponse>* Controller::execute(uint32_t time){
-	Serial1.println("HEre1");
 	// First check immediate run queue
 	vector<ControlledResponse>* responses = 0;
 	if (immediate && immediate->size()>0){
@@ -62,16 +51,32 @@ vector<Controller::ControlledResponse>* Controller::execute(uint32_t time){
 	if (immediate)
 		immediate->clear();
 
-	if (!timed || timed->size()==0)
-		return responses;
 
 	if (lastProcessedMSTime == time)
 		return responses;
 
 	lastProcessedMSTime = time;
 
-	Serial1.println("HEre2");
-	Serial1.flush();
+	if (timedCache.size()>0){
+		if (!timed)
+			timed = new vector<Entry>();
+		for (vector<Entry>::iterator iter=timedCache.begin();iter!=timedCache.end();iter++){
+			Entry entry;
+			entry.id = iter->id;
+			entry.command = iter->command;
+			entry.controlled = iter->controlled;
+			entry.runCount = iter->runCount;
+			entry.executeInterval = iter->executeInterval;
+			entry.serializeInterval = iter->serializeInterval;
+			entry.serializeOnComplete = iter->serializeOnComplete;
+			entry.controlled->startSchedule(entry.command, entry.id);
+			timed->push_back(entry); 
+		}
+		timedCache.clear();
+	}
+
+	if (!timed || timed->size()==0)
+		return responses;
 
 	for (vector<Entry>::iterator iter=timed->begin();iter!=timed->end();iter++){
 			while (time > iter->nextExecuteTime){

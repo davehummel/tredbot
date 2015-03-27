@@ -15,10 +15,10 @@ void setup(){
 	Serial1.begin(115200);
 	library[0] = new ControlledLED();
 	library[0]->begin();
-	library[1] = new ControlledLidar();
-	library[1]->begin();
+	// library[1] = new ControlledLidar();
+	// library[1]->begin();
 	controller.schedule(1,1000,10000,0,"blink",library[0],false);
-	controller.schedule(100,1000,0,0,"START",library[1],false);
+	//controller.schedule(100,1000,0,0,"START",library[1],false);
 	Serial1.println("Starting!");
 }
 
@@ -26,7 +26,6 @@ void setup(){
 elapsedMillis time;
 void loop(){
 	vector<Controller::ControlledResponse>* responses = controller.execute((uint32_t)time);
-	Serial1.println("Out!");
 	if (responses){
 		for (vector<Controller::ControlledResponse>::iterator iter=responses->begin();iter!=responses->end();iter++){
 			sendSerial(iter->id,iter->content);

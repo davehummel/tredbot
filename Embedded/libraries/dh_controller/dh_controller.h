@@ -55,6 +55,7 @@ private:
 
 	vector<Entry>* timed;
 	vector<Entry>* immediate;
+	vector<Entry> timedCache;
 
 	uint32_t lastProcessedMSTime;
 
