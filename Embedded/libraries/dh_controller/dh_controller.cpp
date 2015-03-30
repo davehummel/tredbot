@@ -3,12 +3,12 @@
  #include <Arduino.h>
  #include "Stream.h"
 using namespace std;
-void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],Controlled* controlled,bool serializeOnComplete){
+void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],char controlled,bool serializeOnComplete){
 
 	Entry entry;
 	entry.id = id;
 	entry.command = command;
-	entry.controlled = controlled;
+	entry.controlled = library[controlled-'A'];;
 	entry.runCount = runCount;
 	entry.executeInterval = executeInterval;
 	entry.serializeInterval = serializeInterval;
@@ -20,7 +20,7 @@ void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t seriali
 	timedCache.push_back(entry); 
 }
 
-void Controller::run(uint32_t id, char command[],Controlled* controlled,bool serializeOnComplete){
+void Controller::run(uint32_t id, char command[],uint8_t controlled,bool serializeOnComplete){
 	if (!immediate){
 		immediate = new vector<Entry>();
 	}
@@ -28,7 +28,7 @@ void Controller::run(uint32_t id, char command[],Controlled* controlled,bool ser
 	Entry entry;
 	entry.id = id;
 	entry.command = command;
-	entry.controlled = controlled;
+	entry.controlled = library[controlled-'A'];
 	entry.serializeOnComplete = serializeOnComplete;
 
 	controlled->controller = this;
@@ -36,14 +36,13 @@ void Controller::run(uint32_t id, char command[],Controlled* controlled,bool ser
 	immediate->push_back(entry); 
 }
 
-vector<Controller::ControlledResponse>* Controller::execute(uint32_t time){
+void Controller::execute(uint32_t time,Stream* output){
 	// First check immediate run queue
-	vector<ControlledResponse>* responses = 0;
 	if (immediate && immediate->size()>0){
 		for (vector<Entry>::iterator iter=immediate->begin();iter!=immediate->end();iter++){
 			iter->controlled->execute(time,iter->command,iter->id);
 			if (iter->serializeOnComplete){
-				responses = publishResponse(responses,iter->id, iter->controlled->serialize(iter->command,iter->id));
+				iter->controlled->serialize(output,iter->id,iter->command));
 			}
 			iter->controlled->endSchedule(iter->command,iter->id);
 		}
@@ -54,7 +53,7 @@ vector<Controller::ControlledResponse>* Controller::execute(uint32_t time){
 
 
 	if (lastProcessedMSTime == time)
-		return responses;
+		return;
 
 	lastProcessedMSTime = time;
 
@@ -77,7 +76,7 @@ vector<Controller::ControlledResponse>* Controller::execute(uint32_t time){
 	}
 
 	if (!timed || timed->size()==0)
-		return responses;
+		return;
 
 	for (vector<Entry>::iterator iter=timed->begin();iter!=timed->end();iter++){
 			while (time > iter->nextExecuteTime){
@@ -93,7 +92,7 @@ vector<Controller::ControlledResponse>* Controller::execute(uint32_t time){
 					iter->runCount--;
 					if (iter->runCount == 0){
 						if (iter->serializeOnComplete || (time > iter->nextSerializeTime && iter->serializeInterval>0) ){
-							responses = publishResponse(responses,iter->id, iter->controlled->serialize(iter->command,iter->id));
+							iter->controlled->serialize(output,iter->id,iter->command));
 						}
 						timed->erase(iter);
 						continue;
@@ -105,13 +104,13 @@ vector<Controller::ControlledResponse>* Controller::execute(uint32_t time){
 				continue;
 
 			while (time > iter->nextSerializeTime){
-				responses = publishResponse(responses,iter->id, iter->controlled->serialize(iter->command,iter->id));
+				iter->controlled->serialize(output,iter->id,iter->command));
 				iter->nextSerializeTime+=iter->serializeInterval;
 			}
 		
 	}
 	
-	return responses;
+	return;
 }
 
 vector<Controller::ControlledResponse>* Controller::publishResponse(vector<ControlledResponse>* responses,uint32_t id, char* content){
@@ -125,6 +124,68 @@ vector<Controller::ControlledResponse>* Controller::publishResponse(vector<Contr
 	return responses;
 }
 
-void Controller::process(Stream* stream){
+void Controller::processInput(Stream* stream){
+	while (stream->available()){
+		char next = stream->read();
+		if (next == '\n'||next == '\r'){
+			parseBuffer();
+			bufferCount = 0;
+		}else{
+			if (bufferCount == 255){
+				bufferCount = 0;
+			}else{
+				bufferCount++;
+			}
+			inputbuffer[bufferCount] = next;
+		}
+	}
 	
+}
+
+void Controller::parseBuffer(){
+	if (bufferCount<6)
+		return;
+	if (inputbuffer[0]!='C'||inputbuffer[1]!=' '||inputbuffer[3]!=' '){
+		return;
+	}
+	uint8_t commandID;
+	if (inputbuffer[2]>='a' && inputbuffer[2]<='z')
+		commandID = inputbuffer[2]-'a';
+	else if (inputbuffer[2]>='A' && inputbuffer[2]<='Z')
+		commandID = inputbuffer[2]-'A';
+	else return;
 	
+	//todo parse id;
+	
+	char rawID[16];
+	uint32_t id = 0;
+	int offset = 4;
+	for (int i = 0;i<17;i++){
+		if (i==16)
+			return; // bad id .. too many characters
+		if (inputbuffer[offset]==' '){
+			uint8_t multiplier = 1;
+			for (int j = 0;j< i;j++){
+				id += (rawID[i]-'0') * multiplier;
+				multiplier*=10;
+			}				
+			break;
+		}
+		if (inputbuffer[offset]>='0' && inputbuffer[offset]<='9'){
+			rawID[i] = inputbuffer[offset];
+		}else{
+			return; // non number character in id
+		}
+		offset++;
+	}
+	
+	char command[bufferCount-offset+1];
+	command[bufferCount-offset]='\0';
+	
+	for (int i = 0; i < bufferCount-offset; i++){
+		command[i] = inputbuffer[i+offset];
+	}
+	
+	run(id,command,library[commandID],true);
+	
+}

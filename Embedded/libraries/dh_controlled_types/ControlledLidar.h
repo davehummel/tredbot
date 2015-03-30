@@ -10,7 +10,6 @@
 #define    RegisterHighLowB    0x8f          // Register to get both High and Low bytes in 1 call.
 using namespace std;
 class ControlledLidar: public Controller::Controlled{
-
 public:
 
 	void begin(void){
@@ -19,7 +18,11 @@ public:
 	void execute(uint32_t time,char command[], uint32_t id){
 		 uint8_t nackack = 0;
 		switch (command[0]){
-			case 'S':Serial1.println("Go for it");
+			case 'B':Serial1.println("Begin");
+			controller->schedule(id,100,1000,0,0,"SCAN",'L',false);
+			break;
+		break;			
+			case 'S':Serial1.println("Lidar Scan");
 			 	Wire.beginTransmission(LIDARLite_ADDRESS);
 			    Wire.write(RegisterMeasure);
 			    Wire.write(MeasureValue);
@@ -28,13 +31,13 @@ public:
 			    	Serial1.println("Failed!");
 			      return;
 			    }
-  				 Serial1.println("Go for it2");
-			     controller->schedule(id+1,19,0,1,"R",this,true);
+  				 Serial1.println("Scan done,");
+			     controller->schedule(id+1,19,0,1,"READ",'L',true);
 			 	 Serial1.println("Done S");
 			 	 Serial1.flush();
 			break;
 			case 'R':
-			Serial1.println("Go for it3");
+			Serial1.println("Read Data");
 			Serial1.flush();
 				Wire.beginTransmission(LIDARLite_ADDRESS);
 			    Wire.write(RegisterHighLowB);
@@ -50,22 +53,21 @@ public:
 		}
 		
 	}
-	char* serialize(char command[], uint32_t id){
-		char buffer [8];
-		itoa(reading,buffer,10);
-		return buffer;
+	void serialize(Stream* output, uint32_t id, char command[]){
+		output->print(id);
+		output->print(" ");
+		output->println(reading);
 	}
 	void startSchedule(char command[], uint32_t id){
-		
+		//TODO - enable pin to power up lidar
 	}
 	void endSchedule(char command[], uint32_t id){
-		
+		// TODO - disable pin to power down lidar
 	}
 	
 private:
 	uint8_t retryCount;
 	uint16_t reading;
-	
 };
 
 	

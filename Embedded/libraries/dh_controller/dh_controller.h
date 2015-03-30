@@ -10,10 +10,6 @@ using namespace std;
 
 class Controller{
 public:
-	struct ControlledResponse{
- 		uint32_t id;
- 		char* content;
-	};
 
 	class Controlled{
 
@@ -21,7 +17,7 @@ public:
 
 		virtual void begin(void)=0;
 		virtual void execute(uint32_t time,char command[],uint32_t id)=0;
-		virtual char* serialize(char command[],uint32_t id)=0;
+		virtual void serialize(Stream* output,uint32_t id,char command[])=0;
 		virtual void startSchedule(char command[],uint32_t id)=0;
 		virtual void endSchedule(char command[], uint32_t id)=0;
 		
@@ -34,15 +30,15 @@ public:
 	};
 
 
-	void schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],Controlled* controlled,bool serializeOnComplete);
+	void schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],char controlled,bool serializeOnComplete);
 	
-	void run(uint32_t id, char command[],Controlled *controlled,bool serializeOnComplete);
+	void run(uint32_t id, char command[],uint8_t controlled,bool serializeOnComplete);
 	
-	vector<ControlledResponse>* execute(uint32_t time);
+	vector<ControlledResponse>* execute(uint32_t time,Stream* output);
 	
-	void process(Stream* serial);
+	void processInput(Stream* serial);
 	
-	Controller::Controlled* library[25];
+	Controller::Controlled* library[26];
 
 private:
 
@@ -63,10 +59,13 @@ private:
 	vector<Entry>* timed;
 	vector<Entry>* immediate;
 	vector<Entry> timedCache;
+	
+	char inputbuffer[256];
+	uint8_t bufferCount;
 
 	uint32_t lastProcessedMSTime;
-
-	vector<ControlledResponse>* publishResponse(vector<ControlledResponse>* responses,uint32_t id, char* content);
+	
+	void parseBuffer();
 	
 };
 

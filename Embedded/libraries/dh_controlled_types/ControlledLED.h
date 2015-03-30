@@ -18,8 +18,9 @@ public:
 		count++;
 		Serial1.println(count);
 	}
-	char* serialize(char command[], uint32_t id){
-		return "hi";
+	void serialize(Stream* output, uint32_t id, char command[]){
+		output->print(id);
+		output->println(" hi");
 	}
 	void startSchedule(char command[], uint32_t id){
 		count = 0;
