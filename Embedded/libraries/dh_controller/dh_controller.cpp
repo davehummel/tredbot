@@ -8,13 +8,13 @@ void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t seriali
 	Entry entry;
 	entry.id = id;
 	entry.command = command;
-	entry.controlled = library[controlled-'A'];;
+	entry.controlled = library[controlled-'A'];
 	entry.runCount = runCount;
 	entry.executeInterval = executeInterval;
 	entry.serializeInterval = serializeInterval;
 	entry.serializeOnComplete = serializeOnComplete;
 
-	controlled->controller = this;
+	entry.controlled->controller = this;
 
 
 	timedCache.push_back(entry); 
@@ -24,14 +24,20 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,bool seriali
 	if (!immediate){
 		immediate = new vector<Entry>();
 	}
+	
+	if (controlled>='a' && controlled<='z')
+		controlled-='a';
+	else if (controlled>='A' && controlled<='Z')
+		controlled-='A';
+	else return;
 
 	Entry entry;
 	entry.id = id;
 	entry.command = command;
-	entry.controlled = library[controlled-'A'];
+	entry.controlled = library[controlled];
 	entry.serializeOnComplete = serializeOnComplete;
 
-	controlled->controller = this;
+	entry.controlled->controller = this;
 
 	immediate->push_back(entry); 
 }
@@ -40,9 +46,9 @@ void Controller::execute(uint32_t time,Stream* output){
 	// First check immediate run queue
 	if (immediate && immediate->size()>0){
 		for (vector<Entry>::iterator iter=immediate->begin();iter!=immediate->end();iter++){
-			iter->controlled->execute(time,iter->command,iter->id);
+			iter->controlled->execute(time,iter->id,iter->command);
 			if (iter->serializeOnComplete){
-				iter->controlled->serialize(output,iter->id,iter->command));
+				iter->controlled->serialize(output,iter->id,iter->command);
 			}
 			iter->controlled->endSchedule(iter->command,iter->id);
 		}
@@ -87,12 +93,12 @@ void Controller::execute(uint32_t time,Stream* output){
 				}else{
 					iter->nextExecuteTime += iter->executeInterval;
 				}
-				iter->controlled->execute(time,iter->command,iter->id);
+				iter->controlled->execute(time,iter->id,iter->command);
 				if (iter->runCount>0){
 					iter->runCount--;
 					if (iter->runCount == 0){
 						if (iter->serializeOnComplete || (time > iter->nextSerializeTime && iter->serializeInterval>0) ){
-							iter->controlled->serialize(output,iter->id,iter->command));
+							iter->controlled->serialize(output,iter->id,iter->command);
 						}
 						timed->erase(iter);
 						continue;
@@ -104,24 +110,13 @@ void Controller::execute(uint32_t time,Stream* output){
 				continue;
 
 			while (time > iter->nextSerializeTime){
-				iter->controlled->serialize(output,iter->id,iter->command));
+				iter->controlled->serialize(output,iter->id,iter->command);
 				iter->nextSerializeTime+=iter->serializeInterval;
 			}
 		
 	}
 	
 	return;
-}
-
-vector<Controller::ControlledResponse>* Controller::publishResponse(vector<ControlledResponse>* responses,uint32_t id, char* content){
-	if (!responses){
-			responses = new vector<ControlledResponse>();
-		}
-	ControlledResponse response;
-	response.content =content;
-	response.id = id;
-	responses->push_back(response);
-	return responses;
 }
 
 void Controller::processInput(Stream* stream){
@@ -149,14 +144,8 @@ void Controller::parseBuffer(){
 		return;
 	}
 	uint8_t commandID;
-	if (inputbuffer[2]>='a' && inputbuffer[2]<='z')
-		commandID = inputbuffer[2]-'a';
-	else if (inputbuffer[2]>='A' && inputbuffer[2]<='Z')
-		commandID = inputbuffer[2]-'A';
-	else return;
-	
+	commandID = inputbuffer[2]-'a';
 	//todo parse id;
-	
 	char rawID[16];
 	uint32_t id = 0;
 	int offset = 4;
@@ -178,7 +167,6 @@ void Controller::parseBuffer(){
 		}
 		offset++;
 	}
-	
 	char command[bufferCount-offset+1];
 	command[bufferCount-offset]='\0';
 	
@@ -186,6 +174,6 @@ void Controller::parseBuffer(){
 		command[i] = inputbuffer[i+offset];
 	}
 	
-	run(id,command,library[commandID],true);
+	run(id,command,commandID,true);
 	
 }

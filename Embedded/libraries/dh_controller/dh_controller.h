@@ -16,7 +16,7 @@ public:
 	public:
 
 		virtual void begin(void)=0;
-		virtual void execute(uint32_t time,char command[],uint32_t id)=0;
+		virtual void execute(uint32_t time,uint32_t id,char command[])=0;
 		virtual void serialize(Stream* output,uint32_t id,char command[])=0;
 		virtual void startSchedule(char command[],uint32_t id)=0;
 		virtual void endSchedule(char command[], uint32_t id)=0;
@@ -34,7 +34,7 @@ public:
 	
 	void run(uint32_t id, char command[],uint8_t controlled,bool serializeOnComplete);
 	
-	vector<ControlledResponse>* execute(uint32_t time,Stream* output);
+	void execute(uint32_t time,Stream* output);
 	
 	void processInput(Stream* serial);
 	

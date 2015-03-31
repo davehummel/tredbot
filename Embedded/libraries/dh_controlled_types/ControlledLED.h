@@ -12,7 +12,7 @@ public:
 		pinMode(13, OUTPUT);
 		count = 0;
 	}
-	void execute(uint32_t time,char command[], uint32_t id){
+	void execute(uint32_t time,uint32_t id,char command[]){
 		digitalWrite(13, flip);
 		flip = ! flip;
 		count++;

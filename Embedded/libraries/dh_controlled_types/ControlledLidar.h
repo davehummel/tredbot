@@ -15,11 +15,11 @@ public:
 	void begin(void){
 		Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
 	}
-	void execute(uint32_t time,char command[], uint32_t id){
+	void execute(uint32_t time,uint32_t id,char command[]){
 		 uint8_t nackack = 0;
 		switch (command[0]){
 			case 'B':Serial1.println("Begin");
-			controller->schedule(id,100,1000,0,0,"SCAN",'L',false);
+			controller->schedule(id,100,1000,0,"SCAN",'L',false);
 			break;
 		break;			
 			case 'S':Serial1.println("Lidar Scan");

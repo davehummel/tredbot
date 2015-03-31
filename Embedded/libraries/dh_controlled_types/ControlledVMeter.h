@@ -11,7 +11,7 @@ public:
 	void begin(void){
 		Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
 	}
-	void execute(uint32_t time,char command[], uint32_t id){
+	void execute(uint32_t time,uint32_t id,char command[]){
 	    shuntvoltage = powerMonitor->getShuntVoltage_mV();
         busvoltage = powerMonitor->getBusVoltage_V();
         current_mA =powerMonitor->getCurrent_mA();
