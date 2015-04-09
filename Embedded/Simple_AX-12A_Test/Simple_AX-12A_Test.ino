@@ -1,6 +1,6 @@
 void setup() {
-  Serial1.begin(115200); // I am using Serial1 (pins 9,10).  If you are using USB serial monitor, switch to Serial
-  Serial3.begin(115200); // change this to 1000000 if you havent changed default baud
+  Serial1.begin(460800); // I am using Serial1 (pins 9,10).  If you are using USB serial monitor, switch to Serial
+  Serial3.begin(1000000); // change this to 1000000 if you havent changed default baud
   Serial1.println("Hit Enter to send a command");
   pinMode(13,OUTPUT);
 }
@@ -117,12 +117,18 @@ void writeServo(uint8_t deviceNum){
 
 
 void moveServo(uint8_t deviceNum){
-    Serial1.print("\n Choose position 0-9:");
+     Serial1.print("\n Choose position (Enter 4 digits(:");
   while(!Serial1.available());
-  uint8_t input = Serial1.read()-'0';
-  uint16_t pos = (1024 * input)/9;
-    Serial1.println("Moving!");
-   uint8_t parms[] = {30,pos%256,pos>>8};
+  uint16_t input = (Serial1.read()-'0')*1000;
+  while(!Serial1.available());
+   input += (Serial1.read()-'0')*100;
+    while(!Serial1.available());
+   input += (Serial1.read()-'0')*10;
+    while(!Serial1.available());
+   input += Serial1.read()-'0';
+   Serial1.print("Moving to ");
+    Serial1.println(input);
+   uint8_t parms[] = {30,input%256,input>>8};
    execute(deviceNum,3,3, parms );
 }
 

@@ -1,6 +1,4 @@
  #include <i2c_t3.h>
- #include <Adafruit_INA219.h>
- #include <dh_controller.h>
 
 
 //The Arduino Wire library uses the 7-bit version of the address, so the code example uses 0x70 instead of the 8‑bit 0xE0
@@ -13,33 +11,6 @@
 #define ChangeAddressCommand2 byte(0xA5)
 
 
- Adafruit_INA219 *powerMonitor;
-
- float shuntvoltage;
- float busvoltage; 
- float current_mA;
- float loadvoltage;
-
-bool powerMonitorDataReady = false;
-
-Controller controller;
-
-void setupPowerMonitor(){
-  powerMonitor = new Adafruit_INA219();
-  powerMonitor->begin();  
-}
-
-void executePowerMonitor(){
-      shuntvoltage = powerMonitor->getShuntVoltage_mV();
-      busvoltage = powerMonitor->getBusVoltage_V();
-      current_mA =powerMonitor->getCurrent_mA();
-      loadvoltage = busvoltage + (shuntvoltage / 1000);
-      powerMonitorDataReady = true;
-      Serial1.print("Voltage:");
-      Serial1.println(loadvoltage);
-      Serial1.print("Current:");
-      Serial1.println(current_mA);
-}
 
   uint16_t range1,range2;
 void setupSonarReading(){
@@ -80,10 +51,9 @@ void executeSonarReading(){
 }
 
 void setup() {
-	Serial1.begin(115200);
+	Serial1.begin(460800);
 	Serial.begin(115200);
 	pinMode(13,OUTPUT);
-	setupPowerMonitor();
 	setupSonarReading();
 }
 
@@ -93,9 +63,6 @@ void loop() {
      	digitalWrite(13,flip);
      	flip = ! flip;
      	switch(Serial1.read()){
-     		case 'p':
-     			executePowerMonitor();
-     			break;
      		case 's':
      			executeSonarReading();
      			break;

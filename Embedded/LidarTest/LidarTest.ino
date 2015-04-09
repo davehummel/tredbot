@@ -10,7 +10,7 @@ void setup()
 {
   //Wire.begin(); // join i2c bus
   Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
-  Serial1.begin(115200);
+Serial1.begin(460800);
  Serial.begin(115200); 
   pinMode(13,OUTPUT);
   digitalWrite(13, HIGH);

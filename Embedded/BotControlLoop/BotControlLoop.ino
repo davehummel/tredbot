@@ -1,32 +1,40 @@
 
  #include <i2c_t3.h>
  #include <Arduino.h>
-
+#include <dh_ax-12a.h>
  #include <dh_controller.h>
- #include <ControlledLED.h>
+ #include <ControlledPanTilt.h>
  #include <ControlledLidar.h>
+ #include <ControlledI2CXL.h>
 
-
+ #include <avr/io.h>
+#include <avr/interrupt.h>
 
 Controller controller;
 
 void setup(){
-	Serial1.begin(115200);
-	controller.library['B'-'A'] = new ControlledLED();
-	controller.library['B'-'A']->begin();
+	Serial1.begin(460800);
+	elapsedMillis m ;
+	// controller.library['B'-'A'] = new ControlledLED();
+	// controller.library['B'-'A']->begin();
 	controller.library['L'-'A'] = new ControlledLidar();
 	controller.library['L'-'A']->begin();
-	controller.schedule(1,1000,10000,0,"blink",'B',false);
+	controller.library['E'-'A'] = new ControlledI2CXL();
+	controller.library['E'-'A']->begin();
+	controller.library['S'-'A'] = new ControlledPanTilt();
+	((ControlledPanTilt*)controller.library['S'-'A'])->lidar = (ControlledLidar*)controller.library['L'-'A'] ;
+	controller.library['S'-'A']->begin();
+//	controller.schedule(1,10,1000,11,Controller::.newString("blink"),'B',false);
 	Serial1.println("Starting!");
 }
 
-
-elapsedMillis time;
 
 void loop(){
         if (Serial1.available()){
           controller.processInput(&Serial1);
         }
-        controller.execute((uint32_t)time, &Serial1);
+
+        controller.execute(&Serial1);
+        
 }
 

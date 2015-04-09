@@ -1,12 +1,9 @@
 #ifndef DH_CONTROLLER_H__
 #define DH_CONTROLLER_H__
 
-#include <vector>
-#include <list>
 #include <stdint.h>
 #include "Stream.h"
-
-using namespace std;
+#include <Arduino.h>
 
 class Controller{
 public:
@@ -25,18 +22,32 @@ public:
 
 		Controller* controller;
 		
-	private:
+	private:  
 
 	};
 
 
-	void schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],char controlled,bool serializeOnComplete);
+	void schedule(uint32_t id, uint16_t initialExecDelay, uint16_t executeInterval,bool additiveInterval, uint32_t runCount,char command[],char controlled,bool serializeOnComplete);
 	
-	void run(uint32_t id, char command[],uint8_t controlled,bool serializeOnComplete);
+	void run(uint32_t id,char command[],uint8_t controlled,bool serializeOnComplete);
 	
-	void execute(uint32_t time,Stream* output);
+	void execute(Stream* output);
+
+	void kill(uint32_t id);
+
+	void kill(void);
 	
 	void processInput(Stream* serial);
+
+	static bool parse_uint8(uint8_t &val, uint16_t &pointer,char* text);
+
+	static bool parse_uint16(uint16_t &val,uint16_t &pointer,char* text);
+
+	static bool parse_int16(int16_t &val,uint16_t &pointer,char* text);
+
+	static bool parse_uint32(uint32_t &val,uint16_t &pointer,char* text);
+
+	static char* newString(const char original[]);
 	
 	Controller::Controlled* library[26];
 
@@ -48,29 +59,35 @@ private:
 		Controlled *controlled;
 		bool serializeOnComplete;
 		uint16_t executeInterval;
-		uint16_t serializeInterval;
-		uint16_t runCount;
-		uint32_t nextExecuteTime=0;
-		uint32_t nextSerializeTime=0;
+		uint32_t runCount;
+		uint32_t nextExecuteTime;
+		uint32_t additiveInterval;
+		bool killed;
 	};
+
+	void addTimedEntry(Entry* entry);
 	
+	Entry* currentlyRunning;
+	bool isANext = true;
+	Entry* timedA[256];
+	Entry* timedB[256];
+	Entry* immediate[256];
 
-
-	vector<Entry>* timed;
-	vector<Entry>* immediate;
-	vector<Entry> timedCache;
+	uint8_t immediateSize = 0;
+	uint8_t timedSize = 0;
 	
 	char inputbuffer[256];
 	uint8_t bufferCount;
 
 	uint32_t lastProcessedMSTime;
+
+	elapsedMillis millis;
 	
 	void parseBuffer();
+
+
 	
 };
-
-
-
 
 
 

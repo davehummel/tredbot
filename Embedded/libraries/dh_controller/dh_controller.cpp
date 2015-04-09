@@ -1,179 +1,405 @@
 #include "dh_controller.h"
-#include <vector>
- #include <Arduino.h>
- #include "Stream.h"
-using namespace std;
-void Controller::schedule(uint32_t id, uint16_t executeInterval,uint16_t serializeInterval, uint16_t runCount, char command[],char controlled,bool serializeOnComplete){
+#include <stdint.h>
+#include "Stream.h"
+#include <Arduino.h>
 
-	Entry entry;
-	entry.id = id;
-	entry.command = command;
-	entry.controlled = library[controlled-'A'];
-	entry.runCount = runCount;
-	entry.executeInterval = executeInterval;
-	entry.serializeInterval = serializeInterval;
-	entry.serializeOnComplete = serializeOnComplete;
+void Controller::schedule(uint32_t id, uint16_t initialExecDelay,  uint16_t executeInterval,
+bool additiveInterval, uint32_t runCount, char command[],char controlled,bool serializeOnComplete){
 
-	entry.controlled->controller = this;
+	if (timedSize == 255)
+		return;
+	//Serial1.print(millis);
+	// Serial1.print(":Scheduling id:");
+	// Serial1.print(id);
+	// Serial1.print(" initExecDelay:");
+	// Serial1.print(initialExecDelay);
+	// Serial1.print(" execInterval:");
+	// Serial1.print(executeInterval);
+	// Serial1.print(" runCount:");
+	// Serial1.print(runCount);
+	// Serial1.print(" command:");
+	// Serial1.print(command);
+	// Serial1.print(" controlled:");
+	// Serial1.print(controlled);
+	// Serial1.print(" serONComp:");
+	// Serial1.println(serializeOnComplete);
 
+	Entry* entry = new Entry();
+	entry->id = id;
+	entry->command = command;
 
-	timedCache.push_back(entry); 
+	uint8_t controlledIndex;
+
+	if (controlled>='a' && controlled<='z')
+		controlledIndex=controlled-'a';
+	else if (controlled>='A' && controlled<='Z')
+		controlledIndex= controlled-'A';
+	else return;
+	
+	entry->controlled = library[controlledIndex];
+	entry->runCount = runCount;
+	entry->executeInterval = executeInterval;
+	entry->serializeOnComplete = serializeOnComplete;
+
+	entry->controlled->controller = this;
+
+	entry->controlled->startSchedule(command,id);
+
+	entry->nextExecuteTime = (uint32_t)millis;
+	entry->nextExecuteTime = entry->nextExecuteTime+initialExecDelay;	
+
+	entry->killed = false;
+
+	// Serial1.print(command);
+	// Serial1.println(entry->nextExecuteTime);	
+	addTimedEntry(entry);
 }
 
+
+
 void Controller::run(uint32_t id, char command[],uint8_t controlled,bool serializeOnComplete){
-	if (!immediate){
-		immediate = new vector<Entry>();
-	}
 	
+	if (immediateSize == 255)
+		return;
+
+
 	if (controlled>='a' && controlled<='z')
 		controlled-='a';
 	else if (controlled>='A' && controlled<='Z')
 		controlled-='A';
 	else return;
+	
+	Entry* entry = new Entry();
+	entry->id = id;
+	entry->command = command;
+	entry->controlled = library[controlled];
+	entry->serializeOnComplete = serializeOnComplete;
 
-	Entry entry;
-	entry.id = id;
-	entry.command = command;
-	entry.controlled = library[controlled];
-	entry.serializeOnComplete = serializeOnComplete;
+	entry->controlled->controller = this;
 
-	entry.controlled->controller = this;
-
-	immediate->push_back(entry); 
+	immediate[immediateSize] = entry;
+	immediateSize++;
 }
 
-void Controller::execute(uint32_t time,Stream* output){
+void Controller::execute(Stream* output){
 	// First check immediate run queue
-	if (immediate && immediate->size()>0){
-		for (vector<Entry>::iterator iter=immediate->begin();iter!=immediate->end();iter++){
-			iter->controlled->execute(time,iter->id,iter->command);
-			if (iter->serializeOnComplete){
-				iter->controlled->serialize(output,iter->id,iter->command);
+
+	for (int i = 0; i < immediateSize; i ++){
+			immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command);
+			if (immediate[i]->serializeOnComplete){
+				immediate[i]->controlled->serialize(output,immediate[i]->id,immediate[i]->command);
 			}
-			iter->controlled->endSchedule(iter->command,iter->id);
-		}
+
+			delete immediate[i]->command;
+			
+			delete immediate[i];
+
 	}
+	immediateSize = 0;
 
-	if (immediate)
-		immediate->clear();
+	uint32_t offset = (uint32_t)millis - lastProcessedMSTime;
 
-
-	if (lastProcessedMSTime == time)
+	if (offset == 0)
 		return;
 
-	lastProcessedMSTime = time;
+	if (offset > 1)
+		Serial1.print('#');
 
-	if (timedCache.size()>0){
-		if (!timed)
-			timed = new vector<Entry>();
-		for (vector<Entry>::iterator iter=timedCache.begin();iter!=timedCache.end();iter++){
-			Entry entry;
-			entry.id = iter->id;
-			entry.command = iter->command;
-			entry.controlled = iter->controlled;
-			entry.runCount = iter->runCount;
-			entry.executeInterval = iter->executeInterval;
-			entry.serializeInterval = iter->serializeInterval;
-			entry.serializeOnComplete = iter->serializeOnComplete;
-			entry.controlled->startSchedule(entry.command, entry.id);
-			timed->push_back(entry); 
-		}
-		timedCache.clear();
-	}
+	lastProcessedMSTime +=offset;
 
-	if (!timed || timed->size()==0)
-		return;
+	bool doA = isANext;
+	isANext = !isANext;
+	uint8_t count = timedSize;
 
-	for (vector<Entry>::iterator iter=timed->begin();iter!=timed->end();iter++){
-			while (time > iter->nextExecuteTime){
-				if (iter->nextExecuteTime == 0){
-					if (iter->executeInterval == 0)
-						break;
-					iter->nextExecuteTime = time+iter->executeInterval;
-				}else{
-					iter->nextExecuteTime += iter->executeInterval;
-				}
-				iter->controlled->execute(time,iter->id,iter->command);
-				if (iter->runCount>0){
-					iter->runCount--;
-					if (iter->runCount == 0){
-						if (iter->serializeOnComplete || (time > iter->nextSerializeTime && iter->serializeInterval>0) ){
-							iter->controlled->serialize(output,iter->id,iter->command);
-						}
-						timed->erase(iter);
-						continue;
-					}
-				}
-			}
+	timedSize = 0;
 
-			if (iter->serializeInterval == 0)
-				continue;
+	for (int i =0 ; i < count; i ++){
 
-			while (time > iter->nextSerializeTime){
-				iter->controlled->serialize(output,iter->id,iter->command);
-				iter->nextSerializeTime+=iter->serializeInterval;
-			}
-		
-	}
+		Entry* iter = doA?timedA[i]:timedB[i];
+		currentlyRunning = iter;
+		bool addBack = true;
+
+		if (iter->killed){
+			if (iter->serializeOnComplete)
+				iter->controlled->serialize(output,iter->id,iter->command);	
 	
-	return;
+			iter->controlled->endSchedule(iter->command, iter->id);
+
+			delete iter->command;
+				
+			delete iter;
+
+			continue;
+
+		}
+
+		if ((uint32_t)millis >= iter->nextExecuteTime){
+
+			if (iter->executeInterval == 0 ){
+				iter->runCount = 1;
+			}
+				
+			iter->controlled->execute((uint32_t)millis,iter->id,iter->command);
+			
+			if (iter->runCount>0){
+				iter->runCount--;
+				if (iter->runCount == 0){
+					if (iter->serializeOnComplete){
+						iter->controlled->serialize(output,iter->id,iter->command);
+					}
+	
+					iter->controlled->endSchedule(iter->command, iter->id);
+
+					delete iter->command;
+				
+					delete iter;
+				
+					addBack = false;
+				}
+			}
+			if (iter->additiveInterval)
+				iter->nextExecuteTime =millis + iter->executeInterval;
+			else
+				iter->nextExecuteTime += iter->executeInterval;
+		}
+
+		if (addBack){
+			addTimedEntry(iter);
+		}
+	}
+
+	currentlyRunning = 0;
+		
 }
 
 void Controller::processInput(Stream* stream){
 	while (stream->available()){
 		char next = stream->read();
+		Serial1.print(next);
 		if (next == '\n'||next == '\r'){
+			inputbuffer[bufferCount]='\0';
 			parseBuffer();
 			bufferCount = 0;
 		}else{
+			inputbuffer[bufferCount] = next;
 			if (bufferCount == 255){
 				bufferCount = 0;
 			}else{
 				bufferCount++;
 			}
-			inputbuffer[bufferCount] = next;
 		}
 	}
 	
 }
 
+
 void Controller::parseBuffer(){
+
+	if (inputbuffer[0]=='K'){
+		uint16_t offset = 2;
+		uint32_t id=0;
+		if (!parse_uint32(id,offset,inputbuffer))
+			return;
+
+	Serial1.print(">K>");
+	Serial1.print(id);
+	Serial1.print('@');
+	Serial1.println(millis);
+
+		kill(id);
+	}
+
 	if (bufferCount<6)
 		return;
+
 	if (inputbuffer[0]!='C'||inputbuffer[1]!=' '||inputbuffer[3]!=' '){
 		return;
 	}
-	uint8_t commandID;
-	commandID = inputbuffer[2]-'a';
+	char commandID;
+	commandID = inputbuffer[2];
 	//todo parse id;
-	char rawID[16];
+
 	uint32_t id = 0;
-	int offset = 4;
-	for (int i = 0;i<17;i++){
-		if (i==16)
-			return; // bad id .. too many characters
-		if (inputbuffer[offset]==' '){
-			uint8_t multiplier = 1;
-			for (int j = 0;j< i;j++){
-				id += (rawID[i]-'0') * multiplier;
-				multiplier*=10;
-			}				
-			break;
-		}
-		if (inputbuffer[offset]>='0' && inputbuffer[offset]<='9'){
-			rawID[i] = inputbuffer[offset];
-		}else{
-			return; // non number character in id
-		}
-		offset++;
-	}
-	char command[bufferCount-offset+1];
-	command[bufferCount-offset]='\0';
+	uint16_t offset = 4;
+
+	if (!parse_uint32(id,offset,inputbuffer))
+		return;
 	
+	offset++;
+
+	char* command =new char[bufferCount-offset+1];
+	command[bufferCount-offset]='\0';
 	for (int i = 0; i < bufferCount-offset; i++){
 		command[i] = inputbuffer[i+offset];
 	}
+// TIME sync feedback
+	Serial1.print(">C>");
+	Serial1.print(id);
+	Serial1.print('@');
+	Serial1.println(millis);
+
+// DEBUG CODE
+	Serial1.print("Command processed:");
+	Serial1.print(" id =");
+	Serial1.print(id);
+	Serial1.print(" command ");
+	Serial1.print(command);
+	Serial1.print(" Controlled ID:");
+	Serial1.println((char)commandID);
 	
 	run(id,command,commandID,true);
 	
+}
+
+void Controller::addTimedEntry(Entry* entry){
+	if (isANext){
+		timedA[timedSize] = entry;
+	}else{
+		timedB[timedSize] = entry;
+	}
+	timedSize++;
+}
+
+
+void Controller::kill(uint32_t id){
+	for (int i = 0 ; i < timedSize ; i++){
+		Entry* entry = isANext?timedA[i]:timedB[i];
+		if (entry->id == id){
+			entry->killed = true;
+		} 
+	}
+}
+
+void Controller::kill(){
+	if (currentlyRunning!=0)
+		currentlyRunning->killed =true;
+}
+
+bool Controller::parse_uint8(uint8_t &val, uint16_t &pointer,char* text){
+	val = 0;
+
+	uint8_t valChars;
+
+	for (valChars=0;valChars<=3;valChars++){
+		char c = text[pointer+valChars];
+		if (c<'0' || c>'9')
+			break;
+	}
+
+	if (valChars == 0 || valChars == 4)
+		return false;
+
+	uint8_t multiplier = 1;
+
+	for (int i = valChars-1;i>=0;i--){
+		val+= multiplier*(text[pointer+i]-'0');
+		multiplier*=10;
+	}
+
+	pointer+=valChars;
+
+	return true;
+
+}
+
+bool Controller::parse_uint16(uint16_t &val, uint16_t &pointer,char* text){
+	val = 0;
+
+	uint8_t valChars;
+
+	for (valChars=0;valChars<=5;valChars++){
+		char c = text[pointer+valChars];
+		if (c<'0' || c>'9')
+			break;
+	}
+
+	if (valChars == 0 || valChars == 6)
+		return false;
+
+	uint16_t multiplier = 1;
+
+	for (int i = valChars-1;i>=0;i--){
+		val+= multiplier*(text[pointer+i]-'0');
+		multiplier*=10;
+	}
+
+	pointer+=valChars;
+
+	return true;
+
+}
+
+bool Controller::parse_int16(int16_t &val, uint16_t &pointer,char* text){
+	val = 0;
+
+	bool negative = false;
+	if (text[pointer]=='-'){
+		negative = true;
+		pointer++;
+	}
+
+	uint8_t valChars;
+
+	for (valChars=0;valChars<=5;valChars++){
+		char c = text[pointer+valChars];
+		if (c<'0' || c>'9')
+			break;
+	}
+
+	if (valChars == 0 || valChars == 6)
+		return false;
+
+	int16_t multiplier = negative?-1:1;
+
+	for (int i = valChars-1;i>=0;i--){
+		val+= multiplier*(text[pointer+i]-'0');
+		multiplier*=10;
+	}
+
+	pointer+=valChars;
+
+	return true;
+
+}
+
+bool Controller::parse_uint32(uint32_t &val, uint16_t &pointer,char* text){
+	val = 0;
+
+	uint8_t valChars;
+
+	for (valChars=0;valChars<=10;valChars++){
+		char c = text[pointer+valChars];
+		if (c<'0' || c>'9')
+			break;
+	}
+
+	if (valChars == 0 || valChars == 11)
+		return false;
+
+	uint32_t multiplier = 1;
+
+	for (int i = valChars-1;i>=0;i--){
+		val+= multiplier*(text[pointer+i]-'0');
+		multiplier*=10;
+	}
+
+	pointer+=valChars;
+
+	return true;
+
+}
+
+char* Controller::newString(const char original[]){
+	int size;
+	for (size = 0 ; size < 256 ; size++){
+		if (original[size]=='\0')
+			break;
+	}
+
+	char* data = new char[size+1];
+	data[size] = '\0';
+	for (int i =0 ; i < size ; i++)
+		data[i] = original[i];
+
+	return data;
 }
