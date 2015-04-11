@@ -35,7 +35,7 @@ public:
 		controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SCAN"),'L',false);
 	}
 
-	void execute(uint32_t time,uint32_t id,char* command){
+	void execute(uint32_t time,uint32_t id,char command[]){
 		// Serial1.print(time);
 		// Serial1.println(command);
 		uint8_t nackack = 0;

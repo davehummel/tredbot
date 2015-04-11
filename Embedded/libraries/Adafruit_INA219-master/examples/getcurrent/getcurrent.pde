@@ -1,4 +1,4 @@
-#include <Wire.h>
+#include <i2c_t3.h>
 #include <Adafruit_INA219.h>
 
 Adafruit_INA219 ina219;
@@ -7,11 +7,11 @@ void setup(void)
 {
   uint32_t currentFrequency;
     
-  Serial.begin(115200);
-  Serial.println("Hello!");
+  Serial1.begin(460800);
+  Serial1.println("Hello!");
   
-  Serial.println("Measuring voltage and current with INA219 ...");
-  ina219.begin();
+  Serial1.println("Measuring voltage and current with INA219 ...");
+  ina219.beginFullRange();
 }
 
 void loop(void) 
@@ -26,11 +26,11 @@ void loop(void)
   current_mA = ina219.getCurrent_mA();
   loadvoltage = busvoltage + (shuntvoltage / 1000);
   
-  Serial.print("Bus Voltage:   "); Serial.print(busvoltage); Serial.println(" V");
-  Serial.print("Shunt Voltage: "); Serial.print(shuntvoltage); Serial.println(" mV");
-  Serial.print("Load Voltage:  "); Serial.print(loadvoltage); Serial.println(" V");
-  Serial.print("Current:       "); Serial.print(current_mA); Serial.println(" mA");
-  Serial.println("");
+  Serial1.print("Bus Voltage:   "); Serial1.print(busvoltage); Serial1.println(" V");
+  Serial1.print("Shunt Voltage: "); Serial1.print(shuntvoltage); Serial1.println(" mV");
+  Serial1.print("Load Voltage:  "); Serial1.print(loadvoltage); Serial1.println(" V");
+  Serial1.print("Current:       "); Serial1.print(current_mA); Serial1.println(" mA");
+  Serial1.println("");
 
-  delay(2000);
+  delay(5000);
 }

@@ -102,8 +102,11 @@ void Controller::execute(Stream* output){
 	if (offset == 0)
 		return;
 
-	if (offset > 1)
+	if (offset > 1){
 		Serial1.print('#');
+		Serial1.print(offset);
+		Serial1.print('#');
+	}
 
 	lastProcessedMSTime +=offset;
 
@@ -239,13 +242,13 @@ void Controller::parseBuffer(){
 	Serial1.println(millis);
 
 // DEBUG CODE
-	Serial1.print("Command processed:");
-	Serial1.print(" id =");
-	Serial1.print(id);
-	Serial1.print(" command ");
-	Serial1.print(command);
-	Serial1.print(" Controlled ID:");
-	Serial1.println((char)commandID);
+	// Serial1.print("Command processed:");
+	// Serial1.print(" id =");
+	// Serial1.print(id);
+	// Serial1.print(" command ");
+	// Serial1.print(command);
+	// Serial1.print(" Controlled ID:");
+	// Serial1.println((char)commandID);
 	
 	run(id,command,commandID,true);
 	

@@ -16,11 +16,8 @@ public:
 		digitalWrite(13, flip);
 		flip = ! flip;
 		count++;
-		Serial1.println(count);
 	}
 	void serialize(Stream* output, uint32_t id, char command[]){
-		output->print(id);
-		output->println(" hi");
 	}
 	void startSchedule(char command[], uint32_t id){
 		count = 0;

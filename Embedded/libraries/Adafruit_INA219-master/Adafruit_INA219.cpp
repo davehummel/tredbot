@@ -263,8 +263,7 @@ void Adafruit_INA219::ina219SetCalibration_32V_1A(void)
 void Adafruit_INA219::ina219SetCalibration_16V_3200mA(void) {
   
   // Calibration which uses the widest range and low voltages for 
-  // current measurement (10mA), at the expense of 
-  // only supporting 16V at 3200mA max.
+  // current measurement (10mA), supporting 16V at 3200mA max.
 
   // VBUS_MAX = 16V
   // VSHUNT_MAX = 0.32          (Assumes Gain 8, 320mV)
@@ -290,6 +289,7 @@ void Adafruit_INA219::ina219SetCalibration_16V_3200mA(void) {
   // 5. Compute the calibration register
   // Cal = trunc (0.04096 / (Current_LSB * RSHUNT))
   // Cal = 4096 (0x1000)
+  Serial1.println("HOBO");
   
   ina219_calValue = 4096;
 
@@ -323,7 +323,7 @@ void Adafruit_INA219::ina219SetCalibration_16V_3200mA(void) {
   // MaximumPower = 51.2W
   
   // Set multipliers to convert raw current/power values
-  ina219_currentDivider_mA = 20;  // Current LSB = 50uA per bit (1000/50 = 20)
+  ina219_currentDivider_mA = 10;  // Current LSB = 50uA per bit (1000/50 = 20)
   ina219_powerDivider_mW = 1;     // Power LSB = 1mW per bit
 
   // Set Calibration register to 'Cal' calculated above 
@@ -451,7 +451,7 @@ void Adafruit_INA219::begin() {
     @brief  Setups the HW (defaults to 16V and 3.2A for calibration values)
 */
 /**************************************************************************/
-void Adafruit_INA219::beginFullRange1() {
+void Adafruit_INA219::beginFullRange() {
   Wire.begin();    
   // Set chip to known config values to start
   ina219SetCalibration_16V_3200mA();
@@ -497,6 +497,8 @@ int16_t Adafruit_INA219::getCurrent_raw() {
 
   // Now we can safely read the CURRENT register!
   wireReadRegister(INA219_REG_CURRENT, &value);
+
+  Serial1.println(value);
   
   return (int16_t)value;
 }

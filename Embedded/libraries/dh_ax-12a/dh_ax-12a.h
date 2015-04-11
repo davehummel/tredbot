@@ -122,7 +122,7 @@ public:
 			return false;
 		}
 
-		//
+		
 		if (skipCount>0){
 			stream->readBytes(data,skipCount);
 			// Serial1.print("Skipping:");
@@ -138,7 +138,7 @@ public:
 		if (bytes<6)
 			return false;
 
-		// This is probably not possible since the buffer is only 256 bytes?
+		// This is probably not possible since the buffer is only 64 bytes?
 		if (bytes>256){
 			bytes = 256;
 		}
@@ -176,7 +176,7 @@ public:
 			// Serial1.println(plength);
 		
 			if (plength+index>bytes){
-			//	Serial1.println("Failed Parse:Incomplete message");
+				Serial1.println("Failed Parse:Incomplete message");
 				break;
 			}
 
@@ -201,9 +201,9 @@ public:
 			if (plength == 3){ // TODO we really should track the last command sent so we know its really a position read
 				uint8_t inst = data[index++];
 				if (inst!=0){
-					//Serial1.println("Failed Parse:Unknown 3 length message");
-					index+=2;
-					continue;
+					Serial1.println("Failed Parse:Unknown 3 length message or error");
+					// index+=1;
+					// continue;
 				}
 	
 				readData = data[index++];
@@ -223,10 +223,10 @@ public:
 
 			if (plength == 4){ // TODO we really should track the last command sent so we know its really a position read
 				uint8_t inst = data[index++];
-				if (inst!=0){
-			//		Serial1.println("Failed Parse:Unknown 4 length message");
-					index+=3;
-					continue;
+				if (inst!=0 ){
+					Serial1.println("Failed Parse:Unknown 4 length message or errors");
+					// index+=2;
+					// continue;
 				}
 	
 				readData = data[index++];
@@ -244,7 +244,7 @@ public:
 
 				return true;
 			}
-		//	Serial1.println("Failed Parse:wrong length");
+		//	Serial1.println("Failed Parse:Just starting again");
 		}
 
 		return false;
@@ -274,12 +274,14 @@ void execute(uint8_t deviceNum,uint8_t command,uint16_t parmCount, uint8_t parms
 	  checksum+=data[4];
 	  for (int i = 0; i < parmCount ; i++){
 	    data[5+i] = parms[i];  
-	   checksum+=parms[i];
+	    checksum+=parms[i];
 	  }
 	  
 	  data[parmCount+5]=(uint8_t)(255-(checksum%256));
 	  stream->write(data,parmCount+6);
-	  skipCount+=parmCount+6;
+	  skipCount=parmCount+6;
+	  
+
 }
 
 Stream* stream;

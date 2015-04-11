@@ -16,6 +16,8 @@
     v1.0  - First release
 */
 /**************************************************************************/
+#ifndef Adafruit_INA219_H__
+#define Adafruit_INA219_H__
 
 #if ARDUINO >= 100
  #include "Arduino.h"
@@ -137,3 +139,4 @@ class Adafruit_INA219{
   int16_t getShuntVoltage_raw(void);
   int16_t getCurrent_raw(void);
 };
+#endif

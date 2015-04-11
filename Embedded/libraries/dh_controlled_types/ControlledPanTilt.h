@@ -8,10 +8,10 @@
 
 class ControlledPanTilt: public Controller::Controlled{
 public:
-	const uint16_t INITDELAY = 10;
+	const uint16_t INITDELAY = 50;
 
 	void begin(void){
-		 Serial3.begin(1000000); // change this to 1000000 if you havent changed default baud
+		 Serial3.begin(117647); // change this to 1000000 if you havent changed default baud
 		 if (!servo){
 		 	servo = new ax_12a(&Serial3,2);
 		 }
