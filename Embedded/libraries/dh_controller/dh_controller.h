@@ -79,11 +79,13 @@ private:
 	Entry* timedB[256];
 	Entry* immediate[256];
 
+	char* programs[256];
+
 	uint8_t immediateSize = 0;
 	uint8_t timedSize = 0;
 	
 	char inputbuffer[512];
-	uint8_t bufferCount;
+	uint16_t bufferCount=0;
 
 	uint32_t lastProcessedMSTime;
 
