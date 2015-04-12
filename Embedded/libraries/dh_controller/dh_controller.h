@@ -30,6 +30,12 @@ public:
 	void schedule(uint32_t id, uint16_t initialExecDelay, uint16_t executeInterval,bool additiveInterval, uint32_t runCount,char command[],char controlled,bool serializeOnComplete);
 	
 	void run(uint32_t id,char command[],uint8_t controlled,bool serializeOnComplete);
+
+	void loadProgram(uint8_t id, char command[]);
+
+	void runProgram(uint8_t id);
+
+	void deleteProgram(uint8_t id);
 	
 	void execute(Stream* output);
 
@@ -76,7 +82,7 @@ private:
 	uint8_t immediateSize = 0;
 	uint8_t timedSize = 0;
 	
-	char inputbuffer[256];
+	char inputbuffer[512];
 	uint8_t bufferCount;
 
 	uint32_t lastProcessedMSTime;

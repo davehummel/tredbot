@@ -55,7 +55,40 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,bool se
 	addTimedEntry(entry);
 }
 
+void Controller::loadProgram(uint8_t id, char program[]){
+	if (programs[id]){
+		delete programs[id];
+	}
+	programs[id]=program;
+}
 
+void Controller::deleteProgram(uint8_t id){
+	delete programs[id];
+	programs[id] = 0;
+}
+
+void Controller::runProgram(uint8_t id){
+	bufferCount = 0;
+	if (programs[id]){
+		uint16_t offset = 0;
+		char* program = programs[id];
+		while(true){
+			char c == program[offset];
+			offset++;
+			if (c ==';' || c =='\0'){
+				inputbuffer[bufferCount] = '\0';
+				parseBuffer();
+				bufferCount = 0;
+				if (c == '\0'){
+					return;
+				}
+			} else {
+				inputbuffer[bufferCount] = c;
+				bufferCount++;
+			}
+		}
+	}
+}
 
 void Controller::run(uint32_t id, char command[],uint8_t controlled,bool serializeOnComplete){
 	
@@ -185,7 +218,7 @@ void Controller::processInput(Stream* stream){
 			bufferCount = 0;
 		}else{
 			inputbuffer[bufferCount] = next;
-			if (bufferCount == 255){
+			if (bufferCount == 511){
 				bufferCount = 0;
 			}else{
 				bufferCount++;
@@ -199,6 +232,8 @@ void Controller::processInput(Stream* stream){
 void Controller::parseBuffer(){
 
 	if (inputbuffer[0]=='K'){
+		if (bufferCount<3)
+			return;
 		uint16_t offset = 2;
 		uint32_t id=0;
 		if (!parse_uint32(id,offset,inputbuffer))
@@ -210,6 +245,61 @@ void Controller::parseBuffer(){
 	Serial1.println(millis);
 
 		kill(id);
+		return;
+	}
+
+	if (inputbuffer[0]=='P'){
+		if (bufferCount<3)
+			return;
+		uint8_t id=0;
+		uint16_t offset = 2;
+
+		if (!parse_uint8(id,offset,inputbuffer))
+			return;
+
+		offset++;
+
+		if (inputbuffer<=offset){
+			Serial1.print(">P->");
+			Serial1.print(id);
+			Serial1.print('@');
+			Serial1.println(millis);
+			deleteProgram(id);
+			return;
+		}
+
+		char* program = new char[inputbuffer-offset];
+
+		for (uint16_t i = 0; i < bufferCount-offset; i++){
+			program[i] = inputbuffer[i+offset];
+		}
+
+		Serial1.print(">P+>");
+		Serial1.print(id);
+		Serial1.print('@');
+		Serial1.println(millis);
+
+		loadProgram(id,program);
+		return;
+	}
+
+	if (inputbuffer[0]=='R'){
+		if (bufferCount<3)
+			return;
+		uint8_t id=0;
+		uint16_t offset = 2;
+
+		if (!parse_uint8(id,offset,inputbuffer))
+			return;
+
+		Serial1.print(">R>");
+		Serial1.print(id);
+		Serial1.print('@');
+		Serial1.println(millis);
+
+		runProgram(id);
+
+		return;
 	}
 
 	if (bufferCount<6)
@@ -230,9 +320,9 @@ void Controller::parseBuffer(){
 	
 	offset++;
 
-	char* command =new char[bufferCount-offset+1];
-	command[bufferCount-offset]='\0';
-	for (int i = 0; i < bufferCount-offset; i++){
+	char* command =new char[bufferCount-offset];
+	//command[bufferCount-offset]='\0'; // this shouldnt be needed anymore
+	for (uint16_t i = 0; i < bufferCount-offset; i++){
 		command[i] = inputbuffer[i+offset];
 	}
 // TIME sync feedback
