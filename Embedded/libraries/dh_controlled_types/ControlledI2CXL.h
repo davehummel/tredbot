@@ -12,6 +12,10 @@
 #define ChangeAddressCommand1 byte(0xAA)
 #define ChangeAddressCommand2 byte(0xA5)
 
+
+#define A_OFFSET 3
+#define B_OFFSET 3
+
 class ControlledI2CXL: public Controller::Controlled{
 public:
 
@@ -19,22 +23,26 @@ public:
 		Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
 	}
 
-	void startScan(uint32_t id, uint16_t scanDelay, uint16_t scanInt,uint8_t stereoDelay, uint32_t scanCount,uint8_t dataPoints){
+	void startScan(uint32_t id, uint16_t scanDelay, uint16_t scanInt,uint8_t stereoDelay, uint32_t scanCount){
+
+		if (scanning){
+			stopScan();
+		}
 
 		scanInterval = scanInt;
 
-		bufferSize = dataPoints;
-
-		readCount = 0;
-
-		if (readingsA)
-			delete readingsA;
-
-		readingsA = new uint16_t[bufferSize];
-		readingsB = new uint16_t[bufferSize];
-
 		controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SA"),'E',false);
 		controller->schedule(id+1,scanDelay+stereoDelay,false,scanInterval,scanCount,Controller::newString("SB"),'E',false);
+		scanningID = id;
+		scanning = true;
+	}
+
+	void stopScan(){
+		if (scanning){
+			controller->kill(scanningID);
+			controller->kill(scanningID+1);
+			scanning = false;
+		}
 	}
 
 	void execute(uint32_t time,uint32_t id,char* command){
@@ -42,17 +50,13 @@ public:
 		// Serial1.println(command);
 		uint16_t scanInt;
 		uint32_t scanCount;
-		uint8_t dataPoints;
 		uint16_t scanDelay;
 		uint8_t stereoDel;
 		uint16_t pointer = 6;
 		uint8_t addr;
 		switch (command[0]){
 			case 'B':
-			if (command[5]=='\0'){
-				startScan(id,_scanDelay,_scanInt,_stereoDelay,_scanCount,_dataPoints);
-			}
-
+		
 			if (!Controller::parse_uint16(scanDelay,pointer,command)){
 				return;
 			}
@@ -75,15 +79,17 @@ public:
 				return;
 			}
 
-			pointer++;
+			if (command[pointer]!='\0' && command[pointer+1]=='M')
+				mute = true;
+			else 
+				mute = false;
 
-			if (!Controller::parse_uint8(dataPoints,pointer,command)){
-				return;
-			}
-
-			startScan(id,scanDelay,scanInt,stereoDel,scanCount,dataPoints);
+			startScan(id,scanDelay,scanInt,stereoDel,scanCount);
 			
 			break;
+			case 'E':
+				stopScan();
+				break;
 			case 'S':
 				addr = command[1]=='A'?SensorAddress1:SensorAddress2;
 
@@ -91,7 +97,7 @@ public:
 			    Wire.write(RangeCommand);                             //send range command 
 			    Wire.endTransmission();     
 			    if (command[1]=='A') // Only use the first scan as the trigger for the read task
-			    	controller->schedule(id+1,scanInterval-1,0,false,1,Controller::newString("READ"),'E',true);
+			    	controller->schedule(id+2,scanInterval-1,0,false,1,Controller::newString("READ"),'E',!mute);
 			break;
 			case 'R':
 
@@ -99,66 +105,50 @@ public:
 		        if(Wire.available() >= 2){                            //Sensor responded with the two bytes 
 		            byte HighByte = Wire.read();                        //Read the high byte back 
 		            byte LowByte = Wire.read();                        //Read the low byte back 
-		            readingsA[readCount]  = word(HighByte, LowByte);         //Make a 16-bit word out of the two bytes for the range  
+		            readingA  = word(HighByte, LowByte)+A_OFFSET;         //Make a 16-bit word out of the two bytes for the range  
 		         }else {
-		        	readingsA[readCount]  = 0;
+		        	readingA = 0;
 		         }  
 
 		        Wire.requestFrom(SensorAddress2, byte(2));
 		        if(Wire.available() >= 2){                            //Sensor responded with the two bytes 
 		            byte HighByte = Wire.read();                        //Read the high byte back 
 		            byte LowByte = Wire.read();                        //Read the low byte back 
-		            readingsB[readCount]  = word(HighByte, LowByte);         //Make a 16-bit word out of the two bytes for the range  
+		            readingB = word(HighByte, LowByte)+B_OFFSET;         //Make a 16-bit word out of the two bytes for the range  
 		         }else {
-		        	readingsB[readCount]  = 0;
+		        	readingB = 0;
 		         }    
-  
-
-				 readCount++;
 			break;
 		}
 	}
 
 	void serialize(Stream* output, uint32_t id, char command[]){
-		if (command[0]=='R' && readCount >= bufferSize){
+		if (command[0]=='R'){
 			Serial1.print('<');
 			Serial1.print(id);
 			Serial1.print(':');
-			for (uint8_t i = 0 ; i < bufferSize ; i++){
-				Serial1.print(readingsA[i]);
+				Serial1.print(readingA);
 				Serial1.print('|');
-				Serial1.print(readingsB[i]);
-				Serial1.print(' ');
-			}
-			Serial1.println();
-			readCount = 0;
+				Serial1.println(readingB);
 		}
 	}
 	void startSchedule(char command[], uint32_t id){
-		if (command[0]=='S'){
-			digitalWrite(2, HIGH);
-		}
+		
 	}
 	void endSchedule(char command[], uint32_t id){
-		if (command[0]=='S'){
-			controller->schedule(id,20,0,false,1,Controller::newString("OFF"),'L',false);
-		}
-
+	
 	}
 
-	uint16_t _scanDelay;
-	uint16_t _scanInt;
-	uint32_t _scanCount;
-	uint8_t _dataPoints;
-	uint8_t _stereoDelay;
-	
+	uint16_t readingA;
+	uint16_t readingB;
+	bool scanning = false;
+	bool mute = false;
+
+
 private:
 	//uint8_t retryCount;
+	uint32_t scanningID;
 	uint16_t scanInterval;
-	uint16_t* readingsA;
-	uint16_t* readingsB;
-	uint8_t readCount = 0;
-	uint8_t bufferSize = 0;
 
 
 };

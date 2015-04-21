@@ -1,6 +1,6 @@
 void setup() {
   Serial1.begin(460800); // I am using Serial1 (pins 9,10).  If you are using USB serial monitor, switch to Serial
-  Serial3.begin(117647); // change this to 1000000 if you havent changed default baud
+  Serial3.begin(400000); // change this to 1000000 if you havent changed default baud
   Serial1.println("Hit Enter to send a command");
   pinMode(13,OUTPUT);
 }

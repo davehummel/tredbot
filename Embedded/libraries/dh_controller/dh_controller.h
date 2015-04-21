@@ -26,6 +26,9 @@ public:
 
 	};
 
+	void loadControlled(char id,Controlled* controlled);
+	
+	Controlled* getControlled(char id);
 
 	void schedule(uint32_t id, uint16_t initialExecDelay, uint16_t executeInterval,bool additiveInterval, uint32_t runCount,char command[],char controlled,bool serializeOnComplete);
 	

@@ -18,44 +18,23 @@ public:
 		digitalWrite(2, LOW);
 	}
 
-	void startScan(uint32_t id, uint16_t scanDelay, uint16_t scanInt,uint32_t scanCount,uint8_t dataPoints){
-
-		scanInterval = scanInt;
-
-		bufferSize = dataPoints;
-
-		readCount = 0;
-
-		if (readings)
-			delete readings;
-
-
-		readings = new uint16_t[bufferSize];
-
-		controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SCAN"),'L',false);
-	}
 
 	void execute(uint32_t time,uint32_t id,char command[]){
 		// Serial1.print(time);
 		// Serial1.println(command);
 		uint8_t nackack = 0;
-		uint16_t scanInt;
 		uint32_t scanCount;
-		uint8_t dataPoints;
 		uint16_t scanDelay;
 		uint16_t pointer = 6;
 		switch (command[0]){
 			case 'B':
-			if (command[5]=='\0'){
-				startScan(id,_scanDelay,_scanInt,_scanCount,_dataPoints);
-			}
 			if (!Controller::parse_uint16(scanDelay,pointer,command)){
 				return;
 			}
 
 			pointer++;
 	
-			if (!Controller::parse_uint16(scanInt,pointer,command)){
+			if (!Controller::parse_uint16(scanInterval,pointer,command)){
 				return;
 			}
 
@@ -65,14 +44,14 @@ public:
 				return;
 			}
 
+			Serial1.println(scanCount);
+
 			pointer++;
 
-			if (!Controller::parse_uint8(dataPoints,pointer,command)){
-				return;
-			}
 
-			startScan(id,scanDelay,scanInt,scanCount,dataPoints);
+			controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SCAN"),'L',false);
 			
+
 			break;
 			case 'O':
 			 	digitalWrite(2, LOW);
@@ -90,8 +69,7 @@ public:
 			     controller->schedule(id+1,scanInterval-1,0,false,1,Controller::newString("READ"),'L',true);
 			break;
 			case 'R':
-				readings[readCount]=0;
-				readCount++;
+				lastRead = 0;
 				Wire.beginTransmission(LIDARLite_ADDRESS);
 				Wire.write(RegisterHighLowB);
 				nackack = Wire.endTransmission(I2C_NOSTOP,1000);
@@ -107,23 +85,19 @@ public:
 				 reading = reading << 8;
 				 reading |= Wire.readByte();
 
-				 readings[readCount-1] = reading;	
+				 lastRead = reading;	
 				
 			break;
 		}
 	}
 
 	void serialize(Stream* output, uint32_t id, char command[]){
-		if (command[0]=='R' && readCount >= bufferSize){
+		if (command[0]=='R'){
 			Serial1.print('<');
 			Serial1.print(id);
 			Serial1.print(':');
-			for (uint8_t i = 0 ; i < bufferSize ; i++){
-				Serial1.print(readings[i]);
-				Serial1.print(' ');
-			}
-			Serial1.println();
-			readCount = 0;
+	
+			Serial1.println(lastRead);
 		}
 	}
 	void startSchedule(char command[], uint32_t id){
@@ -138,20 +112,10 @@ public:
 
 	}
 
-	uint16_t _scanDelay;
-	uint16_t _scanInt;
-	uint32_t _scanCount;
-	uint8_t _dataPoints;
-
 	
 private:
-	//uint8_t retryCount;
 	uint16_t scanInterval;
-	uint16_t* readings;
-	uint8_t readCount = 0;
-	uint8_t bufferSize = 0;
-
-
+	uint16_t lastRead;
 };
 
 	

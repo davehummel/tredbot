@@ -10,7 +10,6 @@ public:
 		Serial1.println("Servo Started!");
 		devCount = deviceCount;
 
-
 		errors =new uint8_t[devCount+1];
 		skipCount = 0;
 		waitingForRead = false;
@@ -18,7 +17,6 @@ public:
 		readAddr = 0;
 		readData = false;
 		listen();
-		//setCompliance(1,1,16);
 	}
 
 	// Cant really process the response of the ping, so why bother
@@ -86,6 +84,12 @@ public:
    		execute(deviceNum,3,3, parms );
 	}
 
+	void clear(void){
+		while(stream->available())
+			stream->read();
+		skipCount = 0;
+	}
+
 	bool listen(void){
 
 		uint16_t bytes = stream->available();
@@ -99,8 +103,8 @@ public:
 			return false;
 		}
 
-		if (bytes < skipCount)
-			return false;
+		// if (bytes < skipCount)
+		// 	return false;
 
 		uint8_t data[bytes];
 
@@ -278,7 +282,15 @@ void execute(uint8_t deviceNum,uint8_t command,uint16_t parmCount, uint8_t parms
 	  }
 	  
 	  data[parmCount+5]=(uint8_t)(255-(checksum%256));
+	  //Serial3.transmitterEnable(8);
+	 // Serial3.begin(400000);
 	  stream->write(data,parmCount+6);
+	  stream->flush();
+	  //Serial3.transmitterEnable(13);
+	  //pinMode(8, OUTPUT);
+
+	  //digitalWrite(8, LOW);
+
 	  skipCount=parmCount+6;
 	  
 

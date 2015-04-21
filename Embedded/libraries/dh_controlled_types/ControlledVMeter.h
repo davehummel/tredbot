@@ -95,7 +95,6 @@ public:
 
 	void begin(void){
 		if (!started){
-			Serial1.println("Starting VMeter");
 			Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
 		
 		  // Calibration which uses the widest range and low voltages for 
@@ -150,8 +149,6 @@ public:
 		uint16_t scanDelay,scanInt;
 		uint32_t scanCount;
 		switch (command[0]){
-			case 'T':
-			Serial1.println(getShuntVoltage_raw());
 			case 'B':
 				pointer+=6;
 				if (!Controller::parse_uint16(scanDelay,pointer,command)){
@@ -191,14 +188,14 @@ public:
 	}
 	void serialize(Stream* output, uint32_t id,char command[]){
 		if (command[0] =='3'){
-			Serial1.print('<');
-			Serial1.print(id);
-			Serial1.print(":C=");
-			Serial1.print(current_mA);
-			Serial1.print(":V=");
-			Serial1.print(loadVoltage);
-			Serial1.print('@');
-			Serial1.println(readTime);
+			output->print('<');
+			output->print(id);
+			output->print(":C=");
+			output->print(current_mA);
+			output->print(":V=");
+			output->print(loadVoltage);
+			output->print('@');
+			output->println(readTime);
 		}
 	}
 	void startSchedule(char command[], uint32_t id){
@@ -227,7 +224,6 @@ private:
 	uint16_t wireReadRegister(){
 	  Wire.requestFrom(ina219_i2caddr, (uint8_t)2);  
 	  uint16_t temp =  ((Wire.read() << 8) | Wire.read());
-	  Serial1.println(temp);
 	  return temp;
 	}
 
@@ -247,36 +243,6 @@ private:
  	uint32_t ina219_currentMultiplier_mA;
   	uint32_t ina219_powerDivider_mW;
 
-
-
- int16_t getShuntVoltage_raw() {
-  uint16_t value;
-  wireReadRegister(INA219_REG_SHUNTVOLTAGE, &value);
-  return (int16_t)value;
-}
-
-void  wireReadRegister(uint8_t reg, uint16_t *value)
-{
-
-  Wire.beginTransmission(ina219_i2caddr);
-  #if ARDUINO >= 100
-    Wire.write(reg);                       // Register
-  #else
-    Wire.send(reg);                        // Register
-  #endif
-  Wire.endTransmission();
-  
-  delay(1); // Max 12-bit conversion time is 586us per sample
-
-  Wire.requestFrom(ina219_i2caddr, (uint8_t)2);  
-  #if ARDUINO >= 100
-    // Shift values to create properly formed integer
-    *value = ((Wire.read() << 8) | Wire.read());
-  #else
-    // Shift values to create properly formed integer
-    *value = ((Wire.receive() << 8) | Wire.receive());
-  #endif
-}
 };
 
 

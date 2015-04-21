@@ -11,10 +11,12 @@ public:
 	const uint16_t INITDELAY = 50;
 
 	void begin(void){
-		 Serial3.begin(117647); // change this to 1000000 if you havent changed default baud
+		 Serial3.begin(400000); // change this to 1000000 if you havent changed default baud
 		 if (!servo){
 		 	servo = new ax_12a(&Serial3,2);
 		 }
+		 pinMode(3, OUTPUT);
+		digitalWrite(3, LOW);
 	}
 
 	void execute(uint32_t time,uint32_t id,char command[]){
@@ -23,15 +25,17 @@ public:
 		switch (command[0]){
 			case 'B':
 				if (command[1]=='X'){
-					Serial1.println("GO!");
-					readCount = 0;
-						controller->run(id+10,Controller::newString("BEGIN"),'L',false);
-						controller->schedule(id,INITDELAY+10,stepDuration,false,steps*attempts,Controller::newString("ASK"),'S',false);
+						if (runProgram){
+							controller->schedule(id,INITDELAY,0,false,1,Controller::newString("EXEC"),'S',false);
+						}
+						controller->schedule(id,INITDELAY+stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("ASK"),'S',false);
 						controller->schedule(id,INITDELAY-40,0,false,1,Controller::newString("PUSH"),'S',false);
-						controller->schedule(id,INITDELAY+stepDuration-stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("SCAN"),'S',false);
+						controller->schedule(id,INITDELAY+stepDuration-stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("SCAN"),'S',true);
 					break;
 				}
 				pointer = 6;
+
+				digitalWrite(3, HIGH);
 
 				if (!Controller::parse_uint16(steps,pointer,command))
 				 	return;
@@ -55,59 +59,33 @@ public:
 
 				if (!Controller::parse_uint8(attempts,pointer,command))
 				 	return;
-				
-				useLidar = false;
-				useEcho = false;
-
 
 				pointer++;
 
-
-				if (command[pointer]=='2'||'3')
-					useEcho = true;
-
-				if (command[pointer]=='1'||'3')
-					useLidar = true;
-			
-
-				pointer+=2;
-
-
-				if (!Controller::parse_uint8(bufferSize,pointer,command)){
-					return;
+				if (!Controller::parse_uint8(programNum,pointer,command)){
+					runProgram = false;
+				}else{
+					runProgram = true;
 				}
-
+				 
+				
 				pos = min;
 
-				servo->move(1,pos-5);
 
 				curAttempt = 0;
 				currentStep = 0;
 
-				if (useLidar && lidar){
-					lidar->_scanDelay = INITDELAY;
-					lidar->_scanInt = stepDuration;
-					lidar->_scanCount = steps*attempts;
-					lidar->_dataPoints = bufferSize;
-				}
 
-				if (positions)
-					delete positions;
-				if (times)
-					delete times;
-				if (goals)
-					delete goals;
+				position = 0;
+				readtime = 0;
+				goal = pos;
 
-				positions = new uint16_t[bufferSize];
-				times = new uint32_t[bufferSize];
-				goals = new uint16_t[bufferSize];
+				firstDelay = true;
 
-				servo->waitingForRead = false;
-				servo->readByte(1,46);
+				controller->schedule(id+1,100,0,false,0,Controller::newString("MOVE 1"),'S',false);
 
-
-				controller->schedule(id,100,100,false,50,Controller::newString("D 1 BX"),'S',false);
-				
+				controller->schedule(id,400,100,false,50,Controller::newString("D 1 BX"),'S',false);
+			
 			break;
 			case 'D':
 				{
@@ -118,9 +96,18 @@ public:
 
 					servo->listen();
 
+					if (firstDelay){
+						Serial1.print('.');
+						servo->clear();
+						servo->waitingForRead = false;
+						firstDelay = false;
+						servo->readByte(wid,46);
+						return;
+					}
+
 					if (servo->waitingForRead){
 						Serial1.print("-");
-					//	servo->waitingForRead= false;
+						servo->waitingForRead= false;
 						servo->readByte(wid,46);
 						return;
 					}
@@ -152,17 +139,25 @@ public:
 						start++;
 					}
 					controller->kill(); // kill self
-					//Serial1.println("Finished MOVE!!!");
+					Serial1.println("Finished MOVE!!!");
 					controller->run(id,newCommand,'S',true);
 				}
 			break;
+			case 'E':
+				controller->runProgram(programNum);
+				break;
 			case 'M':
 				{
 					pointer = 5;
 					uint8_t sID;
 					if (!Controller::parse_uint8(sID,pointer,command))
 					 	return;
-					 
+					if (command[pointer]=='\0'){
+						servo->move(sID,pos);
+
+						servo->clear();
+						return;
+					}
 					pointer++;
 					uint16_t newPos;
 					if (!Controller::parse_uint16(newPos,pointer,command))
@@ -173,12 +168,12 @@ public:
 			break;
 			case 'A':
 				servo->read2Bytes(1,36);
-				times[readCount]=time;
+				readtime=time;
 				// Serial1.print('A');
 				// Serial1.print(time);
 				break;
 			case 'P':
-				servo->move(1,pos);
+				servo->move(1,pos+2);
 				break;
 			case 'S':
 			{
@@ -187,15 +182,15 @@ public:
 				servo->listen();
 				if (servo->waitingForRead){
 					Serial1.println("Failed to get position of servo in scan!!!");
+					servo->clear();
+					servo->waitingForRead=false;
 				} else if (servo->readAddr != 36){
 					Serial1.println("Wrong address in servo in scan???");
+					servo->clear();
+					servo->waitingForRead=false;
 				}
-				positions[readCount] = servo->readData;
-				goals[readCount] = pos;
-				readCount++;
-				if (readCount == bufferSize){
-					controller->run(id+1,Controller::newString("DUMP"),'S',true);
-				}
+				position = servo->readData;
+				goal = pos;
 				currentStep++;
 				if (currentStep==steps){
 					currentStep = 0;
@@ -217,46 +212,38 @@ public:
 					}
 				}
 
-				if (pos>max || pos < min){
-					Serial1.print("BLOCKING BAD POS:");
-					Serial1.println(pos);
-					return;
-				}
-
 				servo->move(1,pos);
 			}
 			break;
 			case 'O':
+			if (command[1]=='F')
+				digitalWrite(3, LOW);
+			else
+				digitalWrite(3, HIGH);
 			break;
 		}
 	}
 	void serialize(Stream* output, uint32_t id, char command[]){
-		if (command[0] == 'D'){
+		if (command[0] == 'S'){
 			Serial1.print('<');
 			Serial1.print(id);
 			Serial1.print(':');
-			for (uint8_t i = 0 ; i < bufferSize ; i++){
 				Serial1.print('G');
-				Serial1.print(goals[i]);
+				Serial1.print(goal);
 				Serial1.print("A");
-				Serial1.print(positions[i]);
+				Serial1.print(position);
 				Serial1.print('@');
-				Serial1.print(times[i]);
-				Serial1.print(' ');
-			}
-			Serial1.println();
-			readCount = 0;
+				Serial1.println(readtime);
 		}
+
 	}
 	void startSchedule(char command[], uint32_t id){
 	
 	}
 	void endSchedule(char command[], uint32_t id){
-
+	if (command[0] == 'S')
+		digitalWrite(3, LOW);
 	}
-
-	ControlledLidar* lidar;
-	ControlledI2CXL* echo;
 	
 private:
 
@@ -273,14 +260,14 @@ private:
 
 	uint16_t stepDuration = 0;
 
-	bool useLidar;
-	bool useEcho;
+	uint16_t goal;
+	uint16_t position;
+	uint32_t readtime;
 
-	uint16_t* goals;
-	uint16_t* positions;
-	uint32_t* times;
-	uint8_t readCount = 0;
-	uint8_t bufferSize = 0;
+	uint8_t programNum;
+	bool runProgram;
+
+	bool firstDelay;
 
 	ax_12a* servo;
 };

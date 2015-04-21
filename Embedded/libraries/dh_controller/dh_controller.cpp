@@ -3,6 +3,19 @@
 #include "Stream.h"
 #include <Arduino.h>
 
+void Controller::loadControlled(char id,Controlled* controlled){
+	if (id>'Z' || id < 'A')
+		return;
+	library[id-'A'] = controlled;
+	if (controlled){
+		controlled->begin();
+	}
+}
+
+Controlled* Controller::getControlled(char id){
+	
+}
+
 void Controller::schedule(uint32_t id, uint16_t initialExecDelay,  uint16_t executeInterval,
 bool additiveInterval, uint32_t runCount, char command[],char controlled,bool serializeOnComplete){
 
@@ -73,7 +86,7 @@ void Controller::runProgram(uint8_t id){
 		uint16_t offset = 0;
 		char* program = programs[id];
 		while(true){
-			char c == program[offset];
+			char c = program[offset];
 			offset++;
 			if (c ==';' || c =='\0'){
 				inputbuffer[bufferCount] = '\0';
@@ -156,9 +169,7 @@ void Controller::execute(Stream* output){
 		bool addBack = true;
 
 		if (iter->killed){
-			if (iter->serializeOnComplete)
-				iter->controlled->serialize(output,iter->id,iter->command);	
-	
+			
 			iter->controlled->endSchedule(iter->command, iter->id);
 
 			delete iter->command;
@@ -176,13 +187,13 @@ void Controller::execute(Stream* output){
 			}
 				
 			iter->controlled->execute((uint32_t)millis,iter->id,iter->command);
+			if (iter->serializeOnComplete){
+				iter->controlled->serialize(output,iter->id,iter->command);
+			}
 			
 			if (iter->runCount>0){
 				iter->runCount--;
 				if (iter->runCount == 0){
-					if (iter->serializeOnComplete){
-						iter->controlled->serialize(output,iter->id,iter->command);
-					}
 	
 					iter->controlled->endSchedule(iter->command, iter->id);
 
@@ -259,7 +270,7 @@ void Controller::parseBuffer(){
 
 		offset++;
 
-		if (inputbuffer<=offset){
+		if (bufferCount<=offset){
 			Serial1.print(">P->");
 			Serial1.print(id);
 			Serial1.print('@');
@@ -268,7 +279,7 @@ void Controller::parseBuffer(){
 			return;
 		}
 
-		char* program = new char[inputbuffer-offset];
+		char* program = new char[bufferCount-offset];
 
 		for (uint16_t i = 0; i < bufferCount-offset; i++){
 			program[i] = inputbuffer[i+offset];
@@ -320,10 +331,13 @@ void Controller::parseBuffer(){
 	
 	offset++;
 
-	char* command =new char[bufferCount-offset];
+	char* command =new char[bufferCount-offset+1];
 	//command[bufferCount-offset]='\0'; // this shouldnt be needed anymore
-	for (uint16_t i = 0; i < bufferCount-offset; i++){
+	for (uint16_t i = 0; i <= bufferCount-offset; i++){
 		command[i] = inputbuffer[i+offset];
+	}
+	if (command[bufferCount-offset]!='\0'){
+		Serial1.println("Oh fuck");
 	}
 // TIME sync feedback
 	Serial1.print(">C>");
