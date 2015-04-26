@@ -1,6 +1,8 @@
 #ifndef DH_CONTROLLEDPAN_H__
 #define DH_CONTROLLEDPAN_H__
 
+#define FUTUREOFFID 9824721
+
 #include "dh_controller.h"
 #include <dh_ax-12a.h>
 #include <ControlledLidar.h>
@@ -26,11 +28,11 @@ public:
 			case 'B':
 				if (command[1]=='X'){
 						if (runProgram){
-							controller->schedule(id,INITDELAY,0,false,1,Controller::newString("EXEC"),'S',false);
+							controller->schedule(id,INITDELAY,0,false,1,Controller::newString("EXEC"),'P',false);
 						}
-						controller->schedule(id,INITDELAY+stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("ASK"),'S',false);
-						controller->schedule(id,INITDELAY-40,0,false,1,Controller::newString("PUSH"),'S',false);
-						controller->schedule(id,INITDELAY+stepDuration-stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("SCAN"),'S',true);
+						controller->schedule(id,INITDELAY+stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("ASK"),'P',false);
+						controller->schedule(id,INITDELAY-40,0,false,1,Controller::newString("PUSH"),'P',false);
+						controller->schedule(id,INITDELAY+stepDuration-stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("SCAN"),'P',true);
 					break;
 				}
 				pointer = 6;
@@ -69,7 +71,7 @@ public:
 				}
 				 
 				
-				pos = min;
+				goal = min;
 
 
 				curAttempt = 0;
@@ -78,13 +80,12 @@ public:
 
 				position = 0;
 				readtime = 0;
-				goal = pos;
 
 				firstDelay = true;
 
-				controller->schedule(id+1,100,0,false,0,Controller::newString("MOVE 1"),'S',false);
+				controller->schedule(id+1,100,0,false,0,Controller::newString("MOVE 1"),'P',false);
 
-				controller->schedule(id,400,100,false,50,Controller::newString("D 1 BX"),'S',false);
+				controller->schedule(id,400,100,false,50,Controller::newString("D 1 BX"),'P',false);
 			
 			break;
 			case 'D':
@@ -140,7 +141,7 @@ public:
 					}
 					controller->kill(); // kill self
 					Serial1.println("Finished MOVE!!!");
-					controller->run(id,newCommand,'S',true);
+					controller->run(id,newCommand,'P',true);
 				}
 			break;
 			case 'E':
@@ -150,20 +151,37 @@ public:
 				{
 					pointer = 5;
 					uint8_t sID;
+					uint16_t val;
 					if (!Controller::parse_uint8(sID,pointer,command))
 					 	return;
 					if (command[pointer]=='\0'){
-						servo->move(sID,pos);
-
+						if (sID == 1)
+							val = goal;
+						if (sID ==2)
+							val = height;
+						servo->move(sID,goal);
 						servo->clear();
+						controller->schedule(FUTUREOFFID,2000,0,false,1,Controller::newString("OFF"),'P',false);
 						return;
 					}
 					pointer++;
-					uint16_t newPos;
-					if (!Controller::parse_uint16(newPos,pointer,command))
+		
+					if (!Controller::parse_uint16(val,pointer,command))
 					 	return;
+
+					 controller->kill(FUTUREOFFID);
 					 
-					servo->move(sID,newPos);
+					digitalWrite(3, HIGH);
+
+					if (sID == 1){
+						goal = val;
+						controller->schedule(id,100,0,false,1,Controller::newString("MOVE 1"),'P',false);
+					}
+					else{
+						height = val;
+						controller->schedule(id,100,0,false,1,Controller::newString("MOVE 2"),'P',false);
+					}
+
 				}	
 			break;
 			case 'A':
@@ -173,7 +191,7 @@ public:
 				// Serial1.print(time);
 				break;
 			case 'P':
-				servo->move(1,pos+2);
+				servo->move(1,goal+2);
 				break;
 			case 'S':
 			{
@@ -190,7 +208,7 @@ public:
 					servo->waitingForRead=false;
 				}
 				position = servo->readData;
-				goal = pos;
+
 				currentStep++;
 				if (currentStep==steps){
 					currentStep = 0;
@@ -198,21 +216,21 @@ public:
 				}
 				bool reverse =  curAttempt %2 == 1 ;
 				if (currentStep == 0){
-					pos = reverse?max:min;
+					goal = reverse?max:min;
 				}else if (currentStep == steps-1){
-					pos = reverse?min:max;
+					goal = reverse?min:max;
 				} else {
 					uint32_t middle = max-min;
 					middle = middle * currentStep;
 					middle = middle / (steps-1);
 					if (reverse){
-						pos = max - middle;
+						goal = max - middle;
 					}else{
-						pos = min + middle;
+						goal = min + middle;
 					}
 				}
 
-				servo->move(1,pos);
+				servo->move(1,goal);
 			}
 			break;
 			case 'O':
@@ -241,16 +259,22 @@ public:
 	
 	}
 	void endSchedule(char command[], uint32_t id){
-	if (command[0] == 'S')
-		digitalWrite(3, LOW);
+		if (command[0] == 'S')
+			digitalWrite(3, LOW);
+	}
+
+	uint16_t getHeight(){
+		return height;
+	}
+
+	uint16_t getGoal(){
+		return goal;
 	}
 	
 private:
 
 	uint8_t curAttempt;
 	uint8_t attempts;
-
-	uint16_t pos;
 
 	uint16_t min = 0;
 	uint16_t max = 0;
@@ -261,6 +285,7 @@ private:
 	uint16_t stepDuration = 0;
 
 	uint16_t goal;
+	uint16_t height;
 	uint16_t position;
 	uint32_t readtime;
 

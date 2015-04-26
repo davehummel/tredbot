@@ -12,8 +12,8 @@ void Controller::loadControlled(char id,Controlled* controlled){
 	}
 }
 
-Controlled* Controller::getControlled(char id){
-	
+Controller::Controlled* Controller::getControlled(char id){
+	return library[id-'A'];
 }
 
 void Controller::schedule(uint32_t id, uint16_t initialExecDelay,  uint16_t executeInterval,
@@ -21,6 +21,19 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,bool se
 
 	if (timedSize == 255)
 		return;
+
+		uint8_t controlledIndex;
+
+	if (controlled>='a' && controlled<='z')
+		controlledIndex=controlled-'a';
+	else if (controlled>='A' && controlled<='Z')
+		controlledIndex= controlled-'A';
+	else return;
+
+	if (!library[controlledIndex]){
+		return;
+	}
+
 	//Serial1.print(millis);
 	// Serial1.print(":Scheduling id:");
 	// Serial1.print(id);
@@ -41,13 +54,6 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,bool se
 	entry->id = id;
 	entry->command = command;
 
-	uint8_t controlledIndex;
-
-	if (controlled>='a' && controlled<='z')
-		controlledIndex=controlled-'a';
-	else if (controlled>='A' && controlled<='Z')
-		controlledIndex= controlled-'A';
-	else return;
 	
 	entry->controlled = library[controlledIndex];
 	entry->runCount = runCount;

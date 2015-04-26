@@ -10,6 +10,7 @@
  #include <ControlledLidar.h>
  #include <ControlledMotor.h>
  #include <ControlledI2CXL.h>
+ #include <ControlledNavigator.h>
 
 
  #include <i2c_t3.h>
@@ -23,9 +24,10 @@ void setup(){
 	controller.loadControlled('B', new ControlledLED());
 	controller.loadControlled('V',new ControlledVMeter());
 	controller.loadControlled('L',new ControlledLidar());
-	controller.loadControlled('E',new ControlledI2CXL());
-	controller.loadControlled('S', new ControlledPanTilt());
+	controller.loadControlled('S',new ControlledI2CXL());
+	controller.loadControlled('P', new ControlledPanTilt());
 	controller.loadControlled('M', new ControlledMotor());
+	controller.loadControlled('N', new ControlledNavigator());
 	controller.schedule(1,0,1000,false,0,Controller::newString("blink"),'B',false);
 
 	Serial1.println("Starting!");

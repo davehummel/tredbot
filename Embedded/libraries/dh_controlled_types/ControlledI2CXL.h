@@ -31,8 +31,8 @@ public:
 
 		scanInterval = scanInt;
 
-		controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SA"),'E',false);
-		controller->schedule(id+1,scanDelay+stereoDelay,false,scanInterval,scanCount,Controller::newString("SB"),'E',false);
+		controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SA"),'S',false);
+		controller->schedule(id+1,scanDelay+stereoDelay,false,scanInterval,scanCount,Controller::newString("SB"),'S',false);
 		scanningID = id;
 		scanning = true;
 	}
@@ -97,7 +97,7 @@ public:
 			    Wire.write(RangeCommand);                             //send range command 
 			    Wire.endTransmission();     
 			    if (command[1]=='A') // Only use the first scan as the trigger for the read task
-			    	controller->schedule(id+2,scanInterval-1,0,false,1,Controller::newString("READ"),'E',!mute);
+			    	controller->schedule(id+2,scanInterval-1,0,false,1,Controller::newString("READ"),'S',!mute);
 			break;
 			case 'R':
 
