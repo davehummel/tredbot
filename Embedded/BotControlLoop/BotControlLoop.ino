@@ -1,6 +1,8 @@
 
+
  #include <i2c_t3.h>
  #include <Arduino.h>
+ #include "quadfit.h"
  #include <ControlledLED.h>
  #include <ControlledVMeter.h>
  #include <dh_ax-12a.h>
@@ -10,27 +12,32 @@
  #include <ControlledLidar.h>
  #include <ControlledMotor.h>
  #include <ControlledI2CXL.h>
+ #include <ControlledBN055.h>
  #include <ControlledNavigator.h>
-
-
- #include <i2c_t3.h>
 
 Controller controller;
 
 void setup(){
-
+	Serial.begin(115200);
 	Serial1.begin(460800);
 
+
 	controller.loadControlled('B', new ControlledLED());
-	controller.loadControlled('V',new ControlledVMeter());
-	controller.loadControlled('L',new ControlledLidar());
-	controller.loadControlled('S',new ControlledI2CXL());
+	controller.loadControlled('G', new ControlledBN055());
+	controller.loadControlled('V', new ControlledVMeter());
+	controller.loadControlled('L', new ControlledLidar());
+	controller.loadControlled('S', new ControlledI2CXL());
 	controller.loadControlled('P', new ControlledPanTilt());
 	controller.loadControlled('M', new ControlledMotor());
 	controller.loadControlled('N', new ControlledNavigator());
-	controller.schedule(1,0,1000,false,0,Controller::newString("blink"),'B',false);
+	controller.schedule(1,0,1000,false,0,Controller::newString("blink"),'B',true);
+        controller.schedule(2,200,0,false,1,Controller::newString("ZERO 20 20"),'N',true);
+
 
 	Serial1.println("Starting!");
+	Serial.println("Starting!");
+
+		//controller.schedule(250,100/4,100/4,false,100,Controller::newString("SCAN"),'L',true);
 }
 
 
@@ -38,9 +45,8 @@ void loop(){
         if (Serial1.available()){
           controller.processInput(&Serial1);
         }
-
-
         controller.execute(&Serial1);
         
 }
+
 

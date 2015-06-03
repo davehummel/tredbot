@@ -2,12 +2,14 @@
 #include <stdint.h>
 #include "Stream.h"
 #include <Arduino.h>
+#include <ControlledMotor.h>
 
 void Controller::loadControlled(char id,Controlled* controlled){
 	if (id>'Z' || id < 'A')
 		return;
 	library[id-'A'] = controlled;
 	if (controlled){
+		controlled->controller = this;
 		controlled->begin();
 	}
 }
@@ -18,6 +20,7 @@ Controller::Controlled* Controller::getControlled(char id){
 
 void Controller::schedule(uint32_t id, uint16_t initialExecDelay,  uint16_t executeInterval,
 bool additiveInterval, uint32_t runCount, char command[],char controlled,bool serializeOnComplete){
+
 
 	if (timedSize == 255)
 		return;
@@ -34,21 +37,22 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,bool se
 		return;
 	}
 
-	//Serial1.print(millis);
-	// Serial1.print(":Scheduling id:");
-	// Serial1.print(id);
-	// Serial1.print(" initExecDelay:");
-	// Serial1.print(initialExecDelay);
-	// Serial1.print(" execInterval:");
-	// Serial1.print(executeInterval);
-	// Serial1.print(" runCount:");
-	// Serial1.print(runCount);
-	// Serial1.print(" command:");
-	// Serial1.print(command);
-	// Serial1.print(" controlled:");
-	// Serial1.print(controlled);
-	// Serial1.print(" serONComp:");
-	// Serial1.println(serializeOnComplete);
+	// Serial.print(millis);
+	// Serial.print(":Scheduling id:");
+	// Serial.print(id);
+	// Serial.print(" initExecDelay:");
+	// Serial.print(initialExecDelay);
+	// Serial.print(" execInterval:");
+	// Serial.print(executeInterval);
+	// Serial.print(" runCount:");
+	// Serial.print(runCount);
+	// Serial.print(" command:");
+	// Serial.print(command);
+	// Serial.print(" controlled:");
+	// Serial.print(controlled);
+	// Serial.print(" serONComp:");
+	// Serial.println(serializeOnComplete);
+	// Serial.flush();
 
 	Entry* entry = new Entry();
 	entry->id = id;
@@ -59,9 +63,6 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,bool se
 	entry->runCount = runCount;
 	entry->executeInterval = executeInterval;
 	entry->serializeOnComplete = serializeOnComplete;
-
-	entry->controlled->controller = this;
-
 	entry->controlled->startSchedule(command,id);
 
 	entry->nextExecuteTime = (uint32_t)millis;
@@ -110,7 +111,6 @@ void Controller::runProgram(uint8_t id){
 }
 
 void Controller::run(uint32_t id, char command[],uint8_t controlled,bool serializeOnComplete){
-	
 	if (immediateSize == 255)
 		return;
 
@@ -125,9 +125,14 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,bool seriali
 	entry->id = id;
 	entry->command = command;
 	entry->controlled = library[controlled];
-	entry->serializeOnComplete = serializeOnComplete;
+	if (!entry->controlled){
+		Serial1.print("Error, unknowable controllable referenced as ");
+		Serial1.println((char)controlled);
+		delete entry;
+		return;
+	}
 
-	entry->controlled->controller = this;
+	entry->serializeOnComplete = serializeOnComplete;
 
 	immediate[immediateSize] = entry;
 	immediateSize++;
@@ -137,7 +142,7 @@ void Controller::execute(Stream* output){
 	// First check immediate run queue
 
 	for (int i = 0; i < immediateSize; i ++){
-			immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command);
+			immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command,immediate[i]->serializeOnComplete);
 			if (immediate[i]->serializeOnComplete){
 				immediate[i]->controlled->serialize(output,immediate[i]->id,immediate[i]->command);
 			}
@@ -167,6 +172,7 @@ void Controller::execute(Stream* output){
 	uint8_t count = timedSize;
 
 	timedSize = 0;
+	remainingTimedSize = count;
 
 	for (int i =0 ; i < count; i ++){
 
@@ -191,11 +197,11 @@ void Controller::execute(Stream* output){
 			if (iter->executeInterval == 0 ){
 				iter->runCount = 1;
 			}
-				
-			iter->controlled->execute((uint32_t)millis,iter->id,iter->command);
+			iter->controlled->execute((uint32_t)millis,iter->id,iter->command,iter->serializeOnComplete);
 			if (iter->serializeOnComplete){
 				iter->controlled->serialize(output,iter->id,iter->command);
 			}
+			remainingTimedSize -- ;
 			
 			if (iter->runCount>0){
 				iter->runCount--;
@@ -325,6 +331,7 @@ void Controller::parseBuffer(){
 	if (inputbuffer[0]!='C'||inputbuffer[1]!=' '||inputbuffer[3]!=' '){
 		return;
 	}
+
 	char commandID;
 	commandID = inputbuffer[2];
 	//todo parse id;
@@ -373,20 +380,36 @@ void Controller::addTimedEntry(Entry* entry){
 	timedSize++;
 }
 
-
-void Controller::kill(uint32_t id){
-	for (int i = 0 ; i < timedSize ; i++){
+// ID = 0 kills all running controllables
+bool Controller::kill(uint32_t id){
+	bool success = false;
+	// for (int i = remainingTimedSize  ; i < remainingTimedSize + timedSize ; i++){
+	for (int i = 0  ; i < remainingTimedSize + timedSize ; i++){
 		Entry* entry = isANext?timedA[i]:timedB[i];
-		if (entry->id == id){
+		if (!entry)
+			break;
+		if (entry->id == id || id == 0){
 			entry->killed = true;
+			success = true;
 		} 
 	}
+	for (int i = 0 ; i < remainingTimedSize + timedSize; i++){
+		Entry* entry = !isANext?timedA[i]:timedB[i];
+		if (!entry)
+			break;
+		if (entry->id == id || id == 0){
+			entry->killed = true;
+			success = true;
+		} 
+	}
+	return success;
 }
 
 void Controller::kill(){
 	if (currentlyRunning!=0)
 		currentlyRunning->killed =true;
 }
+
 
 bool Controller::parse_uint8(uint8_t &val, uint16_t &pointer,char* text){
 	val = 0;

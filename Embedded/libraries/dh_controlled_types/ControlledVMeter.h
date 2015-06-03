@@ -144,7 +144,7 @@ public:
 			started = true;
 		}
 	}
-	void execute(uint32_t time,uint32_t id,char command[]){
+	void execute(uint32_t time,uint32_t id,char command[], bool serializeOnComplete){
 		uint16_t pointer = 0;
 		uint16_t scanDelay,scanInt;
 		uint32_t scanCount;

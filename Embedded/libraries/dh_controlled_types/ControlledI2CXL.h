@@ -21,18 +21,18 @@ public:
 
 	void begin(void){
 		Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
+		scanning = false;
 	}
 
-	void startScan(uint32_t id, uint16_t scanDelay, uint16_t scanInt,uint8_t stereoDelay, uint32_t scanCount){
+	void startScan(uint32_t id, uint16_t scanDelay, uint16_t scanInt,uint8_t stereoDelay, uint32_t scanCount , bool muting){
+		mute = muting;
 
 		if (scanning){
 			stopScan();
 		}
-
 		scanInterval = scanInt;
-
 		controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SA"),'S',false);
-		controller->schedule(id+1,scanDelay+stereoDelay,false,scanInterval,scanCount,Controller::newString("SB"),'S',false);
+		controller->schedule(id+1,scanDelay+stereoDelay,scanInterval,false,scanCount,Controller::newString("SB"),'S',false);
 		scanningID = id;
 		scanning = true;
 	}
@@ -45,9 +45,7 @@ public:
 		}
 	}
 
-	void execute(uint32_t time,uint32_t id,char* command){
-		// Serial1.print(time);
-		// Serial1.println(command);
+	void execute(uint32_t time,uint32_t id,char* command, bool serializeOnComplete){
 		uint16_t scanInt;
 		uint32_t scanCount;
 		uint16_t scanDelay;
@@ -84,7 +82,7 @@ public:
 			else 
 				mute = false;
 
-			startScan(id,scanDelay,scanInt,stereoDel,scanCount);
+			startScan(id,scanDelay,scanInt,stereoDel,scanCount, mute);
 			
 			break;
 			case 'E':
@@ -100,7 +98,14 @@ public:
 			    	controller->schedule(id+2,scanInterval-1,0,false,1,Controller::newString("READ"),'S',!mute);
 			break;
 			case 'R':
-
+		        Wire.requestFrom(SensorAddress2, byte(2));
+			        if(Wire.available() >= 2){                            //Sensor responded with the two bytes 
+			            byte HighByte = Wire.read();                        //Read the high byte back 
+			            byte LowByte = Wire.read();                        //Read the low byte back 
+			            readingB = word(HighByte, LowByte)+B_OFFSET;         //Make a 16-bit word out of the two bytes for the range  
+			         }else {
+			        	readingB = 0;
+			         }    
 				Wire.requestFrom(SensorAddress1, byte(2));
 		        if(Wire.available() >= 2){                            //Sensor responded with the two bytes 
 		            byte HighByte = Wire.read();                        //Read the high byte back 
@@ -110,26 +115,19 @@ public:
 		        	readingA = 0;
 		         }  
 
-		        Wire.requestFrom(SensorAddress2, byte(2));
-		        if(Wire.available() >= 2){                            //Sensor responded with the two bytes 
-		            byte HighByte = Wire.read();                        //Read the high byte back 
-		            byte LowByte = Wire.read();                        //Read the low byte back 
-		            readingB = word(HighByte, LowByte)+B_OFFSET;         //Make a 16-bit word out of the two bytes for the range  
-		         }else {
-		        	readingB = 0;
-		         }    
+	
 			break;
 		}
 	}
 
 	void serialize(Stream* output, uint32_t id, char command[]){
 		if (command[0]=='R'){
-			Serial1.print('<');
-			Serial1.print(id);
-			Serial1.print(':');
-				Serial1.print(readingA);
-				Serial1.print('|');
-				Serial1.println(readingB);
+			output->print('<');
+			output->print(id);
+			output->print(':');
+			output->print(readingA);
+			output->print('|');
+			output->println(readingB);
 		}
 	}
 	void startSchedule(char command[], uint32_t id){

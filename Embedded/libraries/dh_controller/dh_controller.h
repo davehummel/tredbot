@@ -13,7 +13,7 @@ public:
 	public:
 
 		virtual void begin(void)=0;
-		virtual void execute(uint32_t time,uint32_t id,char command[])=0;
+		virtual void execute(uint32_t time,uint32_t id,char command[],bool serializeOnComplete)=0;
 		virtual void serialize(Stream* output,uint32_t id,char command[])=0;
 		virtual void startSchedule(char command[],uint32_t id)=0;
 		virtual void endSchedule(char command[], uint32_t id)=0;
@@ -42,7 +42,7 @@ public:
 	
 	void execute(Stream* output);
 
-	void kill(uint32_t id);
+	bool kill(uint32_t id);
 
 	void kill(void);
 	
@@ -86,6 +86,8 @@ private:
 
 	uint8_t immediateSize = 0;
 	uint8_t timedSize = 0;
+
+	uint8_t remainingTimedSize = 0;
 	
 	char inputbuffer[512];
 	uint16_t bufferCount=0;

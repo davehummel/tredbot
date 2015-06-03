@@ -3,6 +3,8 @@ void setup() {
   Serial3.begin(400000); // change this to 1000000 if you havent changed default baud
   Serial1.println("Hit Enter to send a command");
   pinMode(13,OUTPUT);
+  pinMode(3,OUTPUT);
+  digitalWrite(3,HIGH);
 }
 
 void loop() {

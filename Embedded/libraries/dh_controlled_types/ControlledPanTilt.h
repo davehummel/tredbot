@@ -21,7 +21,7 @@ public:
 		digitalWrite(3, LOW);
 	}
 
-	void execute(uint32_t time,uint32_t id,char command[]){
+	void execute(uint32_t time,uint32_t id,char command[], bool serializeOnComplete){
 		uint16_t pointer = 0;
 
 		switch (command[0]){
@@ -30,6 +30,8 @@ public:
 						if (runProgram){
 							controller->schedule(id,INITDELAY,0,false,1,Controller::newString("EXEC"),'P',false);
 						}
+						Serial.print("Kill was ");
+						Serial.println(controller->kill(FUTUREOFFID));
 						controller->schedule(id,INITDELAY+stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("ASK"),'P',false);
 						controller->schedule(id,INITDELAY-40,0,false,1,Controller::newString("PUSH"),'P',false);
 						controller->schedule(id,INITDELAY+stepDuration-stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("SCAN"),'P',true);
@@ -188,7 +190,7 @@ public:
 				servo->read2Bytes(1,36);
 				readtime=time;
 				// Serial1.print('A');
-				// Serial1.print(time);
+				// Serial1.println(time);
 				break;
 			case 'P':
 				servo->move(1,goal+2);
@@ -243,15 +245,15 @@ public:
 	}
 	void serialize(Stream* output, uint32_t id, char command[]){
 		if (command[0] == 'S'){
-			Serial1.print('<');
-			Serial1.print(id);
-			Serial1.print(':');
-				Serial1.print('G');
-				Serial1.print(goal);
-				Serial1.print("A");
-				Serial1.print(position);
-				Serial1.print('@');
-				Serial1.println(readtime);
+			output->print('<');
+			output->print(id);
+			output->print('@');
+			output->print(readtime);
+				output->print('G');
+				output->print(goal);
+				output->print("A");
+				output->println(position);
+	
 		}
 
 	}
@@ -259,8 +261,8 @@ public:
 	
 	}
 	void endSchedule(char command[], uint32_t id){
-		if (command[0] == 'S')
-			digitalWrite(3, LOW);
+		// if (command[0] == 'S')
+		// 	digitalWrite(3, LOW);
 	}
 
 	uint16_t getHeight(){

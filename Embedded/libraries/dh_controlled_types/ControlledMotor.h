@@ -14,35 +14,35 @@ public:
 			motor = new qik2s12v10(&Serial2);
 		}
 	}
-	void execute(uint32_t time,uint32_t id,char command[]){
+
+	void execute(uint32_t time,uint32_t id,char command[], bool serializeOnComplete){
 		uint16_t pointer = 0;
 		switch (command[0]){
 			case 'B':
 			{
 				pointer=6;
 
-				uint8_t m0,m1;
 
-				if (!Controller::parse_uint8(m0,pointer,command)){
+				uint8_t m0break,m1break;
+
+				if (!Controller::parse_uint8(m0break,pointer,command)){
 					return;
 				}
 
 				pointer++;
 		
-				if (!Controller::parse_uint8(m1,pointer,command)){
+				if (!Controller::parse_uint8(m1break,pointer,command)){
 					return;
 				}
 
-				motor->breaks(m0,m1);
-
+				motor->breaks(m0break,m1break);
+				m0Speed=m1Speed=0;
 				break;
 			}
 			case 'M':
 			{
 
 				pointer = 5;
-				uint8_t m0,m1;
-				bool m0F,m1F;
 				
 				if (command[pointer]=='R')
 					m0F = false;
@@ -51,7 +51,7 @@ public:
 
 				pointer++;
 
-				if (!Controller::parse_uint8(m0,pointer,command)){
+				if (!Controller::parse_uint8(m0Speed,pointer,command)){
 					return;
 				}
 
@@ -64,10 +64,10 @@ public:
 
 				pointer++;
 
-				if (!Controller::parse_uint8(m1,pointer,command)){
+				if (!Controller::parse_uint8(m1Speed,pointer,command)){
 					return;
 				}
-				motor->move(m0F,m0,m1F,m1);
+				updateMotor();
 
 				break;
 			}
@@ -195,8 +195,19 @@ public:
 		
 	}
 
+	void updateMotor(){
+		motor->move(m0F,m0Speed,m1F,m1Speed);
+	}
+
+	void stopMotor(){
+		motor->breaks(255,255);
+		m0Speed=m1Speed=0;
+	}
+
 	uint8_t m0Current,m1Current;
 	uint8_t m0Speed,m1Speed;
+	bool m0F,m1F;
+
 	uint8_t error;
 
 	uint8_t readConfigNum,readConfigVal;
