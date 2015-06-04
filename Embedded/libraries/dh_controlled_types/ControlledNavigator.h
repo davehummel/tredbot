@@ -141,10 +141,38 @@ public:
 				controller->schedule(LIA_ID,1,sampleRate,false,zeroSampleCount,Controller::newString("LIA"),'G',true);
 				break;
 			}
-			// case 'T':{ // TURN
+			case 'T':{ // TURN
+				pointer = 5;
+				if (!Controller::parse_int16(targetDir,pointer,command)){
+					return;
+				}
 
-			// 	break;
-			// }
+				pointer++;
+
+				if (!Controller::parse_float(turnFactor,pointer,command)){
+					return;
+				}
+
+				pointer++;
+
+				if (!Controller::parse_int16(minTurnThrottle,pointer,command)){
+					return;
+				}
+
+				if (!isMoving){
+					targetDist = 0;
+					initThrottle = 0;
+					maxAllowedRangeSamples = 2000/baseInterval;
+					start();
+				}else{
+					if (estDir!=-9999){
+						targetDir = estDir+targetDir;
+					}
+					if (maxAllowedRangeSamples - cycleCount< 2000/baseInterval)
+						maxAllowedRangeSamples = cyleCount + 2000/baseInterval;
+				}
+				break;
+			}
 			case 'M':{ // MOVE
 				if (command[4] == '\0'){
 					moveEval(time);
@@ -265,11 +293,14 @@ public:
 
 	uint16_t targetSpeed;
 	uint16_t targetDist;
+	int16_t targetDir;
+
 	uint8_t initThrottle; 
 	uint8_t currentThrottle;
 	uint16_t nearestObj;
 	double estSpeed;
 	double estDist;
+	int16_t estDir;
 	double lia_bias[3] = {0.,0.,0.};
 	bool isMoving = false;
 
@@ -350,7 +381,7 @@ private:
 	
 
 		calcSpeed();
-		//calcDirection();
+		calcDirection();
 		motor->updateMotor();
 
 
@@ -380,15 +411,17 @@ private:
 
 	}
 
+	void calcDirection(){
+		if (cycleCount%gyroMult==0) {
+			processGyro();
+		}
+	}
+
 
 	void calcSpeed(){
 		// TODO try to collect regular data
 		if (cycleCount%accelMult==0){
 			processAccel();
-		}
-
-		if (cycleCount%gyroMult==0) {
-			processGyro();
 		}
 
 		if (cycleCount%echoMult==0){
@@ -463,7 +496,25 @@ private:
 	}
 
 	void processGyro(){
-		
+		bool firstUpdate = estDir = -9999;
+		estDir = gyro->heading[0];
+		if (firstUpdate){
+			targetDir = estDir + targetDir;
+		}
+
+		int16_t delta = solveDirDelta(estDir,targetDir);
+		solveMotorDifferential(delta,motorA,motorB,minTurnThrottle,turnFactor);
+
+	}
+
+	int16_t solveDirDelta(int16_t source, int16_t target){
+		uint16_t delta = target%360 - source%360;
+		if (delta > 180){
+			delta =  delta - 360;
+		}else if (delta < -180){
+			delta = 360 + delta;
+		}
+		return delta;
 	}
 
 	void calcConf(double &rangeConf,double min,double max, QuadFit<double> &qfit){
@@ -817,6 +868,7 @@ private:
 	}
 
 	void start(){
+		estDir = -9999;
 		cycleCount = 0;
 		rangeSampleCount = 0;
 		isMoving = true;
