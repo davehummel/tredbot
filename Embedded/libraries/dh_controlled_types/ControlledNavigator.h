@@ -96,6 +96,12 @@ public:
 		qfitA.processXData();
 		qfitB.processXData();
 		qfitL.processXData();
+
+		if (prevEstError)
+			delete[] prevEstError;
+
+		prevEstError = new double[rangeEvalMult];
+		prevEsts = new double[rangeEvalMult];
 	}
 
 	void begin(void){
@@ -309,10 +315,9 @@ private:
 	uint16_t maxAllowedRangeSamples ;
 	uint32_t cycleCount;
 	double prevEstSpeed;
-	double prevEstDist;
+	double* prevEsts;
 
-	double ALTprevEstSpeed;
-	double ALTprevEstDist;
+	double* prevEstError;
 
 	double prevAccelYData;
 
