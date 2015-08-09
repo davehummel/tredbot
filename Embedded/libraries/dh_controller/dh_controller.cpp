@@ -498,6 +498,63 @@ bool Controller::parse_int16(int16_t &val, uint16_t &pointer,char* text){
 
 }
 
+bool Controller::parse_double(double &val, uint16_t &pointer, char* text){
+	val = 0;
+	Serial.println(val);
+	bool negative = false;
+	if (text[pointer] == '-'){
+		negative = true;
+		pointer++;
+	}
+
+	uint8_t valChars;
+	uint8_t decimalLoc=255;
+
+	for (valChars = 0; valChars <= 20; valChars++){
+		char c = text[pointer + valChars];
+		if (c == '.'){
+			if (decimalLoc != 255)
+				return false;
+			decimalLoc = valChars;
+			continue;
+		}
+		if (c<'0' || c>'9')
+			break;
+	}
+
+	Serial.println(valChars);
+
+	if (valChars == 0 || valChars == 20 || (valChars == 1 && decimalLoc == 0))
+		return false;
+
+	if (decimalLoc == 255)
+		decimalLoc = valChars;
+
+	Serial.println(decimalLoc);
+
+	double multiplier = negative ? -1 : 1;
+
+	for (int i = decimalLoc - 1; i >= 0; i--){
+		val += multiplier*(text[pointer + i] - '0');
+		multiplier *= 10;
+		Serial.println(val);
+	}
+
+
+
+	multiplier = negative ? -.1 : .1;
+
+	for (int i = decimalLoc + 1; i < valChars; i++){
+		val += multiplier*(text[pointer + i] - '0');
+		multiplier *= .1;
+	}
+
+	pointer += valChars;
+
+	return true;
+
+}
+
 bool Controller::parse_uint32(uint32_t &val, uint16_t &pointer,char* text){
 	val = 0;
 

@@ -1,9 +1,6 @@
 #ifndef DH_CONTROLLEDLED_H__
 #define DH_CONTROLLEDLED_H__
-#include <sstream> 
 #include "dh_controller.h"
-#include <stdint.h>
-using namespace std;
 class ControlledLED: public Controller::Controlled{
 
 public:

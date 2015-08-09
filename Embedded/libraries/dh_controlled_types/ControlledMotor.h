@@ -172,10 +172,12 @@ public:
 			return;
 		}
 		if (command[0] == 'E'){
-			output->print('<');
-			output->print(id);
-			output->print("Error#");
-			output->print(error);
+			if (error != 0){
+				output->print('<');
+				output->print(id);
+				output->print("Error#");
+				output->println(error);
+			}
 			return;
 		}
 		if (command[0] =='R'){
@@ -184,7 +186,7 @@ public:
 			output->print("Config#");
 			output->print(readConfigNum);
 			output->print('=');
-			output->print(readConfigVal);
+			output->println(readConfigVal);
 			return;
 		}
 	}
@@ -195,8 +197,117 @@ public:
 		
 	}
 
+	void setMotor(int16_t basethrottle, int16_t differential){
+		if (basethrottle > 255)
+			basethrottle = 255;
+		else if (basethrottle < -255)
+			basethrottle = 255;
+
+		if (differential>512)
+			differential = 512;
+		else if (differential < -512)
+			differential = -512;
+
+
+		int16_t a, b;
+		if (differential == 1){
+			a = basethrottle - 1;
+			b = basethrottle;
+		}
+		else if (differential == -1){
+			a = basethrottle;
+			b = basethrottle - 1;
+		}
+		else {
+			a = basethrottle - differential / 2;
+			b = basethrottle + differential / 2;
+		}
+
+		if (a > 255){
+			b = b + 255 - a;
+			a = 255;
+		}
+		else if (b > 255) {
+			a = a + 255 - b;
+			b = 255;
+		}
+		else if (a < -255){
+			b = b - a - 255;
+			a = -255;
+		}
+		else if (b < -255){
+			a = a - b - 255;
+			b = -255;
+		}
+
+		if (a > 255)
+			a = 255;
+		else if (a < -255)
+			a = -255;
+		if (b > 255)
+			b = 255;
+		else if (b < -255)
+			b = -255;
+
+		if (a < 0){
+			m0Speed = -a;
+			m0F = false; 
+		}
+		else {
+			m0Speed = a; 
+			m0F = true;
+		}
+
+		if (b < 0){
+			m1Speed = -b;
+			m1F = false;
+		}
+		else {
+			m1Speed = b;
+			m1F = true;
+		}
+	}
+
+	void setMotorDirect(int16_t m0, int16_t m1){
+		if (m0 > 255)
+			m0 = 255;
+		else if (m0 < -255)
+			m0 = -255;
+
+		if (m1 > 255)
+			m1 = 255;
+		else if (m1 < -255)
+			m1 = -255;
+
+		if (m0 < 0){
+			m0Speed = m0*-1;
+			m0F = false;
+		}
+		else{
+			m0Speed = m0;
+			m0F = true;
+		}
+
+		if (m1 < 0){
+			m1Speed = m1*-1;
+			m1F = false; 
+		}
+		else{
+			m1Speed = m1;
+			m1F = true;
+		}
+	}
+
 	void updateMotor(){
 		motor->move(m0F,m0Speed,m1F,m1Speed);
+		Serial.print("Motor:");
+		Serial.print(m0F);
+		Serial.print(",");
+		Serial.print(m0Speed);
+		Serial.print(",");
+		Serial.print(m1F);
+		Serial.print(",");
+		Serial.println(m1Speed);
 	}
 
 	void stopMotor(){

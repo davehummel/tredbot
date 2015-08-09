@@ -10,6 +10,9 @@ public:
 	qik2s12v10(Stream* source){
 		stream = source;
 		Serial1.println("Motor Started!");
+		//setPWMParm(0);
+		//setMotorAccel(0, 0);
+		isHalfRange = true;
 	}
 
 
@@ -26,7 +29,11 @@ public:
 		stream->flush();
 	}
 
-	void move(bool m0Forward, uint8_t m0Speed, uint8_t m1Forward, uint m1Speed){
+	void move(bool m0Forward, uint8_t m0Speed, bool m1Forward, uint8_t m1Speed){
+		if (isHalfRange){
+			m0Speed /= 2;
+			m1Speed /= 2;
+		}
 
 		uint8_t base;
 		if (m0Forward)
@@ -189,6 +196,7 @@ public:
 			}
 		}
 		Serial1.println("Failed to get error response!");
+		Serial.println("Failed to get error response!");
 		return 0;
 	}
 
@@ -210,6 +218,7 @@ public:
 
 
 private:
+	bool isHalfRange = false;
 
 	uint8_t writeConfig(uint8_t configID, uint8_t value){
 		Serial1.print("Config ");

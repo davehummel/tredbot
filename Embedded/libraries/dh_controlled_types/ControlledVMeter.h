@@ -88,8 +88,6 @@
     #define INA219_REG_CALIBRATION                 (0x05)
 /*=========================================================================*/
 
-
-using namespace std;
 class ControlledVMeter: public Controller::Controlled{
 public:
 

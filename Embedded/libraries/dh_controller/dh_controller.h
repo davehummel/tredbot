@@ -56,6 +56,8 @@ public:
 
 	static bool parse_uint32(uint32_t &val,uint16_t &pointer,char* text);
 
+	static bool parse_double(double &val, uint16_t &pointer, char* text);
+
 	static char* newString(const char original[]);
 	
 	Controller::Controlled* library[26];

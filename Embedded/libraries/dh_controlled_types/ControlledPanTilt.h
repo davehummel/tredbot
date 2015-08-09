@@ -30,8 +30,7 @@ public:
 						if (runProgram){
 							controller->schedule(id,INITDELAY,0,false,1,Controller::newString("EXEC"),'P',false);
 						}
-						Serial.print("Kill was ");
-						Serial.println(controller->kill(FUTUREOFFID));
+						controller->kill(FUTUREOFFID);
 						controller->schedule(id,INITDELAY+stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("ASK"),'P',false);
 						controller->schedule(id,INITDELAY-40,0,false,1,Controller::newString("PUSH"),'P',false);
 						controller->schedule(id,INITDELAY+stepDuration-stepDuration/4,stepDuration,false,steps*attempts,Controller::newString("SCAN"),'P',true);
@@ -161,7 +160,7 @@ public:
 							val = goal;
 						if (sID ==2)
 							val = height;
-						servo->move(sID,goal);
+						servo->move(sID,val);
 						servo->clear();
 						controller->schedule(FUTUREOFFID,2000,0,false,1,Controller::newString("OFF"),'P',false);
 						return;
@@ -261,8 +260,8 @@ public:
 	
 	}
 	void endSchedule(char command[], uint32_t id){
-		// if (command[0] == 'S')
-		// 	digitalWrite(3, LOW);
+		 if (command[0] == 'S')
+		 	controller->schedule(FUTUREOFFID,500,0,false,1,Controller::newString("OFF"),'P',false);
 	}
 
 	uint16_t getHeight(){
