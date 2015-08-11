@@ -152,12 +152,15 @@ void Controller::execute(Stream* output){
 			delete immediate[i];
 
 	}
+	if (output)
 	immediateSize = 0;
 
 	uint32_t offset = (uint32_t)millis - lastProcessedMSTime;
 
 	if (offset == 0)
 		return;
+
+	//Serial1.flush();
 
 	if (offset > 1){
 		Serial1.print('#');
@@ -234,7 +237,6 @@ void Controller::execute(Stream* output){
 void Controller::processInput(Stream* stream){
 	while (stream->available()){
 		char next = stream->read();
-		Serial1.print(next);
 		if (next == '\n'||next == '\r'){
 			inputbuffer[bufferCount]='\0';
 			parseBuffer();
@@ -500,7 +502,6 @@ bool Controller::parse_int16(int16_t &val, uint16_t &pointer,char* text){
 
 bool Controller::parse_double(double &val, uint16_t &pointer, char* text){
 	val = 0;
-	Serial.println(val);
 	bool negative = false;
 	if (text[pointer] == '-'){
 		negative = true;
@@ -522,22 +523,17 @@ bool Controller::parse_double(double &val, uint16_t &pointer, char* text){
 			break;
 	}
 
-	Serial.println(valChars);
-
 	if (valChars == 0 || valChars == 20 || (valChars == 1 && decimalLoc == 0))
 		return false;
 
 	if (decimalLoc == 255)
 		decimalLoc = valChars;
 
-	Serial.println(decimalLoc);
-
 	double multiplier = negative ? -1 : 1;
 
 	for (int i = decimalLoc - 1; i >= 0; i--){
 		val += multiplier*(text[pointer + i] - '0');
 		multiplier *= 10;
-		Serial.println(val);
 	}
 
 
