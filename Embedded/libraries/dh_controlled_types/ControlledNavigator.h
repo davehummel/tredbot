@@ -857,6 +857,7 @@ public:
 			}
 			case 'M':{ // MOVE
 				if (command[1] == '\0'){
+					moveEval(time);
 					bool abort = navEval(time);
 					if (abort){
 						stop();
@@ -888,25 +889,34 @@ public:
 					break;
 				}
 				pointer = 5;
-				if (!Controller::parse_uint16(targetSpeed,pointer,command)){
-					return;
+				uint16_t finalTime = 0;
+				while (true){
+					int16_t throttle;
+					uint16_t timeOffset;
+					if (!Controller::parse_int16(throttle, pointer, command)){
+						return;
+					}
+					pointer++;
+					if (command[pointer] == 'B'){
+						throttle = -256;
+					} else 	if (!Controller::parse_uint16(timeOffset, pointer, command)){
+						return;
+					}
+					if (timeOffset == 0){
+						currentOffset = 0;
+						offsetStartTime = time;
+						finalTime = 0;
+					}
+					else if (timeOffset > finalTime){
+						finalTime = timeOffset;
+					}
+					if (throttle > 255)
+						throttle = 255;
+					if (throttle < -256) // perserve break value
+						throttle = -255
+					addMovePoint(throttle, timeOffset);
 				}
 
-				pointer++;
-
-				if (!Controller::parse_uint16(targetDist,pointer,command)){
-					return;
-				}
-
-				pointer++;
-
-				uint32_t maxMoveTime;
-
-				if (!Controller::parse_uint32(maxMoveTime,pointer,command)){
-					return;
-				}
-
-				maxAllowedTime = maxMoveTime+time;
 
 				targetHeading = 0;
 
@@ -914,6 +924,7 @@ public:
 					stop();
 				}
 
+				maxAllowedTime = offsetStartTime+finalTime;
 
 				if (panTilt->getHeight() != 512)
 					controller->run(SERVO_ID,Controller::newString("MOVE 2 512"),'P',false);
@@ -922,7 +933,6 @@ public:
 
 
 				start(true);
-				currentThrottle = targetSpeed;
 				headingResponse->turn();
 				controller->schedule(id, 20, 0, false, 1, Controller::newString("HEADING"), 'G', true);
 				controller->schedule(NAV_ID, baseInterval * gyroMult * 2, baseInterval * gyroMult, false, 0, Controller::newString("M"), 'N', true);
@@ -1125,6 +1135,7 @@ private:
 
 		if (nearestObj<=stopDist && nearestObj > 0){
 			printBlockUpdate = true;
+			currentThrottle = 0;
 			stop();
 			return;
 		}

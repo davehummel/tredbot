@@ -14,7 +14,7 @@
  #include <ControlledMotor.h>
  #include <ControlledI2CXL.h>
  #include <ControlledBN055.h>
- #include <ControlledNavigator.h>
+ //#include <ControlledNavigator.h>
 
 
 
@@ -26,18 +26,18 @@ void setup(){
 	delay(500);
 	
 	controller.loadControlled('B', new ControlledLED());
-	controller.loadControlled('G', new ControlledBN055());
-	controller.loadControlled('V', new ControlledVMeter());
-	controller.loadControlled('L', new ControlledLidar());
-	controller.loadControlled('S', new ControlledI2CXL());
-	controller.loadControlled('P', new ControlledPanTilt());
-	controller.loadControlled('M', new ControlledMotor());
-	controller.loadControlled('N', new ControlledNavigator());
+	//controller.loadControlled('G', new ControlledBN055());
+	//controller.loadControlled('V', new ControlledVMeter());
+	//controller.loadControlled('L', new ControlledLidar());
+	//controller.loadControlled('S', new ControlledI2CXL());
+	//controller.loadControlled('P', new ControlledPanTilt());
+	//controller.loadControlled('M', new ControlledMotor());
+	//controller.loadControlled('N', new ControlledNavigator());
 	controller.schedule(1,0,1000,false,0,Controller::newString("blink"),'B',true);
 	// Schedule a task to keep reading the error value from the motor
-	controller.schedule(3, 500, 200, false, 0, Controller::newString("ERROR"), 'M', true);
+	//controller.schedule(3, 500, 200, false, 0, Controller::newString("ERROR"), 'M', true);
 	// Zero the gyro
-    controller.schedule(2,200,0,false,1,Controller::newString("ZERO 20 20"),'N',true);
+   // controller.schedule(2,200,0,false,1,Controller::newString("ZERO 20 20"),'N',true);
 	// Schedule a heading calculation to get things setup
 	
 
