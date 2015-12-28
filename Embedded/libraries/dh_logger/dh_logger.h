@@ -1,21 +1,37 @@
 #ifndef DH_LOGGER_H__
 #define DH_LOGGER_H__
 #include <stdint.h>
+#include "Stream.h"
+#include <Arduino.h>
+
 class Logger{
 public:
-	virtual void print(uint8_t val, uint8_t base = 10)=0;
-	virtual void print(int8_t val)=0;
-	virtual void print(uint16_t val)=0;
-	virtual void print(int16_t val)=0;
-	virtual void print(uint32_t val)=0;
-	virtual void print(int32_t val)=0;
-	virtual void print(bool val)=0;
+	bool print(int8_t val);
+	bool print(uint8_t val);
+	bool print(uint16_t val);
+	bool print(int16_t val);
+	bool print(uint32_t val);
+	bool print(int32_t val);
+	bool print(bool val);
 
-	virtual void print(float val, uint8_t prec=4)=0;
-	virtual void print(double val, uint8_t prec=4)=0;
-	virtual void print(const char text[])=0;
+	bool print(float val);
+	bool print(double val);
+	bool print(const char text[], uint8_t len);
 
-	virtual void println (void)=0;
+	void setInstruction(char module,uint16_t id);
+	void setTime(uint32_t time);
+	void send();
+	void sendError(const char error[], uint8_t len);
+	void sendTimeSync();
+	void setStream(Stream* in);
+
+private:
+	Stream* stream;
+	uint8_t byteCount = 8;
+	char module;
+	uint16_t id;
+	uint32_t time;
+	char buffer[255];
 };
 
 

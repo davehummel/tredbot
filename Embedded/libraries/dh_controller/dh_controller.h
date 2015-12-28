@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "Stream.h"
 #include <Arduino.h>
+#include <dh_logger.h>
 
 class Controller{
 public:
@@ -14,13 +15,13 @@ public:
 
 		virtual void begin(void)=0;
 		virtual void execute(uint32_t time,uint32_t id,char command[],bool serializeOnComplete)=0;
-		virtual void serialize(Stream* output,uint32_t id,char command[])=0;
+		virtual void serialize(Logger* logger,uint32_t id,char command[])=0;
 		virtual void startSchedule(char command[],uint32_t id)=0;
 		virtual void endSchedule(char command[], uint32_t id)=0;
 		
-		char error[];
-
+		char* error;
 		Controller* controller;
+		char id;
 		
 	private:  
 
@@ -77,6 +78,8 @@ private:
 	};
 
 	void addTimedEntry(Entry* entry);
+
+	Logger logger;
 	
 	Entry* currentlyRunning;
 	bool isANext = true;

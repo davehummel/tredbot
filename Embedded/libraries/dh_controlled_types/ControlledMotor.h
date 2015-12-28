@@ -1,14 +1,13 @@
 #ifndef DH_CONTROLLEDMOTOR_H__
 #define DH_CONTROLLEDMOTOR_H__
 #include "dh_controller.h"
-#include <dh_qik2s12v10.h>
+#include "dh_qik2s12v10.h"
 
 
 class ControlledMotor: public Controller::Controlled{
 public:
 
 	void begin(void){
-
 		if (!motor){
 			Serial2.begin(115200);
 			motor = new qik2s12v10(&Serial2);
@@ -190,6 +189,20 @@ public:
 			return;
 		}
 	}
+
+	void serialize(Logger* logger, uint32_t id, char command[]) {
+		switch (command[0]) {
+		case 'E':
+			if (error > 0) {
+				logger->setTime(millis());
+				logger->print(error);
+				logger->send();
+			}
+			break;
+		}
+	}
+
+
 	void startSchedule(char command[], uint32_t id){
 		
 	}

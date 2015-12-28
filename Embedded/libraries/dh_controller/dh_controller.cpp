@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include "Stream.h"
 #include <Arduino.h>
-#include <ControlledMotor.h>
 
 void Controller::loadControlled(char id,Controlled* controlled){
 	if (id>'Z' || id < 'A')
@@ -10,6 +9,7 @@ void Controller::loadControlled(char id,Controlled* controlled){
 	library[id-'A'] = controlled;
 	if (controlled){
 		controlled->controller = this;
+		controlled->id = id;
 		controlled->begin();
 	}
 }
@@ -70,8 +70,6 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,bool se
 
 	entry->killed = false;
 
-	// Serial1.print(command);
-	// Serial1.println(entry->nextExecuteTime);	
 	addTimedEntry(entry);
 }
 
@@ -126,8 +124,8 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,bool seriali
 	entry->command = command;
 	entry->controlled = library[controlled];
 	if (!entry->controlled){
-		Serial1.print("Error, unknowable controllable referenced as ");
-		Serial1.println((char)controlled);
+		Serial.print("Error, unknowable controllable referenced as ");
+		Serial.println((char)controlled);
 		delete entry;
 		return;
 	}
@@ -140,11 +138,13 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,bool seriali
 
 void Controller::execute(Stream* output){
 	// First check immediate run queue
+	logger.setStream(output);
 
 	for (int i = 0; i < immediateSize; i ++){
 			immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command,immediate[i]->serializeOnComplete);
 			if (immediate[i]->serializeOnComplete){
-				immediate[i]->controlled->serialize(output,immediate[i]->id,immediate[i]->command);
+				logger.setInstruction(immediate[i]->controlled->id, immediate[i]->id);
+				immediate[i]->controlled->serialize(&logger,immediate[i]->id,immediate[i]->command);
 			}
 
 			delete immediate[i]->command;
@@ -160,12 +160,10 @@ void Controller::execute(Stream* output){
 	if (offset == 0)
 		return;
 
-	//Serial1.flush();
-
 	if (offset > 1){
-		Serial1.print('#');
-		Serial1.print(offset);
-		Serial1.print('#');
+		Serial.print('#');
+		Serial.print(offset);
+		Serial.print('#');
 	}
 
 	lastProcessedMSTime +=offset;
@@ -202,7 +200,8 @@ void Controller::execute(Stream* output){
 			}
 			iter->controlled->execute((uint32_t)millis,iter->id,iter->command,iter->serializeOnComplete);
 			if (iter->serializeOnComplete){
-				iter->controlled->serialize(output,iter->id,iter->command);
+				logger.setInstruction(iter->controlled->id, iter->id);
+				iter->controlled->serialize(&logger,iter->id,iter->command);
 			}
 			remainingTimedSize -- ;
 			
@@ -255,6 +254,8 @@ void Controller::processInput(Stream* stream){
 
 
 void Controller::parseBuffer(){
+	Serial.print("=");
+	Serial.println(inputbuffer);
 
 	if (inputbuffer[0]=='K'){
 		if (bufferCount<3)
@@ -264,10 +265,10 @@ void Controller::parseBuffer(){
 		if (!parse_uint32(id,offset,inputbuffer))
 			return;
 
-	Serial1.print(">K>");
-	Serial1.print(id);
-	Serial1.print('@');
-	Serial1.println(millis);
+	Serial.print(">K>");
+	Serial.print(id);
+	Serial.print('@');
+	Serial.println(millis);
 
 		kill(id);
 		return;
@@ -285,10 +286,7 @@ void Controller::parseBuffer(){
 		offset++;
 
 		if (bufferCount<=offset){
-			Serial1.print(">P->");
-			Serial1.print(id);
-			Serial1.print('@');
-			Serial1.println(millis);
+	
 			deleteProgram(id);
 			return;
 		}
@@ -299,10 +297,6 @@ void Controller::parseBuffer(){
 			program[i] = inputbuffer[i+offset];
 		}
 
-		Serial1.print(">P+>");
-		Serial1.print(id);
-		Serial1.print('@');
-		Serial1.println(millis);
 
 		loadProgram(id,program);
 		return;
@@ -317,10 +311,6 @@ void Controller::parseBuffer(){
 		if (!parse_uint8(id,offset,inputbuffer))
 			return;
 
-		Serial1.print(">R>");
-		Serial1.print(id);
-		Serial1.print('@');
-		Serial1.println(millis);
 
 		runProgram(id);
 
@@ -330,35 +320,92 @@ void Controller::parseBuffer(){
 	if (bufferCount<6)
 		return;
 
-	if (inputbuffer[0]!='C'||inputbuffer[1]!=' '||inputbuffer[3]!=' '){
+	if (inputbuffer[0] == 'S' && inputbuffer[1] == ' ') {
+
+		char commandID;
+	
+	
+
+		uint32_t id = 0;
+		uint16_t timeDelay;
+		uint16_t timeInterval;
+		uint16_t offset = 2;
+		uint32_t runCount;
+		Serial.print("SCHED>");
+		if (!parse_uint32(id, offset, inputbuffer))
+			return;
+
+		offset++;
+
+
+		commandID = inputbuffer[offset];
+
+		offset += 2;
+
+		Serial.print(">");
+		if (!parse_uint16(timeDelay, offset, inputbuffer))
+			return;
+
+		offset++;
+		Serial.print(">");
+		if (!parse_uint16(timeInterval, offset, inputbuffer))
+			return;
+
+		Serial.print(">");
+		offset++;
+
+
+		if (!parse_uint32(runCount, offset, inputbuffer))
+			return;
+		Serial.print(">");
+		offset++;
+
+		char* command = new char[bufferCount - offset + 1];
+
+		for (uint16_t i = 0; i <= bufferCount - offset; i++) {
+			command[i] = inputbuffer[i + offset];
+		}
+		if (command[bufferCount - offset] != '\0') {
+			Serial.println("Oh fuck");
+		}
+		Serial.print("Scheduling:");
+		Serial.print(commandID);
+		Serial.print(" ");
+		Serial.print(id);
+		Serial.print(" ");
+		Serial.println(command);
+		schedule(id, timeDelay, timeInterval, false, runCount, command, commandID, true);
 		return;
 	}
 
-	char commandID;
-	commandID = inputbuffer[2];
-	//todo parse id;
+	if (inputbuffer[0]!='C'||inputbuffer[1]!=' '){
+		return;
+	}
+
 
 	uint32_t id = 0;
-	uint16_t offset = 4;
+	uint16_t offset = 2;
 
-	if (!parse_uint32(id,offset,inputbuffer))
+	if (!parse_uint32(id, offset, inputbuffer))
 		return;
 	
 	offset++;
 
+	char commandID;
+	commandID = inputbuffer[offset];
+
+	offset += 2;
+
 	char* command =new char[bufferCount-offset+1];
-	//command[bufferCount-offset]='\0'; // this shouldnt be needed anymore
+
 	for (uint16_t i = 0; i <= bufferCount-offset; i++){
 		command[i] = inputbuffer[i+offset];
 	}
 	if (command[bufferCount-offset]!='\0'){
-		Serial1.println("Oh fuck");
+		Serial.println("Oh fuck");
 	}
 // TIME sync feedback
-	Serial1.print(">C>");
-	Serial1.print(id);
-	Serial1.print('@');
-	Serial1.println(millis);
+
 
 // DEBUG CODE
 	// Serial1.print("Command processed:");

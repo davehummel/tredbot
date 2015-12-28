@@ -15,11 +15,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Visual Micro\.BotControlLoop.vsarduino.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <None Include="BotControlLoop.ino" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="BotControlLoop.ino" />
+    <ClInclude Include="__vm\.BotControlLoop.vsarduino.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

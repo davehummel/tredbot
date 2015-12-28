@@ -38,7 +38,7 @@ LIDARLite::LIDARLite(){}
   Starts the sensor and I2C
 
   Process
-  ------------------------------------------------------------------------------
+  ---------  ---------------------------------------------------------------------
   1.  Turn on error reporting, off by default
   2.  Start Wire (i.e. turn on I2C)
   3.  Enable 400kHz I2C, 100kHz by default
@@ -61,14 +61,9 @@ LIDARLite::LIDARLite(){}
 ============================================================================= */
 void LIDARLite::begin(int configuration, bool fasti2c, bool showErrorReporting, char LidarLiteI2cAddress){
   errorReporting = showErrorReporting;
-  Wire.begin(); //  Start I2C
-  if(fasti2c){
-    #if ARDUINO >= 157
-      Wire.setClock(400000UL); // Set I2C frequency to 400kHz, for the Due
-    #else
-      TWBR = ((F_CPU / 400000UL) - 16) / 2; // Set I2C frequency to 400kHz
-    #endif
-  }
+  
+  Wire1.begin(I2C_MASTER,0,I2C_PINS_29_30,I2C_PULLUP_INT,fasti2c?I2C_RATE_400:I2C_RATE_100);
+  
   configure(configuration, LidarLiteI2cAddress);
 }
 /* =============================================================================
@@ -642,10 +637,10 @@ unsigned char LIDARLite::changeAddress(char newI2cAddress,  bool disablePrimaryA
   /* =============================================================================
     =========================================================================== */
   void LIDARLite::write(char myAddress, char myValue, char LidarLiteI2cAddress){
-    Wire.beginTransmission((int)LidarLiteI2cAddress);
-    Wire.write((int)myAddress);
-    Wire.write((int)myValue);
-    int nackCatcher = Wire.endTransmission();
+    Wire1.beginTransmission((int)LidarLiteI2cAddress);
+    Wire1.write((int)myAddress);
+    Wire1.write((int)myValue);
+    int nackCatcher = Wire1.endTransmission();
     if(nackCatcher != 0){Serial.println("> nack");}
     delay(1);
   }
@@ -659,40 +654,40 @@ void LIDARLite::read(char myAddress, int numOfBytes, byte arrayToSave[2], bool m
   }
   int busyCounter = 0;
   while(busyFlag != 0){
-    Wire.beginTransmission((int)LidarLiteI2cAddress);
-    Wire.write(0x01);
-    int nackCatcher = Wire.endTransmission();
+    Wire1.beginTransmission((int)LidarLiteI2cAddress);
+    Wire1.write(0x01);
+    int nackCatcher = Wire1.endTransmission();
     if(nackCatcher != 0){Serial.println("> nack");}
-    Wire.requestFrom((int)LidarLiteI2cAddress,1);
-    busyFlag = bitRead(Wire.read(),0);
+    Wire1.requestFrom((int)LidarLiteI2cAddress,1);
+    busyFlag = bitRead(Wire1.read(),0);
 
     busyCounter++;
     if(busyCounter > 9999){
       if(errorReporting){
         int errorExists = 0;
-        Wire.beginTransmission((int)LidarLiteI2cAddress);
-        Wire.write(0x01);
-        int nackCatcher = Wire.endTransmission();
+        Wire1.beginTransmission((int)LidarLiteI2cAddress);
+        Wire1.write(0x01);
+        int nackCatcher = Wire1.endTransmission();
         if(nackCatcher != 0){Serial.println("> nack");}
-        Wire.requestFrom((int)LidarLiteI2cAddress,1);
-        errorExists = bitRead(Wire.read(),0);
+        Wire1.requestFrom((int)LidarLiteI2cAddress,1);
+        errorExists = bitRead(Wire1.read(),0);
         if(errorExists){
           unsigned char errorCode[] = {0x00};
-          Wire.beginTransmission((int)LidarLiteI2cAddress);    // Get the slave's attention, tell it we're sending a command byte
-          Wire.write(0x40);
+          Wire1.beginTransmission((int)LidarLiteI2cAddress);    // Get the slave's attention, tell it we're sending a command byte
+          Wire1.write(0x40);
           delay(20);
-          int nackCatcher = Wire.endTransmission();                  // "Hang up the line" so others can use it (can have multiple slaves & masters connected)
+          int nackCatcher = Wire1.endTransmission();                  // "Hang up the line" so others can use it (can have multiple slaves & masters connected)
           if(nackCatcher != 0){Serial.println("> nack");}
-          Wire.requestFrom((int)LidarLiteI2cAddress,1);
-          errorCode[0] = Wire.read();
+          Wire1.requestFrom((int)LidarLiteI2cAddress,1);
+          errorCode[0] = Wire1.read();
           delay(10);
           Serial.print("> Error Code from Register 0x40: ");
           Serial.println(errorCode[0]);
           delay(20);
-          Wire.beginTransmission((int)LidarLiteI2cAddress);
-          Wire.write((int)0x00);
-          Wire.write((int)0x00);
-          nackCatcher = Wire.endTransmission();
+          Wire1.beginTransmission((int)LidarLiteI2cAddress);
+          Wire1.write((int)0x00);
+          Wire1.write((int)0x00);
+          nackCatcher = Wire1.endTransmission();
           if(nackCatcher != 0){Serial.println("> nack");}
         }
        }
@@ -700,15 +695,15 @@ void LIDARLite::read(char myAddress, int numOfBytes, byte arrayToSave[2], bool m
     }
   }
   if(busyFlag == 0){
-    Wire.beginTransmission((int)LidarLiteI2cAddress);
-    Wire.write((int)myAddress);
-    int nackCatcher = Wire.endTransmission();
+    Wire1.beginTransmission((int)LidarLiteI2cAddress);
+    Wire1.write((int)myAddress);
+    int nackCatcher = Wire1.endTransmission();
     if(nackCatcher != 0){Serial.println("NACK");}
-    Wire.requestFrom((int)LidarLiteI2cAddress, numOfBytes);
+    Wire1.requestFrom((int)LidarLiteI2cAddress, numOfBytes);
     int i = 0;
-    if(numOfBytes <= Wire.available()){
+    if(numOfBytes <= Wire1.available()){
       while(i < numOfBytes){
-        arrayToSave[i] = Wire.read();
+        arrayToSave[i] = Wire1.read();
         i++;
       }
     }

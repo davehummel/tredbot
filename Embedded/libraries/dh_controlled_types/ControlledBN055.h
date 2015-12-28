@@ -131,7 +131,7 @@
 // Using the BNO055_MS5637 breakout board/Teensy 3.1 Add-On Shield, ADO is set to 1 by default 
 #define ADO 1
 #if ADO
-#define BNO055_ADDRESS 0x29   //  Device address of BNO055 when ADO = 1
+#define BNO055_ADDRESS 0x28   //  Device address of BNO055 when ADO = 1
 #define MS5637_ADDRESS   0x76   //  Address of MS5637 altimeter
 #else
 #define BNO055_ADDRESS 0x28   //  Device address of BNO055 when ADO = 0
@@ -156,50 +156,52 @@ class ControlledBN055: public Controller::Controlled{
 public:
 
 	void begin(void){
-		Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
+		Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_400, I2C_OP_MODE_DMA);
 		 // Check software revision ID
+		byte id = readByte(BNO055_ADDRESS, BNO055_CHIP_ID);
+		Serial.print("BNO055 SW Revision ID: "); Serial.println(id, HEX);
 	    byte swlsb = readByte(BNO055_ADDRESS, BNO055_SW_REV_ID_LSB);
 	    byte swmsb = readByte(BNO055_ADDRESS, BNO055_SW_REV_ID_MSB);
-	    Serial1.print("BNO055 SW Revision ID: "); Serial1.print(swmsb, HEX); Serial1.print("."); Serial1.println(swlsb, HEX); 
+	    Serial.print("BNO055 SW Revision ID: "); Serial.print(swmsb, HEX); Serial.print("."); Serial.println(swlsb, HEX); 
 	    
 	    // Check bootloader version
 	    byte blid = readByte(BNO055_ADDRESS, BNO055_BL_REV_ID);
-	    Serial1.print("BNO055 bootloader Version: "); Serial1.println(blid); 
+	    Serial.print("BNO055 bootloader Version: "); Serial.println(blid); 
 	    
 	    // Check self-test results
 	    byte selftest = readByte(BNO055_ADDRESS, BNO055_ST_RESULT);
 	    
 	    if(selftest & 0x01) {
-	      Serial1.println("accelerometer passed selftest"); 
+	      Serial.println("accelerometer passed selftest"); 
 	    } else {
-	      Serial1.println("accelerometer failed selftest"); 
+	      Serial.println("accelerometer failed selftest"); 
 	    }
 	    if(selftest & 0x02) {
-	      Serial1.println("magnetometer passed selftest"); 
+	      Serial.println("magnetometer passed selftest"); 
 	    } else {
-	      Serial1.println("magnetometer failed selftest"); 
+	      Serial.println("magnetometer failed selftest"); 
 	    }  
 	    if(selftest & 0x04) {
-	      Serial1.println("gyroscope passed selftest"); 
+	      Serial.println("gyroscope passed selftest"); 
 	    } else {
-	      Serial1.println("gyroscope failed selftest"); 
+	      Serial.println("gyroscope failed selftest"); 
 	    }      
 	    if(selftest & 0x08) {
-	      Serial1.println("MCU passed selftest"); 
+	      Serial.println("MCU passed selftest"); 
 	    } else {
-	      Serial1.println("MCU failed selftest"); 
+	      Serial.println("MCU failed selftest"); 
 	    }
 
 	MS5637Reset();
   delay(100);
-  Serial1.println("MS5637 pressure sensor reset...");
+  Serial.println("MS5637 pressure sensor reset...");
   // Read PROM data from MS5637 pressure sensor
   MS5637PromRead(Pcal);
   unsigned char refCRC = Pcal[0] >> 12;
   
   nCRC = MS5637checkCRC(Pcal);  //calculate checksum to ensure integrity of MS5637 calibration data
   if (refCRC!=nCRC){
-  	Serial1.println("MS5637 pressure sensor failed CRC check");
+  	Serial.println("MS5637 pressure sensor failed CRC check");
   }
      
  // Select page 1 to configure sensors
@@ -215,6 +217,8 @@ public:
    // Select page 0 to read sensors
    writeByte(BNO055_ADDRESS, BNO055_PAGE_ID, 0x00);
 
+   //Select external crystal
+   writeByte(BNO055_ADDRESS, BNO055_SYS_TRIGGER, 0x80);
    // Select BNO055 gyro temperature source 
    writeByte(BNO055_ADDRESS, BNO055_TEMP_SOURCE, 0x01 );
 
@@ -234,433 +238,252 @@ public:
 
 
 	void execute(uint32_t time,uint32_t id,char* command, bool serializeOnComplete){
-		switch (command[0]){
-			case 'R': // RAW M/G/A
-			{
-				uint16_t pointer=3;
-				uint8_t rawData[6]; 
-				while(command[pointer]!='\0'){
-					if (command[pointer] == 'M'){
-						readBytes(BNO055_ADDRESS, BNO055_MAG_DATA_X_LSB, 6, &rawData[0]);  // Read the six raw data registers into data array
-						  raw_mag[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;       // Turn the MSB and LSB into a signed 16-bit value
-						  raw_mag[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  
-						  raw_mag[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-						  updatedRawMag = true;
-					} else 	if (command[pointer] == 'G'){
-						readBytes(BNO055_ADDRESS, BNO055_GYR_DATA_X_LSB, 6, &rawData[0]);  // Read the six raw data registers into data array
-						  raw_gyro[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;       // Turn the MSB and LSB into a signed 16-bit value
-						  raw_gyro[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  
-						  raw_gyro[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-						  updatedRawGyro = true;
-					} else 	if (command[pointer] == 'A'){
-						readBytes(BNO055_ADDRESS, BNO055_ACC_DATA_X_LSB, 6, &rawData[0]);  // Read the six raw data registers into data array
-						  raw_accel[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;       // Turn the MSB and LSB into a signed 16-bit value
-						  raw_accel[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  
-						  raw_accel[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-						  updatedRawAccel = true;
-					} 
+		switch (command[0]) {
+		case 'Z':// ZERO
+		{
+			uint16_t pointer = 4;
+			Serial.println(command);
+			if (command[pointer] == 'A') {
+
+				if (command[pointer + 1] == '2') {
+					//write biases to accelerometer offset registers ad 16 LSB/dps
+					writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_X_LSB, (int16_t)accel_bias[0] & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_X_MSB, ((int16_t)accel_bias[0] >> 8) & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Y_LSB, (int16_t)accel_bias[1] & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Y_MSB, ((int16_t)accel_bias[1] >> 8) & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Z_LSB, (int16_t)accel_bias[2] & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Z_MSB, ((int16_t)accel_bias[2] >> 8) & 0xFF);
+					Serial.println("Updated2!");
+					// Select BNO055 system operation mode
+					writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, ControlledBN055::OPRMode);
+				}
+				else {
+					Serial.println("Updated1!");
+					if (command[pointer + 1] == '\0') { // this assumes some other class has set the bias directly
+						writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, CONFIGMODE);
+						controller->schedule(id + 1, 25, 0, false, 1, Controller::newString("ZEROA2"), 'G', false);
+					}
+					else {
+						pointer += 2;
+						if (!Controller::parse_int16(accel_bias[0], pointer, command)) {
+							return;
+						}
+
+						pointer++;
+						if (!Controller::parse_int16(accel_bias[1], pointer, command)) {
+							return;
+						}
+						pointer++;
+						if (!Controller::parse_int16(accel_bias[2], pointer, command)) {
+							return;
+						}
+						writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, CONFIGMODE);
+						controller->schedule(id + 1, 25, 0, false, 1, Controller::newString("ZEROA2"), 'G', false);
+					}
+				}
+			}
+			else if (command[pointer] == 'G') {
+				if (command[pointer + 1] == '2') {
+					//write biases to gyro offset registers
+					writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_X_LSB, (int16_t)gyro_bias[0] & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_X_MSB, ((int16_t)gyro_bias[0] >> 8) & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Y_LSB, (int16_t)gyro_bias[1] & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Y_MSB, ((int16_t)gyro_bias[1] >> 8) & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Z_LSB, (int16_t)gyro_bias[2] & 0xFF);
+					writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Z_MSB, ((int16_t)gyro_bias[2] >> 8) & 0xFF);
+
+					// Select BNO055 system operation mode
+					writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, ControlledBN055::OPRMode);
+				}
+				else {
+					pointer += 2;
+					if (!Controller::parse_int16(gyro_bias[0], pointer, command)) {
+						return;
+					}
 					pointer++;
+					if (!Controller::parse_int16(gyro_bias[1], pointer, command)) {
+						return;
+					}
+					pointer++;
+					if (!Controller::parse_int16(gyro_bias[2], pointer, command)) {
+						return;
+					}
+					writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, CONFIGMODE);
+					controller->schedule(id, 25, 0, false, 1, Controller::newString("ZEROG2"), 'G', false);
 				}
 			}
-			break;
-			case 'Z':// ZERO
-			{
-				uint16_t pointer=4;
-				Serial1.println(command);
-				if (command[pointer]=='A'){
 
-					if (command[pointer+1]=='2'){
-						  //write biases to accelerometer offset registers ad 16 LSB/dps
-						  writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_X_LSB, (int16_t)accel_bias[0] & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_X_MSB, ((int16_t)accel_bias[0] >> 8) & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Y_LSB, (int16_t)accel_bias[1] & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Y_MSB, ((int16_t)accel_bias[1] >> 8) & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Z_LSB, (int16_t)accel_bias[2] & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_ACC_OFFSET_Z_MSB, ((int16_t)accel_bias[2] >> 8) & 0xFF);
-						  Serial1.println("Updated2!");
-						  // Select BNO055 system operation mode
-						  writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, ControlledBN055::OPRMode );
-					}else{
-							  Serial1.println("Updated1!");
-						if (command[pointer+1]=='\0'){ // this assumes some other class has set the bias directly
-							writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, CONFIGMODE );
-	  						controller->schedule(id+1,25,0,false,1,Controller::newString("ZEROA2"),'G',false);
-						}else{
-							pointer+=2;
-							if (!Controller::parse_int16(accel_bias[0],pointer,command)){
-								return;
-							}
-							
-							pointer++;
-							if (!Controller::parse_int16(accel_bias[1],pointer,command)){
-								return;
-							}
-							pointer++;
-							if (!Controller::parse_int16(accel_bias[2],pointer,command)){
-								return;
-							}
-							writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, CONFIGMODE );
-	  						controller->schedule(id+1,25,0,false,1,Controller::newString("ZEROA2"),'G',false);
-						}
-					}
-				}else if (command[pointer]=='G'){
-					if (command[pointer+1]=='2'){
-						   //write biases to gyro offset registers
-						  writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_X_LSB, (int16_t)gyro_bias[0] & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_X_MSB, ((int16_t)gyro_bias[0] >> 8) & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Y_LSB, (int16_t)gyro_bias[1] & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Y_MSB, ((int16_t)gyro_bias[1] >> 8) & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Z_LSB, (int16_t)gyro_bias[2] & 0xFF);
-						  writeByte(BNO055_ADDRESS, BNO055_GYR_OFFSET_Z_MSB, ((int16_t)gyro_bias[2] >> 8) & 0xFF);
-						  
-						  // Select BNO055 system operation mode
-						  writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, ControlledBN055::OPRMode );
-					}else{
-						pointer+=2;
-						if (!Controller::parse_int16(gyro_bias[0],pointer,command)){
-							return;
-						}
-						pointer++;
-						if (!Controller::parse_int16(gyro_bias[1],pointer,command)){
-							return;
-						}
-						pointer++;
-						if (!Controller::parse_int16(gyro_bias[2],pointer,command)){
-							return;
-						}
-						  writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, CONFIGMODE );
-						  controller->schedule(id,25,0,false,1,Controller::newString("ZEROG2"),'G',false);
-					}
+		}
+		break;
+		case 'C':// CALMAG
+			magCalBNO055();
+			break;
+		case 'V':// ALL Values
+		{
+			if (command[1] == 'A') {
+				if (!requestBytes(BNO055_ADDRESS, BNO055_GYR_DATA_X_LSB, 34)) {
+					controller->schedule(id , 1,0,false,1, Controller::newString("VAL"),'G',false);
+				} else {
+					controller->schedule(id , 2, 0, false, 1, Controller::newString("V2"), 'G', false);
 				}
-				
 			}
+			else if (command[1] == '2') {
+				uint8_t buffer[34];
+				if (!getBytes(34, &buffer[0])) {
+					controller->schedule(id, 1, 0, false, 1, Controller::newString("V2"), 'G', false);
+					break;
+				}
+			
+				uint8_t * rawData = &buffer[0];
+
+				raw_rotVel[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
+				raw_rotVel[1] = ((int16_t)rawData[3] << 8) | rawData[2];
+				raw_rotVel[2] = ((int16_t)rawData[5] << 8) | rawData[4];
+
+				rawData += 6;
+
+				heading[0] = ((double)(raw_heading[0] = (((int16_t)rawData[1] << 8) | rawData[0]))) / 16.f;       // Turn the MSB and LSB into a signed 16-bit value
+				heading[1] = ((double)(raw_heading[1] = (((int16_t)rawData[3] << 8) | rawData[2]))) / 16.f;
+				heading[2] = ((double)(raw_heading[2] = (((int16_t)rawData[5] << 8) | rawData[4]))) / 16.f;
+
+				rawData += 6;
+
+				raw_quat[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
+				raw_quat[1] = ((int16_t)rawData[3] << 8) | rawData[2];
+				raw_quat[2] = ((int16_t)rawData[5] << 8) | rawData[4];
+				raw_quat[3] = ((int16_t)rawData[7] << 8) | rawData[6];
+
+				rawData += 8;
+
+				raw_linAccel[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
+				raw_linAccel[1] = ((int16_t)rawData[3] << 8) | rawData[2];
+				raw_linAccel[2] = ((int16_t)rawData[5] << 8) | rawData[4];
+
+				rawData += 6;
+				raw_grav[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
+				raw_grav[1] = ((int16_t)rawData[3] << 8) | rawData[2];
+				raw_grav[2] = ((int16_t)rawData[5] << 8) | rawData[4];
+
+				rawData++;
+
+				raw_temp = rawData[0];
+
+				rawData++;
+
+				statusSys = (rawData[0] >> 6) & 0b00000011;
+				statusGyr = (rawData[0] >> 4) & 0b00000011;
+				statusAcc = (rawData[0] >> 2) & 0b00000011;
+				statusMag = (rawData[0]) & 0b00000011;
+				Serial.println(heading[0]);
+
+			}
+
+
+
+			
 			break;
-			case 'C':// CALMAG
-				magCalBNO055();
-			break;
-			case 'H':// HEADING (euler)
-			{
-				// if (liaReadMode == 0 && !i2cBusy){
-				// 	requestBytes(BNO055_ADDRESS, BNO055_EUL_HEADING_LSB);
-				// 	i2cBusy = true;
-				// 	liaReadMode = 1;
-				// }
-				// if (liaReadMode == 1){
-				// 	if (checkBytes(BNO055_ADDRESS , 6)){
-				// 		liaReadMode = 2;
-				// 	}
-				// }
-				// if (liaReadMode == 2){
-				// 	uint8_t rawData[6];  // x/y/z gyro register data stored here
-				// 	if (getBytes( 6, &rawData[0])){
-				// 	//readBytes(BNO055_ADDRESS, BNO055_QUA_DATA_W_LSB, 8, &rawData[0]);  // Read the six raw data registers sequentially into data array
-				// 		heading[0] =((double) (((int16_t)rawData[1] << 8) | rawData[0]))/16.f ;       // Turn the MSB and LSB into a signed 16-bit value
-  		// 				heading[1] =((double) (((int16_t)rawData[3] << 8) | rawData[2]))/16.f ;  
-  		// 				heading[2] =((double) (((int16_t)rawData[5] << 8) | rawData[4]))/16.f ;
-				// 		liaReadMode = 0;
-				// 	  	i2cBusy = false;
-				// 	}
-				// }
-				// if (i2cBusy){
-				// 	controller->schedule(id+1,1,0,false,1,Controller::newString("H"),'G',serializeOnComplete);
-				// }
+		}
+		case 'H':// HEADING (euler)
+		{
+			Serial.print("Heading:");
+			// if (liaReadMode == 0 && !i2cBusy){
+			// 	requestBytes(BNO055_ADDRESS, BNO055_EUL_HEADING_LSB);
+			// 	i2cBusy = true;
+			// 	liaReadMode = 1;
+			// }
+			// if (liaReadMode == 1){
+			// 	if (checkBytes(BNO055_ADDRESS , 6)){
+			// 		liaReadMode = 2;
+			// 	}
+			// }
+			// if (liaReadMode == 2){
+			// 	uint8_t rawData[6];  // x/y/z gyro register data stored here
+			// 	if (getBytes( 6, &rawData[0])){
+			// 	//readBytes(BNO055_ADDRESS, BNO055_QUA_DATA_W_LSB, 8, &rawData[0]);  // Read the six raw data registers sequentially into data array
+			// 		heading[0] =((double) (((int16_t)rawData[1] << 8) | rawData[0]))/16.f ;       // Turn the MSB and LSB into a signed 16-bit value
+	// 				heading[1] =((double) (((int16_t)rawData[3] << 8) | rawData[2]))/16.f ;  
+	// 				heading[2] =((double) (((int16_t)rawData[5] << 8) | rawData[4]))/16.f ;
+			// 		liaReadMode = 0;
+			// 	  	i2cBusy = false;
+			// 	}
+			// }
+			// if (i2cBusy){
+			// 	controller->schedule(id+1,1,0,false,1,Controller::newString("H"),'G',serializeOnComplete);
+			// }
 			uint8_t rawData[6];  // x/y/z gyro register data stored here
-  			readBytes(BNO055_ADDRESS, BNO055_EUL_HEADING_LSB, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
-  			heading[0] =((double) (((int16_t)rawData[1] << 8) | rawData[0]))/16.f ;       // Turn the MSB and LSB into a signed 16-bit value
-  			heading[1] =((double) (((int16_t)rawData[3] << 8) | rawData[2]))/16.f ;  
-  			heading[2] =((double) (((int16_t)rawData[5] << 8) | rawData[4]))/16.f ;
-				break;
-			}
-
-			case 'Q':// QUATERNION
-			{
-
-				if (liaReadMode == 0 && !i2cBusy){
-					requestBytes(BNO055_ADDRESS, BNO055_QUA_DATA_W_LSB);
-					i2cBusy = true;
-					liaReadMode = 1;
-				}
-
-				if (liaReadMode == 1){
-					if (checkBytes(BNO055_ADDRESS , 8)){
-						liaReadMode = 2;
-					}
-				}
-				if (liaReadMode == 2){
-					uint8_t rawData[8];  // x/y/z gyro register data stored here
-					if (getBytes( 8, &rawData[0])){
-					//readBytes(BNO055_ADDRESS, BNO055_QUA_DATA_W_LSB, 8, &rawData[0]);  // Read the six raw data registers sequentially into data array
-						quat[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;       // Turn the MSB and LSB into a signed 16-bit value
-						quat[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  
-						quat[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-						quat[3] = ((int16_t)rawData[7] << 8) | rawData[6] ;
-						liaReadMode = 0;
-					  	i2cBusy = false;
-					}
-				}
-				if (i2cBusy){
-					controller->schedule(id+1,1,0,false,1,Controller::newString("QUAT"),'G',serializeOnComplete);
-				}
-			}
+			readBytes(BNO055_ADDRESS, BNO055_EUL_HEADING_LSB, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
+			heading[0] = ((double)(raw_heading[0] = (((int16_t)rawData[1] << 8) | rawData[0]))) / 16.f;       // Turn the MSB and LSB into a signed 16-bit value
+			heading[1] = ((double)(raw_heading[1] = (((int16_t)rawData[3] << 8) | rawData[2]))) / 16.f;
+			heading[2] = ((double)(raw_heading[2] = (((int16_t)rawData[5] << 8) | rawData[4]))) / 16.f;
+			Serial.println(raw_heading[0]);
 			break;
-			case 'A':// ALTITUDE
-			{
-				uint32_t D1 = 0, D2 = 0; 
-				double dT, OFFSET, SENS, T2=0, OFFSET2, SENS2;  // First order and second order corrections for raw S5637 temperature and pressure data
+		}
 
-				D1 = MS5637Read(ADC_D1, OSR);  // get raw pressure value
-			    D2 = MS5637Read(ADC_D2, OSR);  // get raw temperature value
-			    
-			    dT = D2 - Pcal[5]*pow(2,8);    // calculate temperature difference from reference
-			    OFFSET = Pcal[2]*pow(2, 17) + dT*Pcal[4]/pow(2,6);
-			    SENS = Pcal[1]*pow(2,16) + dT*Pcal[3]/pow(2,7);
-			 
-			    Temperature = (2000 + (dT*Pcal[6])/pow(2, 23))/100;           // First-order Temperature in degrees Centigrade
+		
+		break;
+		case 'A':// ALTITUDE
+		{
+			uint32_t D1 = 0, D2 = 0;
+			double dT, OFFSET, SENS, T2 = 0, OFFSET2, SENS2;  // First order and second order corrections for raw S5637 temperature and pressure data
+
+			D1 = MS5637Read(ADC_D1, OSR);  // get raw pressure value
+			D2 = MS5637Read(ADC_D2, OSR);  // get raw temperature value
+
+			dT = D2 - Pcal[5] * pow(2, 8);    // calculate temperature difference from reference
+			OFFSET = Pcal[2] * pow(2, 17) + dT*Pcal[4] / pow(2, 6);
+			SENS = Pcal[1] * pow(2, 16) + dT*Pcal[3] / pow(2, 7);
+
+			Temperature = (2000 + (dT*Pcal[6]) / pow(2, 23)) / 100;           // First-order Temperature in degrees Centigrade
+		//
+		// Second order corrections
+			if (Temperature > 20)
+			{
+				T2 = 5 * dT*dT / pow(2, 38); // correction for high temperatures
+				OFFSET2 = 0;
+				SENS2 = 0;
+			}
+			if (Temperature < 20)                   // correction for low temperature
+			{
+				T2 = 3 * dT*dT / pow(2, 33);
+				OFFSET2 = 61 * (100 * Temperature - 2000)*(100 * Temperature - 2000) / 16;
+				SENS2 = 29 * (100 * Temperature - 2000)*(100 * Temperature - 2000) / 16;
+			}
+			if (Temperature < -15)                      // correction for very low temperature
+			{
+				OFFSET2 = OFFSET2 + 17 * (100 * Temperature + 1500)*(100 * Temperature + 1500);
+				SENS2 = SENS2 + 9 * (100 * Temperature + 1500)*(100 * Temperature + 1500);
+			}
+			// End of second order corrections
 			//
-			// Second order corrections
-			    if(Temperature > 20) 
-			    {
-			      T2 = 5*dT*dT/pow(2, 38); // correction for high temperatures
-			      OFFSET2 = 0;
-			      SENS2 = 0;
-			    }
-			    if(Temperature < 20)                   // correction for low temperature
-			    {
-			      T2      = 3*dT*dT/pow(2, 33); 
-			      OFFSET2 = 61*(100*Temperature - 2000)*(100*Temperature - 2000)/16;
-			      SENS2   = 29*(100*Temperature - 2000)*(100*Temperature - 2000)/16;
-			    } 
-			    if(Temperature < -15)                      // correction for very low temperature
-			    {
-			      OFFSET2 = OFFSET2 + 17*(100*Temperature + 1500)*(100*Temperature + 1500);
-			      SENS2 = SENS2 + 9*(100*Temperature + 1500)*(100*Temperature + 1500);
-			    }
-			 // End of second order corrections
-			 //
-			     Temperature = Temperature - T2/100;
-			     OFFSET = OFFSET - OFFSET2;
-			     SENS = SENS - SENS2;
-			 
-			     Pressure = (((D1*SENS)/pow(2, 21) - OFFSET)/pow(2, 15))/100;  // Pressure in mbar or Pa/100
-			  
-			    altitude = 145366.45*(1. - pow((Pressure/1013.25), 0.190284));
-			}
-			case 'T':// TEMP
-			{
-				temp = readGyroTempData();
+			Temperature = Temperature - T2 / 100;
+			OFFSET = OFFSET - OFFSET2;
+			SENS = SENS - SENS2;
 
-			}
-			break;
-			case 'L':// Linear accel
-			{
-				bool doVel = command[3]=='V';
-				 bool doZeroSum = command[3] == 'Z';
-				if (liaReadMode == 0 && !i2cBusy){
-					requestBytes(BNO055_ADDRESS, BNO055_LIA_DATA_X_LSB);
-					i2cBusy = true;
-					liaReadMode = 1;
-				}
-				if (liaReadMode == 1){
-					if (checkBytes(BNO055_ADDRESS , 6)){
-						liaReadMode = 2;
-					}
-				}
-				 if (liaReadMode == 2){
-					 uint8_t rawData[6]; 
-					// readBytes(BNO055_ADDRESS, BNO055_LIA_DATA_X_LSB,6, &rawData[0]);
-					if (getBytes( 6, &rawData[0])){
-						accel[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;       // Turn the MSB and LSB into a signed 16-bit value
-						accel[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  
-						accel[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-						if (doVel){
-						  	vel +=((float)accel[1])/velTimeInt;
-					  	} else if (doZeroSum) {
-					  		liaZ [0] += accel[0];
-					  		liaZ [1] += accel[1];
-					  		liaZ [2] += accel[2];
- 					  	}
-					  	liaReadMode = 0;
-					  	i2cBusy = false;
-					}
-				}
-				if (i2cBusy){
-					controller->schedule(id+1,1,0,false,1,Controller::newString(doVel?"LIAV":(doZeroSum?"LIAZ":"LIA")),'G',serializeOnComplete);
-				}
-			}
-			break;
-			case 'G':		// GRAV
-			{
-			  uint8_t rawData[6];  // x/y/z gyro register data stored here
-  				readBytes(BNO055_ADDRESS, BNO055_GRV_DATA_X_LSB, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
-			  grav[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;       // Turn the MSB and LSB into a signed 16-bit value
-			  grav[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;  
-			  grav[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-			}
-			break;
-			case 'V':// VEL
-			{
-				uint16_t pointer = 4;
-				uint16_t ms;
-				uint16_t count;
-				vel = 0;
-	
-				if (!Controller::parse_uint16(ms,pointer,command)){
-					return;
-				}
+			Pressure = (((D1*SENS) / pow(2, 21) - OFFSET) / pow(2, 15)) / 100;  // Pressure in mbar or Pa/100
 
-				velTimeInt = 1000.0/(float)ms;
+			altitude = 145366.45*(1. - pow((Pressure / 1013.25), 0.190284));
+		}
+		case 'T':// TEMP
+		{
+			raw_temp = readGyroTempData();
 
-				pointer++;
-				if (!Controller::parse_uint16(count,pointer,command)){
-					return;
-				}
-
-				controller->schedule(id+1,0,ms,false,count,Controller::newString("LIAV"),'G',true);
-				break;
-			}			// OFFSET
-
+		}
+		break;
 		}
 	}
 
-	void serialize(Stream* output, uint32_t id, char command[]){
-		switch (command[0]){
-			case 'Z':// ZERO
-			output->print('<');
-			output->print(id);
-			output->print(": accel_bias ");
-			output->print(accel_bias[0]);
-			output->print(',');
-			output->print(accel_bias[1]);
-			output->print(',');
-			output->print(accel_bias[2]);
-			output->print(" gyro_bias ");
-			output->print(gyro_bias[0]);
-			output->print(',');
-			output->print(gyro_bias[1]);
-			output->print(',');
-			output->println(gyro_bias[2]);
-			break; 
-			case 'R': // RAW
-				output->print('<');
-				output->print(id);
-				output->print(":RAW");
-				if (updatedRawAccel){
-					updatedRawAccel = false;
-					output->print(": accel ");
-					output->print(raw_accel[0]);
-					output->print(',');
-					output->print(raw_accel[1]);
-					output->print(',');
-					output->print(raw_accel[2]);
-				}
-				if (updatedRawGyro){
-					updatedRawGyro = false;
-					output->print(": gyro ");
-					output->print(raw_gyro[0]);
-					output->print(',');
-					output->print(raw_gyro[1]);
-					output->print(',');
-					output->print(raw_gyro[2]);
-				}
-				if (updatedRawMag){
-					updatedRawMag = false;
-					output->print(": mag ");
-					output->print(raw_mag[0]);
-					output->print(',');
-					output->print(raw_mag[1]);
-					output->print(',');
-					output->print(raw_mag[2]);
-				}
-				output->println();
-
+	void serialize(Logger* logger, uint32_t id, char command[]) {
+		switch (command[0]) {
+			case 'H':
+				logger->setTime(millis() - 5);
+				logger->print(raw_heading[0]);
+				logger->print(raw_heading[1]);
+				logger->print(raw_heading[2]);
+				logger->send();
 			break;
-			case 'C':// CALMAG
-			output->print('<');
-			output->print(id);
-			output->print(": mag_bias ");
-			output->print(mag_bias[0]);
-			output->print(',');
-			output->print(mag_bias[1]);
-			output->print(',');
-			output->print(mag_bias[2]);
-			break;
-			case 'H':// HEADING
-			{
-						if (i2cBusy)
-					return;
-				output->print('<');
-				output->print(id);
-				output->print(": heading ");
-				output->print(heading[0]);
-				output->print(',');
-				output->print(heading[1]);
-				output->print(',');
-				output->println(heading[2]);
-			}
-			break;
-			case 'L':// Linear accel
-			{
-				if (i2cBusy)
-					return;
-				output->print('<');
-				output->print(id);
-				output->print(": LIA ");
-				output->print(accel[0]);
-				output->print(',');
-				output->print(accel[1]);
-				output->print(',');
-				if (command[3]=='V'){
-					output->print(accel[2]);
-					output->print('|');
-					output->println(vel);
-				}else{
-					output->println(accel[2]);
-				}
-			}
-			break;
-			case 'Q': // QUATERNION
-			{
-				if (i2cBusy)
-					return;
-				output->print('<');
-				output->print(id);
-				output->print(": quat ");
-				output->print(quat[0]);
-				output->print(',');
-				output->print(quat[1]);
-				output->print(',');
-				output->print(quat[2]);
-				output->print(',');
-				output->println(quat[3]);
-			}
-			break;
-			case 'A':// ALTITUDE
-			output->print('<');
-			output->print(id);
-			output->print(": altitude ");
-			output->println(altitude);
-			break;
-			case 'T':// TEMP
-			output->print('<');
-			output->print(id);
-			output->print(": temp ");
-			output->println(temp);
-			break;
-			case 'G':			// GRAV
-				output->print('<');
-				output->print(id);
-				output->print(": grav ");
-				output->print(grav[0]);
-				output->print(',');
-				output->print(grav[1]);
-				output->print(',');
-				output->println(grav[2]);
-			break;
-			// OFFSET
-
 		}
-
 	}
+
 	void startSchedule(char command[], uint32_t id){
 		
 	}
@@ -669,9 +492,10 @@ public:
 	}
 
 
- int16_t raw_gyro[3]={0,0,0},raw_accel[3]={0,0,0},raw_mag[3]={0,0,0};
- int16_t quat[4] = {0,0,0,0},accel[3] = {0,0,0}, grav[3] = {0,0,0}, liaZ[3] = {0,0,0};
- int8_t temp=0;
+ int16_t raw_linAccel[3] = { 0,0,0 }, raw_rotVel[3]={0,0,0}, raw_grav[3] = { 0,0,0 };
+ int16_t raw_quat[4] = { 0,0,0,0 }, raw_heading[3] = { 0,0,0 };
+ int8_t raw_temp=0;
+ uint8_t statusSys, statusGyr, statusAcc, statusMag;
  bool updatedRawMag = false,updatedRawAccel = true,updatedRawGyro = true;
  float vel=0,velTimeInt = 0;
  double heading[3] = {0.,0.,0.}, altitude = 0;
@@ -839,8 +663,8 @@ void accelgyroCalBNO055()
     accel_bias[1]  += (int32_t) accel_temp[1];
     accel_bias[2]  += (int32_t) accel_temp[2];
     delay(20);  // at 62.5 Hz ODR, new accel data is available every 16 ms
-    Serial1.print(accel_temp[1]);
-    Serial1.print(".");
+    Serial.print(accel_temp[1]);
+    Serial.print(".");
    }
 
     accel_bias[0]  /= (int32_t) sample_count;  // get average accel bias in mg
@@ -861,7 +685,7 @@ void accelgyroCalBNO055()
     gyro_bias[1]  += (int32_t) gyro_temp[1];
     gyro_bias[2]  += (int32_t) gyro_temp[2];
     delay(35);  // at 32 Hz ODR, new gyro data available every 31 ms
-    Serial1.print(".");
+    Serial.print(".");
    }
     gyro_bias[0]  /= (int32_t) sample_count;  // get average gyro bias in counts
     gyro_bias[1]  /= (int32_t) sample_count;
@@ -921,13 +745,13 @@ void magCalBNO055()
       if(mag_temp[jj] > mag_max[jj]) mag_max[jj] = mag_temp[jj];
       if(mag_temp[jj] < mag_min[jj]) mag_min[jj] = mag_temp[jj];
     }
-    Serial1.print('.');
+    Serial.print('.');
     delay(55);  // at 20 Hz ODR, new mag data is available every 50 ms
    }
 
- //   Serial1.println("mag x min/max:"); Serial1.println(mag_max[0]); Serial1.println(mag_min[0]);
- //   Serial1.println("mag y min/max:"); Serial1.println(mag_max[1]); Serial1.println(mag_min[1]);
- //   Serial1.println("mag z min/max:"); Serial1.println(mag_max[2]); Serial1.println(mag_min[2]);
+ //   Serial.println("mag x min/max:"); Serial.println(mag_max[0]); Serial.println(mag_min[0]);
+ //   Serial.println("mag y min/max:"); Serial.println(mag_max[1]); Serial.println(mag_min[1]);
+ //   Serial.println("mag z min/max:"); Serial.println(mag_max[2]); Serial.println(mag_min[2]);
 
     mag_bias[0]  = (mag_max[0] + mag_min[0])/2;  // get average x mag bias in counts
     mag_bias[1]  = (mag_max[1] + mag_min[1])/2;  // get average y mag bias in counts
@@ -948,10 +772,10 @@ void magCalBNO055()
   writeByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Z_MSB, ((int16_t)mag_bias[2] >> 8) & 0xFF);
  
   // Check that offsets were properly written to offset registers
-//  Serial1.println("Average magnetometer bias = "); 
-//  Serial1.println((int16_t)((int16_t)readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_X_MSB) << 8 | readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_X_LSB))); 
-//  Serial1.println((int16_t)((int16_t)readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Y_MSB) << 8 | readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Y_LSB))); 
-//  Serial1.println((int16_t)((int16_t)readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Z_MSB) << 8 | readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Z_LSB)));
+//  Serial.println("Average magnetometer bias = "); 
+//  Serial.println((int16_t)((int16_t)readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_X_MSB) << 8 | readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_X_LSB))); 
+//  Serial.println((int16_t)((int16_t)readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Y_MSB) << 8 | readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Y_LSB))); 
+//  Serial.println((int16_t)((int16_t)readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Z_MSB) << 8 | readByte(BNO055_ADDRESS, BNO055_MAG_OFFSET_Z_LSB)));
   // Select BNO055 system operation mode
   writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, OPRMode );
 
@@ -976,7 +800,7 @@ uint8_t readByte(uint8_t address, uint8_t subAddress)
   Wire.endTransmission(I2C_NOSTOP);        // Send the Tx buffer, but send a restart to keep connection alive
 //  Wire.endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
 //  Wire.requestFrom(address, 1);  // Read one byte from slave register address 
-  Wire.requestFrom(address, (size_t) 1);   // Read one byte from slave register address 
+  Wire.requestFrom(address, (size_t) 1,I2C_STOP);   // Read one byte from slave register address 
   data = Wire.read();                      // Fill Rx buffer with result
   return data;                             // Return data read from slave register
 }
@@ -984,41 +808,41 @@ uint8_t readByte(uint8_t address, uint8_t subAddress)
 // Traditional Blocking
 void readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest)
 {  
-  Wire.beginTransmission(address);   // Initialize the Tx buffer
-  Wire.write(subAddress);            // Put slave register address in Tx buffer
-  Wire.endTransmission(I2C_NOSTOP);  // Send the Tx buffer, but send a restart to keep connection alive
-//  Wire.endTransmission(false);       // Send the Tx buffer, but send a restart to keep connection alive
-  uint8_t i = 0;
-//        Wire.requestFrom(address, count);  // Read bytes from slave register address 
-        Wire.requestFrom(address, (size_t) count);  // Read bytes from slave register address 
-  while (Wire.available()) {
-        dest[i++] = Wire.read(); }         // Put read results in the Rx buffer
+		Wire.beginTransmission(address);   // Initialize the Tx buffer
+		Wire.write(subAddress);            // Put slave register address in Tx buffer
+		Wire.endTransmission(I2C_NOSTOP);  // Send the Tx buffer, but send a restart to keep connection alive
+		
+
+		uint8_t i=0;
+        Wire.requestFrom(address, (size_t) count, I2C_STOP);  // Read bytes from slave register address 
+
+		for (uint8_t i = 0; i < count; i++) {
+			dest[i] = Wire.read();
+		}
+	
 }
 
 // 1st Call this
-void requestBytes(uint8_t address, uint8_t subAddress){
-  Wire.beginTransmission(address);   // Initialize the Tx buffer
-  Wire.write(subAddress);            // Put slave register address in Tx buffer
-  Wire.sendTransmission(I2C_NOSTOP);  // Send the Tx buffer, but send a restart to keep connection alive
-}
-
-// 2nd Call this, recall later if return false
-bool checkBytes(uint8_t address,  uint8_t count){
-  if (!Wire.done())
-  	return false;
-  Wire.sendRequest(address, (size_t) count, I2C_STOP);  // Read bytes from slave register address 
+bool requestBytes(uint8_t address, uint8_t subAddress , uint8_t count){
+	if (!Wire.done())
+		return false;
+	Wire.beginTransmission(address);   // Initialize the Tx buffer
+	Wire.write(subAddress);            // Put slave register address in Tx buffer
+	Wire.endTransmission(I2C_NOSTOP);  // Send the Tx buffer, but send a restart to keep connection alive
+  Wire.sendRequest(address, (size_t)count, I2C_STOP);  // Read bytes from slave register address 
   return true;
 }
 
-// 3rd Call this, recall later if return false
+
+// 2nd Call this, recall later if return false
 bool getBytes( uint8_t count, uint8_t * dest ){
 	if (!Wire.done())
 	  return false;
-	uint8_t i = 0;
-	while (Wire.available() && count>0) {
-        dest[i++] = Wire.read(); 
-        count--;
-    }         // Put read results in the Rx buffer  
+
+	for (uint8_t i = 0; i < count; i ++){
+		dest[i] = Wire.read();
+	}         // Put read results in the Rx buffer
+
     return true;
 }
 

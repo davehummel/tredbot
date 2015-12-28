@@ -1,6 +1,7 @@
 #ifndef DH_CONTROLLEDLED_H__
 #define DH_CONTROLLEDLED_H__
 #include "dh_controller.h"
+
 class ControlledLED: public Controller::Controlled{
 
 public:
@@ -13,6 +14,10 @@ public:
 		digitalWrite(13, flip);
 		flip = ! flip;
 		count++;
+	}
+	void serialize(Logger* logger, uint32_t id, char command[]) {
+		logger->setTime(millis());
+		logger->sendTimeSync();
 	}
 	void serialize(Stream* output, uint32_t id, char command[]){
 		//Serial.println('.');
