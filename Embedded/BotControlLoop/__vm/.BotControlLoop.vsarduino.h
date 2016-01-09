@@ -10,6 +10,7 @@
 
 #ifndef _VSARDUINO_H_
 #define _VSARDUINO_H_
+#define _VMDEBUG 1
 #define __MK20DX256__
 #define TEENSYDUINO 125
 #define ARDUINO 163

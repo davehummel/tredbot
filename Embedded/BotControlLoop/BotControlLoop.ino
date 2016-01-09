@@ -3,7 +3,6 @@
  #include <i2c_t3.h>
  #include <Arduino.h>
  #include <dh_logger.h>
-// #include "quadfit.h"
 
  #include <dh_ax-12a.h>
  #include <dh_qik2s12v10.h>

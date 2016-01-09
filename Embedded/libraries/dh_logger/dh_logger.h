@@ -4,6 +4,90 @@
 #include "Stream.h"
 #include <Arduino.h>
 
+#define HEADER_SIZE 11
+
+enum ADDRTYPE
+{
+	A_BYTE,A_UINT,A_INT,A_TIME,A_LONG,A_FLOAT,A_DOUBLE
+};
+
+
+
+class ADDR1{
+public:
+	static bool parseType(ADDRTYPE &type,char val){
+		switch (val){
+			case 'B': type = A_BYTE;return true;
+			case 'U': type = A_UINT;return true;
+			case 'I': type = A_INT;return true;
+			case 'L': type = A_LONG;return true;
+			case 'F': type = A_FLOAT;return true;
+			case 'D': type = A_DOUBLE;return true;
+			case 'T': type = A_TIME;return true;
+		}
+		return false;
+	}
+
+	ADDR1(){
+
+	}
+
+	ADDR1(const char* name , ADDRTYPE intype){
+		addr = 0;
+		uint16_t mult = 1;
+		for (uint8_t i = 0; i < 3 ; i++){
+			if (name[i] < 'A' ){
+				continue;
+			}else if (name[i] <= 'Z'){
+				addr+= (name[i] - 'A')*mult;
+			}else if (name[i] >= 'a' && name [i] <= 'z'){
+				addr+= (name[i] - 'a')*mult;
+			}
+			mult*=26;
+		}
+		type = intype;
+	} 
+
+	ADDR1(uint16_t &offset, const char* text){
+		if (! parseType(type,text[offset])){
+			type = A_BYTE;
+		}
+		offset++;
+		modID = text[offset];
+		if (modID<'A' || modID > 'Z')
+			modID = 'A';
+		offset+=2;
+		addr = 0;
+		uint16_t mult = 1;
+		for (uint8_t i = 0; i < 3 ; i++){
+			char c = text[i+offset] ;
+			if ( c < 'A' ){
+				continue;
+			}else if (c <= 'Z'){
+				addr+= (c- 'A')*mult;
+			}else if (c>= 'a' && c <= 'z'){
+				addr+= (c- 'a')*mult;
+			}
+			mult*=26;
+		}
+		offset+=3;
+
+	} 
+
+	void getChars(char* chars){
+		uint16_t temp = addr;
+		chars[0] = 'A'+ temp%26;
+		temp/=26;
+		chars[1] = 'A' +temp%26;
+		temp/=26;
+		chars[2] = 'A' +temp%26;
+	}
+
+	uint16_t addr = 0;
+	ADDRTYPE type = A_BYTE;
+	char modID = 0;
+};
+
 class Logger{
 public:
 	bool print(int8_t val);
@@ -18,20 +102,28 @@ public:
 	bool print(double val);
 	bool print(const char text[], uint8_t len);
 
-	void setInstruction(char module,uint16_t id);
-	void setTime(uint32_t time);
-	void send();
+	bool startStreamSend(uint16_t sendSize, uint32_t timein, char mod, uint32_t instID);
+	bool startBatchSend(uint32_t timein, char mod, uint32_t instID);
+	uint16_t streamSend();
+	bool batchSend();
 	void sendError(const char error[], uint8_t len);
 	void sendTimeSync();
 	void setStream(Stream* in);
+	void abortSend();
 
 private:
+	bool validate(uint8_t size);
+	void flushBuffer();
+	void setHeader(uint16_t otherbytes);
 	Stream* stream;
-	uint8_t byteCount = 8;
+	uint8_t byteCount = HEADER_SIZE;
+	uint16_t streamRemainder;
 	char module;
-	uint16_t id;
+	uint32_t id;
 	uint32_t time;
 	char buffer[255];
+	bool inStreamSend = false;
+	bool inBatchSend = false;
 };
 
 
