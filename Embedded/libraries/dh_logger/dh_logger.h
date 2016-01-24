@@ -8,32 +8,15 @@
 
 enum ADDRTYPE
 {
-	A_BYTE,A_UINT,A_INT,A_TIME,A_LONG,A_FLOAT,A_DOUBLE
+	A_BYTE,A_UINT,A_INT,A_TIME,A_LONG,A_FLOAT,A_DOUBLE,A_STRING
 };
 
 
 
 class ADDR1{
 public:
-	static bool parseType(ADDRTYPE &type,char val){
-		switch (val){
-			case 'B': type = A_BYTE;return true;
-			case 'U': type = A_UINT;return true;
-			case 'I': type = A_INT;return true;
-			case 'L': type = A_LONG;return true;
-			case 'F': type = A_FLOAT;return true;
-			case 'D': type = A_DOUBLE;return true;
-			case 'T': type = A_TIME;return true;
-		}
-		return false;
-	}
-
-	ADDR1(){
-
-	}
-
-	ADDR1(const char* name , ADDRTYPE intype){
-		addr = 0;
+	static uint16_t solveADDR(const char* name){
+		uint addr = 0;
 		uint16_t mult = 1;
 		for (uint8_t i = 0; i < 3 ; i++){
 			if (name[i] < 'A' ){
@@ -45,6 +28,29 @@ public:
 			}
 			mult*=26;
 		}
+		return addr;
+	}
+	static bool parseType(ADDRTYPE &type,char val){
+		switch (val){
+			case 'B': type = A_BYTE;return true;
+			case 'U': type = A_UINT;return true;
+			case 'I': type = A_INT;return true;
+			case 'L': type = A_LONG;return true;
+			case 'F': type = A_FLOAT;return true;
+			case 'D': type = A_DOUBLE;return true;
+			case 'T': type = A_TIME;return true;
+			case 'S': type = A_STRING;return true;
+		}
+		return false;
+	}
+
+	ADDR1(){
+
+	}
+
+	ADDR1(const char* name , ADDRTYPE intype){
+		addr = 0;
+		addr = solveADDR(name);
 		type = intype;
 	} 
 

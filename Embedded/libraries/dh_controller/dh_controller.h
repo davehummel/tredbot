@@ -48,6 +48,10 @@ public:
 		virtual uint32_t readT(ADDR1 addr,uint8_t addr2){
 			return 0;
 		}
+		virtual char* readS(ADDR1 addr,uint8_t addr2){
+			return 0;
+		}
+
 
 		void write(char command[]){
 			ADDRTYPE type;
@@ -108,6 +112,16 @@ public:
 					write(addr,val);
 					return;
 				}
+				case A_STRING:{
+					char temp[64];
+					for (int i = 0; i < 64 ; i++){
+						temp[i] = command[offset+i];
+						if (temp[i] == '\0')
+							break;
+					}
+					write(addr,temp);
+					return;
+				}
 			}
 
 		}
@@ -131,6 +145,9 @@ public:
 			
 		}
 		virtual void write(ADDR1 addr,uint32_t val){
+			
+		}
+		virtual void write(ADDR1 addr,const char* val){
 			
 		}
 		virtual bool transmit(Logger* logger,uint32_t time,uint32_t id,char command[]){
@@ -220,6 +237,8 @@ public:
 				case A_DOUBLE:
 				case A_TIME:
 				 size *=4;
+				case A_STRING:
+				 size *=64;
 				break;
 			}
 
@@ -253,6 +272,7 @@ public:
 						break;
 						case A_TIME: logger->print(readT(*addr1Array[x],y));
 						break;
+						case A_STRING: break;
 					}
 				}
 			}
@@ -316,7 +336,7 @@ public:
 
 	static char* newString(const char original[]);
 	
-	
+	static uint32_t lastProcessedMSTime;
 
 private:
 
@@ -356,7 +376,7 @@ private:
 	char inputbuffer[MAX_BUFF];
 	uint16_t bufferCount=0;
 
-	uint32_t lastProcessedMSTime;
+
 
 	elapsedMillis millis;
 	

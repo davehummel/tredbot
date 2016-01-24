@@ -3,6 +3,9 @@
 #include "Stream.h"
 #include <Arduino.h>
 //#define DEBUG ON
+
+	uint32_t Controller::lastProcessedMSTime = 0;
+
 void Controller::loadControlled(char id,Controlled* controlled){
 	#ifdef DEBUG
 	Serial.print("Loading Controlled Module:");
@@ -581,8 +584,10 @@ bool Controller::kill(uint32_t id){
 	for (int i = 0  ; i < remainingTimedSize + timedSize ; i++){
 		Entry* entry = isANext?timedA[i]:timedB[i];
 		if (!entry){
-			Serial.print("Could not kill - Failed to find process id:");
-			Serial.println(id);
+			if (success == false) {
+				Serial.print("Could not kill - Failed to find process id:");
+				Serial.println(id);
+			}
 			break;
 		}
 		if (entry->id == id || id == 0){

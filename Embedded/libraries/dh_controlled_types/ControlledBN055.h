@@ -859,7 +859,7 @@ bool getBytes( uint8_t count, uint8_t * dest ){
   Wire.endTransmission();                  // Send the Tx buffer
         }
         
-        void MS5637PromRead(uint16_t * destination)
+ void MS5637PromRead(uint16_t * destination)
         {
         uint8_t data[2] = {0,0};
         for (uint8_t ii = 0; ii < 7; ii++) {
@@ -897,12 +897,13 @@ bool getBytes( uint8_t count, uint8_t * dest ){
         Wire.write(0x00);                        // Put ADC read command in Tx buffer
 //        Wire.endTransmission(false);        // Send the Tx buffer, but send a restart to keep connection alive
         Wire.endTransmission(I2C_NOSTOP);        // Send the Tx buffer, but send a restart to keep connection alive
-  uint8_t i = 0;
+  		uint8_t i = 0;
         Wire.requestFrom(MS5637_ADDRESS, 3);     // Read three bytes from slave PROM address 
-  while (Wire.available()) {
-        data[i++] = Wire.read(); }               // Put read results in the Rx buffer
-        return (uint32_t) (((uint32_t) data[0] << 16) | (uint32_t) data[1] << 8 | data[2]); // construct PROM data for return to main program
-        }
+  		while (Wire.available()) {
+	    	data[i++] = Wire.read(); 
+	    }               // Put read results in the Rx buffer
+	    return (uint32_t) (((uint32_t) data[0] << 16) | (uint32_t) data[1] << 8 | data[2]); // construct PROM data for return to main program
+    }
 
 
 

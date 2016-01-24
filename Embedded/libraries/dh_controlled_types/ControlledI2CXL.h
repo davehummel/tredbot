@@ -12,124 +12,107 @@
 #define ChangeAddressCommand1 byte(0xAA)
 #define ChangeAddressCommand2 byte(0xA5)
 
-
-#define A_OFFSET 3
-#define B_OFFSET 3
+#define SCAN_ID 30
+#define SCAN_DELAY 50
 
 class ControlledI2CXL: public Controller::Controlled{
 public:
 
 	void begin(void){
-		Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_100 );
 		scanning = false;
 	}
 
-	void startScan(uint32_t id, uint16_t scanDelay, uint16_t scanInt,uint8_t stereoDelay, uint32_t scanCount , bool muting){
-		mute = muting;
+	void setWire(i2c_t3* _wire){
+		wire = _wire;
+	}
+
+	void write(ADDR1 addr,uint8_t val){
+					if (scanning == (val>0))
+						return;
+
+
+					if ((val>0) == false){
+						stopScan();
+					} else {
+						startScan();
+					}
+
+	
+
+	}
+
+
+	uint8_t readB(ADDR1 addr,uint8_t addr2){
+		return scanning;
+	}
+
+	uint16_t readU(ADDR1 addr,uint8_t addr2){
+		if (!scanning)
+			return 0;
+
+		switch(addr.addr%26+'A'){
+				case 'A': return readingA;
+				case 'B': return readingB;
+				default: return -1;
+		}
+	}
+
+	void startScan(){
 
 		if (scanning){
 			stopScan();
 		}
-		scanInterval = scanInt;
-		controller->schedule(id,scanDelay,scanInterval,false,scanCount,Controller::newString("SA"),'S',false);
-		controller->schedule(id+1,scanDelay+stereoDelay,scanInterval,false,scanCount,Controller::newString("SB"),'S',false);
-		scanningID = id;
+		onA = true;
+		wire->beginTransmission(SensorAddress1);             //Start addressing 
+		wire->write(RangeCommand);                             //send range command 
+		wire->endTransmission(I2C_STOP);  
+
+		controller->schedule(SCAN_ID,SCAN_DELAY,SCAN_DELAY,false,0,Controller::newString("SA"),id,false);
+		
 		scanning = true;
+		onA = true;
 	}
 
 	void stopScan(){
 		if (scanning){
-			controller->kill(scanningID);
-			controller->kill(scanningID+1);
+			controller->kill(SCAN_ID);
 			scanning = false;
 		}
 	}
 
-	void execute(uint32_t time,uint32_t id,char* command, bool serializeOnComplete){
-		uint16_t scanInt;
-		uint32_t scanCount;
-		uint16_t scanDelay;
-		uint8_t stereoDel;
-		uint16_t pointer = 6;
-		uint8_t addr;
-		switch (command[0]){
-			case 'B':
-		
-			if (!Controller::parse_uint16(scanDelay,pointer,command)){
-				return;
+	void execute(uint32_t time,uint32_t id,char* command){
+		if (!scanning)
+			return;
+		if(onA){
+			  wire->requestFrom(SensorAddress1, byte(2));
+			  if(wire->available() >= 2){                            //Sensor responded with the two bytes 
+			      byte HighByte = wire->read();                        //Read the high byte back 
+			      byte LowByte = wire->read();                        //Read the low byte back 
+			      readingA  = word(HighByte, LowByte);         //Make a 16-bit word out of the two bytes for the range  
+			   }else{
+			      readingA = 0; 
+			   }
+				wire->beginTransmission(SensorAddress2);             //Start addressing 
+				wire->write(RangeCommand);                             //send range command 
+				wire->endTransmission(I2C_STOP,100); 
+				onA = false;
+		}else{
+			wire->requestFrom(SensorAddress2, byte(2));
+			if(wire->available() >= 2){                            //Sensor responded with the two bytes 
+			    byte HighByte = wire->read();                        //Read the high byte back 
+			    byte LowByte = wire->read();                        //Read the low byte back 
+			    readingB  = word(HighByte, LowByte);         //Make a 16-bit word out of the two bytes for the range  
+			}else{
+			    readingB = 0; 
 			}
-
-			pointer++;
-	
-			if (!Controller::parse_uint16(scanInt,pointer,command)){
-				return;
-			}
-
-			pointer++;
-
-			if (!Controller::parse_uint8(stereoDel,pointer,command)){
-				return;
-			}
-
-			pointer++;
-
-			if (!Controller::parse_uint32(scanCount,pointer,command)){
-				return;
-			}
-
-			if (command[pointer]!='\0' && command[pointer+1]=='M')
-				mute = true;
-			else 
-				mute = false;
-
-			startScan(id,scanDelay,scanInt,stereoDel,scanCount, mute);
-			
-			break;
-			case 'E':
-				stopScan();
-				break;
-			case 'S':
-				addr = command[1]=='A'?SensorAddress1:SensorAddress2;
-
-			 	Wire.beginTransmission(addr);             //Start addressing 
-			    Wire.write(RangeCommand);                             //send range command 
-			    Wire.endTransmission();     
-			    if (command[1]=='A') // Only use the first scan as the trigger for the read task
-			    	controller->schedule(id+2,scanInterval-1,0,false,1,Controller::newString("READ"),'S',!mute);
-			break;
-			case 'R':
-		        Wire.requestFrom(SensorAddress2, byte(2));
-			        if(Wire.available() >= 2){                            //Sensor responded with the two bytes 
-			            byte HighByte = Wire.read();                        //Read the high byte back 
-			            byte LowByte = Wire.read();                        //Read the low byte back 
-			            readingB = word(HighByte, LowByte)+B_OFFSET;         //Make a 16-bit word out of the two bytes for the range  
-			         }else {
-			        	readingB = 0;
-			         }    
-				Wire.requestFrom(SensorAddress1, byte(2));
-		        if(Wire.available() >= 2){                            //Sensor responded with the two bytes 
-		            byte HighByte = Wire.read();                        //Read the high byte back 
-		            byte LowByte = Wire.read();                        //Read the low byte back 
-		            readingA  = word(HighByte, LowByte)+A_OFFSET;         //Make a 16-bit word out of the two bytes for the range  
-		         }else {
-		        	readingA = 0;
-		         }  
-
-	
-			break;
+			wire->beginTransmission(SensorAddress1);             //Start addressing 
+			wire->write(RangeCommand);                             //send range command 
+			wire->endTransmission(I2C_STOP,100); 
+			onA = true;
 		}
 	}
 
-	void serialize(Stream* output, uint32_t id, char command[]){
-		if (command[0]=='R'){
-			output->print('<');
-			output->print(id);
-			output->print(':');
-			output->print(readingA);
-			output->print('|');
-			output->println(readingB);
-		}
-	}
+
 	void startSchedule(char command[], uint32_t id){
 		
 	}
@@ -140,13 +123,11 @@ public:
 	uint16_t readingA;
 	uint16_t readingB;
 	bool scanning = false;
-	bool mute = false;
+	bool onA = false;
 
 
 private:
-	//uint8_t retryCount;
-	uint32_t scanningID;
-	uint16_t scanInterval;
+	i2c_t3* wire;
 
 
 };

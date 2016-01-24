@@ -5,6 +5,7 @@
 #define FUNC_COUNT 20
 #define TIME_VARCONST 8339
 #define MAX_INTERPS 20
+#define MAX_STRING_LEN 64;
 
 //#define DEBUG ON
 
@@ -175,7 +176,7 @@ public:
 			return bVars[num];
 		}else{
 			if (addr.addr == TIME_VARCONST)
-				return time;
+				return Controller::lastProcessedMSTime;
 			return 0;
 		}
 	}
@@ -192,7 +193,7 @@ public:
 			return uVars[num];
 		}else{
 			if (addr.addr == TIME_VARCONST)
-				return time;
+				return Controller::lastProcessedMSTime;
 			return 0;
 		}
 	}
@@ -209,7 +210,7 @@ public:
 			return iVars[num];
 		}else{
 			if (addr.addr == TIME_VARCONST)
-				return time;
+				return Controller::lastProcessedMSTime;
 			return 0;
 		}
 	}
@@ -226,7 +227,7 @@ public:
 			return lVars[num];
 		}else{
 			if (addr.addr == TIME_VARCONST)
-				return time;
+				return Controller::lastProcessedMSTime;
 			return 0;
 		}
 	}
@@ -243,7 +244,7 @@ public:
 			return fVars[num];
 		}else{
 			if (addr.addr == TIME_VARCONST)
-				return time;
+				return Controller::lastProcessedMSTime;
 			return 0;
 		}
 	}
@@ -260,7 +261,7 @@ public:
 			return dVars[num];
 		}else{
 			if (addr.addr == TIME_VARCONST)
-				return time;
+				return Controller::lastProcessedMSTime;
 			return 0;
 		}
 	}
@@ -277,7 +278,7 @@ public:
 			return tVars[num];
 		}else{
 			if (addr.addr == TIME_VARCONST)
-				return time;
+				return Controller::lastProcessedMSTime;
 			return 0;
 		}
 	}
@@ -338,17 +339,17 @@ public:
 		}	
 	}
 
+
+
+
 	void begin(void){
 	
 	}
 	bool transmit(Logger* logger,uint32_t _time,uint32_t instID, uint8_t width, uint8_t length,ADDR1** addr1Array,uint8_t addr2Offset){
-		time = _time;
 
 		return Controlled::transmit(logger,_time,instID,width,length,addr1Array,addr2Offset);
 	}
 	void execute(uint32_t _time,uint32_t id,char command[]){
-
-		time = _time;
 
 		if (command[0] == 'S' && command[1] == 'E' && command[2] == 'T'){
 			set(command);
@@ -368,10 +369,6 @@ public:
 	void endSchedule(char command[], uint32_t id){
 		
 	}
-
-
-
-	static uint32_t time;
 
 private:
 	bool getFunc(Func* (&match),ADDR1 addr1, uint8_t addr2){
@@ -475,7 +472,7 @@ private:
 			case A_LONG: targetMod->write(dest,func->readL());break;
 			case A_FLOAT: targetMod->write(dest,func->readF());break;
 			case A_DOUBLE: targetMod->write(dest,func->readD());break;
-
+			case A_STRING:break;
 		}
 
 		delete func;
@@ -513,6 +510,7 @@ private:
 			case A_FLOAT:func->readF();break;
 			case A_DOUBLE:func->readD();break;
 			case A_TIME:func->readT();break;
+			case A_STRING:break;
 		}
 	
 	}

@@ -1,7 +1,9 @@
 #include "ControlledCalc.h"
-uint32_t ControlledCalc::time = 0;
+
 ISeg* ISeg::interpRoots[MAX_INTERPS] = {};
 //#define DEBUG ON
+
+
 class InterpFunc:public Func{
 		bool parse(uint16_t &pointer,char* text){
 
@@ -41,7 +43,7 @@ class InterpFunc:public Func{
 				Serial.println(in);
 				#endif
 				ISeg* start = ISeg::interpRoots[interpFuncID];
-				double y = ISeg::eval(start,in,ControlledCalc::time);
+				double y = ISeg::eval(start,in,Controller::lastProcessedMSTime);
 				#ifdef DEBUG
 				Serial.print("Output: ");
 				Serial.println(y);
@@ -422,6 +424,7 @@ class LiteralFunc:public Func{
 				innerVal = new TimeLitFunc(val);
 				break;
 			}
+			case A_STRING: return false;
 		}
 
 		innerVal->controller = controller;
@@ -476,8 +479,10 @@ class VariableFunc:public Func{
 		addr1 = temp;
 		if (text[pointer]=='.'){
 			pointer++;
-			if (!Controller::parse_uint8(addr2,pointer,text))
+			if (!Controller::parse_uint8(addr2,pointer,text)){
+				Serial.println("Expected addr2 number");
 				return false;
+			}
 		}else{
 			addr2 = 0;
 		}
@@ -508,6 +513,7 @@ class VariableFunc:public Func{
 			case A_FLOAT: return (uint8_t) controlled->readF(addr1,addr2);
 			case A_DOUBLE: return (uint8_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (uint8_t) controlled->readT(addr1,addr2);
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -520,6 +526,7 @@ class VariableFunc:public Func{
 			case A_FLOAT: return (uint16_t) controlled->readF(addr1,addr2);
 			case A_DOUBLE: return (uint16_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (uint16_t) controlled->readT(addr1,addr2);
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -532,6 +539,7 @@ class VariableFunc:public Func{
 			case A_FLOAT: return (int16_t) controlled->readF(addr1,addr2);
 			case A_DOUBLE: return (int16_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (int16_t) controlled->readT(addr1,addr2);
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -544,6 +552,7 @@ class VariableFunc:public Func{
 			case A_FLOAT: return (int32_t) controlled->readF(addr1,addr2);
 			case A_DOUBLE: return (int32_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (int32_t) controlled->readT(addr1,addr2);
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -556,6 +565,7 @@ class VariableFunc:public Func{
 			case A_FLOAT: return (float) controlled->readF(addr1,addr2);
 			case A_DOUBLE: return (float) controlled->readD(addr1,addr2);
 			case A_TIME: return (float) controlled->readT(addr1,addr2);
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -568,6 +578,7 @@ class VariableFunc:public Func{
 			case A_FLOAT: return (double) controlled->readF(addr1,addr2);
 			case A_DOUBLE: return (double) controlled->readD(addr1,addr2);
 			case A_TIME: return (double) controlled->readT(addr1,addr2);
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -580,6 +591,7 @@ class VariableFunc:public Func{
 			case A_FLOAT: return (uint32_t) controlled->readF(addr1,addr2);
 			case A_DOUBLE: return (uint32_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (uint32_t) controlled->readT(addr1,addr2);
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -602,22 +614,52 @@ class VariableFunc:public Func{
 
 
 class WriteFunc:public Func{
-	bool parse(uint16_t &pointer,char* text){
-		if (text[pointer]!='[')
+	bool parse(uint16_t &pointer,char* input){
+		if (input[pointer]!='[')
 			return false;
 		pointer++;
-		target = new ADDR1(pointer,text);
-		pointer++;
-		valFunc = createFunc(pointer,text,controller);
-		pointer++;
-		if (valFunc == 0)
-			return false;
-		return true;
+		target = new ADDR1(pointer,input);
+		pointer+=2;
+		if (input[pointer]=='"'){
+				pointer++;
+				int i;
+				for (i = 0; i < 255; i++){
+					char x = input[pointer+i];
+					if (x=='"' ){
+						text = new char[i+1];
+						text[i]='\0';
+						i--;
+						for (;i>=0;i--){
+							text[i] = input[pointer+i];
+						}
+						pointer++;
+						return true;
+					}
+					if (x=='\0'){
+						Serial.println("Write text operator missing closing \"");
+						return false;
+					}
+				}
+				Serial.println("Write text too long");
+				return false;
+		}else{
+			valFunc = createFunc(pointer,input,controller);
+			pointer++;
+			if (valFunc == 0){
+				Serial.println("Couldn't parse function to assign for write");
+				return false;
+			}
+			return true;
+		}
 	}
 	ADDRTYPE getType(){
 		return target->type;
 	}
 	uint8_t readB(){
+		if (text!= 0){
+			writeText();
+			return 0;
+		}
 		uint8_t val = valFunc->readB();
 
 		Controller::Controlled* targetMod = controller->getControlled(target->modID);
@@ -627,6 +669,10 @@ class WriteFunc:public Func{
 		return val;
 	}
 	uint16_t readU(){
+		if (text!= 0){
+			writeText();
+			return 0;
+		}
 		uint16_t val = valFunc->readU();
 		Controller::Controlled* targetMod = controller->getControlled(target->modID);
 		if (targetMod == 0)
@@ -635,6 +681,10 @@ class WriteFunc:public Func{
 		return val;
 	}
 	int16_t readI(){
+		if (text!= 0){
+			writeText();
+			return 0;
+		}
 		int16_t val = valFunc->readI();
 		Controller::Controlled* targetMod = controller->getControlled(target->modID);
 		if (targetMod == 0)
@@ -643,6 +693,10 @@ class WriteFunc:public Func{
 		return val;
 	}
 	int32_t readL(){
+		if (text!= 0){
+			writeText();
+			return 0;
+		}
 		int32_t val = valFunc->readL();
 		Controller::Controlled* targetMod = controller->getControlled(target->modID);
 		if (targetMod == 0)
@@ -651,6 +705,10 @@ class WriteFunc:public Func{
 		return val;
 	}
 	float readF(){
+		if (text!= 0){
+			writeText();
+			return 0;
+		}
 		float val = valFunc->readF();
 		Controller::Controlled* targetMod = controller->getControlled(target->modID);
 		if (targetMod == 0)
@@ -659,6 +717,10 @@ class WriteFunc:public Func{
 		return val;
 	}
 	double readD(){
+		if (text!= 0){
+			writeText();
+			return 0;
+		}
 		double val = valFunc->readD();
 		Controller::Controlled* targetMod = controller->getControlled(target->modID);
 		if (targetMod == 0)
@@ -667,6 +729,10 @@ class WriteFunc:public Func{
 		return val;
 	}
 	uint32_t readT(){
+		if (text!= 0){
+			writeText();
+			return 0;
+		}
 		uint32_t val = valFunc->readT();
 		Controller::Controlled* targetMod = controller->getControlled(target->modID);
 		if (targetMod == 0)
@@ -685,11 +751,20 @@ class WriteFunc:public Func{
 			delete target;
 		if (valFunc!=0)
 			delete valFunc;
+		if (text!=0)
+			delete text;
 	};
 
 	private:
+		void writeText(){
+			Controller::Controlled* targetMod = controller->getControlled(target->modID);
+			if (targetMod == 0)
+				return;
+			targetMod->write(*target,text);
+		}
 		Func* valFunc=0;
 		ADDR1* target=0;
+		char* text=0;
 };
 
 class TimeFunc:public Func{
@@ -700,25 +775,25 @@ class TimeFunc:public Func{
 		return A_TIME;
 	}
 	uint8_t readB(){
-		return (uint8_t) ControlledCalc::time;
+		return (uint8_t) Controller::lastProcessedMSTime;
 	}
 	uint16_t readU(){
-		return (uint16_t) ControlledCalc::time;
+		return (uint16_t) Controller::lastProcessedMSTime;
 	}
 	int16_t readI(){
-		return (int16_t) ControlledCalc::time;
+		return (int16_t) Controller::lastProcessedMSTime;
 	}
 	int32_t readL(){
-		return (int32_t) ControlledCalc::time;
+		return (int32_t) Controller::lastProcessedMSTime;
 	}
 	float readF(){
-		return (float) ControlledCalc::time;
+		return (float) Controller::lastProcessedMSTime;
 	}
 	double readD(){
-		return (double) ControlledCalc::time;
+		return (double) Controller::lastProcessedMSTime;
 	}
 	uint32_t readT(){
-		return (uint32_t) ControlledCalc::time;
+		return (uint32_t) Controller::lastProcessedMSTime;
 	}
 
 	const char* getName(){
@@ -936,6 +1011,7 @@ public:
 			case A_FLOAT: return  evalF();
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -948,6 +1024,7 @@ public:
 			case A_FLOAT: return  evalF();
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -960,6 +1037,7 @@ public:
 			case A_FLOAT: return  evalF();
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -972,6 +1050,7 @@ public:
 			case A_FLOAT: return  evalF();
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -984,6 +1063,7 @@ public:
 			case A_FLOAT: return  evalF();
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -996,6 +1076,7 @@ public:
 			case A_FLOAT: return  evalF();
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -1008,6 +1089,7 @@ public:
 			case A_FLOAT: return  evalF();
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
+			case A_STRING: return 0;
 		}
 		return 0;
 	}
@@ -1373,6 +1455,89 @@ private:
 
 };
 
+class ColorFunc:public Func{
+
+	uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
+		return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+	}
+
+
+	bool parse(uint16_t &pointer,char* text){
+
+	r = createFunc(pointer,text,controller);
+		if (r == 0 ){
+			Serial.println("Failed to parse red");
+			return false;
+		}
+		pointer++;
+	g = createFunc(pointer,text,controller);
+		if (g == 0 ){
+			delete r;
+			r = 0;
+			Serial.println("Failed to parse green");
+			return false;
+		}
+		pointer++;
+	b = createFunc(pointer,text,controller);
+		if (b == 0 ){
+			delete r;
+			r = 0;
+			delete g;
+			g = 0;
+			Serial.println("Failed to parse blue");
+			return false;
+		}
+		pointer++;
+		return true;
+	}
+	ADDRTYPE getType(){
+		return A_UINT;
+	}
+	uint8_t readB(){
+		return (uint8_t) 0;
+	}
+	uint16_t readU(){
+		return  color565(r->readB(),g->readB(),b->readB());
+	}
+	int16_t readI(){
+		return (int16_t) 0;
+	}
+	int32_t readL(){
+		return (int32_t)  readU();
+	}
+	float readF(){
+		return (float)  readU();
+	}
+	double readD(){
+		return (double)  readU();
+	}
+	uint32_t readT(){
+		return (uint32_t)  readU();
+	}
+
+	const char* getName(){
+		return "color565";
+	}
+
+	~ColorFunc(){
+		if (r!=0)
+			delete r;
+		if (g!=0)
+			delete g;
+		if (b!=0)
+			delete b;
+	};
+
+private:
+
+
+
+	Func *r=0;
+	Func *g=0;
+	Func *b=0;
+
+};
+
 class NegateFunc:public Func{
 
 
@@ -1429,6 +1594,7 @@ private:
 class CastFunc:public Func{
 
 	bool parse(uint16_t &pointer,char* text){
+
 		if (!ADDR1::parseType(type,text[pointer]))
 				return false;
 		pointer++;
@@ -1742,8 +1908,9 @@ Func* createFunc(uint16_t &pointer,char* text, Controller *controller){
 		case '-':res = new NegateFunc(); break;
 		case 'i':res = new InterpFunc(); break;
 		case 'c':res = new CastFunc(); break;
+		case '[':res = new ColorFunc(); break;
 
-		default: return 0;
+		default: Serial.print("Unrecognized function type:");Serial.println(text[pointer]);return 0;
 	}
 
 	pointer++;

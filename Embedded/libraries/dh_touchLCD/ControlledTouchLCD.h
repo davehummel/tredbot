@@ -1,360 +1,882 @@
 #ifndef DH_CONTROLLEDTOUCHLCD_H__
 #define DH_CONTROLLEDTOUCHLCD_H__
 #include "dh_controller.h"
+#include "SPI.h"
+#include "ILI9341_t3.h"
+#include <XPT2046_Touchscreen.h>
+#include "CTFont.h"
 
 //#define DEBUG ON
 
-class Func{
-	public:
-	virtual bool parse(uint16_t &pointer,char* text)=0;
-	virtual ADDRTYPE getType()=0;
-	virtual uint8_t readB()=0;
-	virtual uint16_t readU()=0;
-	virtual int16_t readI()=0;
-	virtual int32_t readL()=0;
-	virtual float readF()=0;
-	virtual double readD()=0;
-	virtual uint32_t readT()=0;
-	virtual bool simplify(Func* (&better) ){
-		return false;
-	}
-	virtual const char* getName(){
-		return "No Name";
-	}
-	virtual ~Func(){};
-	Controller* controller=0;
+#define CS_PIN  17
 
-};
+#define TFT_DC      20
+#define TFT_CS      15
+#define TFT_RST    255  // 255 = unused, connect to 3.3V
+#define TFT_MOSI     11
+#define TFT_SCLK    14
+#define TFT_MISO    12
+#define TFT_PWM 25
 
-Func* createFunc(uint16_t &pointer,char* text, Controller* controller);
+#define MAX_DRAW 50
+#define MAX_TEXT_LEN 64
 
-class ISeg{
-	public:
+#define CLEAR_WIDTH 5
+#define CLEAR_COUNT 64
 
-	static ISeg* interpRoots[MAX_INTERPS];
+#define TS_MINX 350
+#define TS_MINY 200
+#define TS_MAXX 3700
+#define TS_MAXY 3800
 
-	static ISeg* parse(uint16_t &pointer,char* command, Controller* controller);
+uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
+	return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+}
 
-	static ISeg* getNext(ISeg* prev,uint16_t &pointer,char* command, Controller* controller);
-
-	static double eval(ISeg* startSeg,double inX,uint32_t time);
-
-	static void del(ISeg* start);
-
-	virtual void updateSeg(){
-		 // nothing to do here since we return the immediate value.
-	};
-
-	virtual double calculate(double xTarget){
-		return getY1();
-	};
-
-	double interpolate(double xTarget){
-		if (expiredCurve){
-			#ifdef DEBUG
-			Serial.println("Updating Segment");
-			#endif
-			updateSeg();
-			expiredCurve = false;
-		}
-			#ifdef DEBUG
-			double y = calculate(xTarget);
-			Serial.print("intepolated x=");
-			Serial.print(xTarget);
-			Serial.print(" y=");
-			Serial.println(y);
-			return y;
-			#else
-			return calculate(xTarget);
-			#endif
-	}
-	
-	double getX0(){
-		if (expiredX0){
-			x0 = fx0->readD();
-			expiredX0 = false;
-		}
-		return x0;
-	}
-
-	double getX1(){
-		if (expiredX1){
-			x1 = fx1->readD();
-			expiredX1 = false;
-		}
-		return x1;
-	}
-
-	double getY0(){
-		if (expiredY0){
-			y0 = fy0->readD();
-			expiredY0 = false;
-		}
-		return y0;
-	}
-
-	double getY1(){
-		if (expiredY1){
-			y1 = fy1->readD();
-			expiredY1 = false;
-		}
-		return y1;
-	}
-
-	void validate(uint32_t time){
-		if (time < expTime)
-			return;
-		expTime = time + expDur;
-
-		expiredCurve = true;
-		expiredX0 = true;
-		expiredX1 = true;
-		expiredY0 = true;
-		expiredY1 = true;
-	}
-
-	virtual ~ISeg(){
-		if (fx0 != 0)
-			delete fx0;
-		if (fx1 != 0)
-			delete fx1;
-		if (fy0 != 0)
-			delete fy0;
-		if (fy1 != 0)
-			delete fy1;
-	}
-
-	void decoupleFront(){
-		fx1 = 0;
-		fy1 = 0;
-		next = 0;
-	}
-
-	protected:
-		uint32_t expDur = 1000;
-		uint32_t expTime = 0;
-		ISeg* prev;
-		ISeg* next;
-
-		bool expiredCurve = true;
-		bool expiredX0 = true;
-		bool expiredY0 = true;
-		bool expiredX1 = true;
-		bool expiredY1 = true;
-		double x0;
-		double x1;
-		double y0;
-		double y1;
-		Func* fx0;
-		Func* fx1;
-		Func* fy0;
-		Func* fy1;
-
-};
-
-
-
-
-class ControlledCalc: public Controller::Controlled{
+class BoundNum {
 public:
 
-	uint8_t readB(ADDR1 addr,uint8_t addr2){
-		Func* func = 0;
-		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else 
-				return func->readB();
-		}
-		uint8_t num;
-		if (getVar(num,addr)){
-			return bVars[num];
+		bool parse(uint16_t &pointer,char* text, Controller* controller){
+	 	if (text[pointer] == '$'){
+			pointer++;
+			ADDR1 temp(pointer,text);
+			addr1 = temp;
+			if (text[pointer]=='.'){
+				pointer++;
+				if (!Controller::parse_uint8(addr2,pointer,text)){
+					Serial.println("Expected addr2 number");
+					return false;
+				}
+			}else{
+				addr2 = 0;
+			}
+
+
+			module = controller->getControlled(addr1.modID);
+
+
+			if (module == 0 ){
+				Serial.print("Failed to find controlled module:");
+				Serial.println(addr1.modID);
+				return false;
+			}		
+			#ifdef DEBUG
+			Serial.println("Parsed numeric variable");
+			#endif
+			return true;
 		}else{
-			if (addr.addr == TIME_VARCONST)
-				return time;
-			return 0;
+			if (!Controller::parse_uint16(val,pointer,text)){
+				Serial.print(text[pointer]);
+				Serial.println("Unable to parse number");
+				return false;
+			}
+			return true;
 		}
+	
 	}
-	uint16_t readU(ADDR1 addr,uint8_t addr2){
-		Func* func = 0;
-		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else 
-				return func->readU();
+
+	bool update(){
+		if (module == 0)
+			return false;
+		uint16_t temp = 0;
+		switch ( addr1.type){
+			case A_BYTE: temp = (module->readB(addr1,addr2)); break;
+			case A_UINT: temp = (module->readU(addr1,addr2)); break;
+			case A_INT: temp = (module->readI(addr1,addr2)); break;
+			case A_LONG: temp = (module->readL(addr1,addr2)); break;
+			case A_FLOAT: temp = (module->readF(addr1,addr2)); break;
+			case A_DOUBLE: temp = (module->readD(addr1,addr2)); break;
+			case A_TIME: temp = (module->readT(addr1,addr2)); break;
+			case A_STRING: temp = 0; break;
 		}
-		uint8_t num;
-		if (getVar(num,addr)){
-			return uVars[num];
-		}else{
-			if (addr.addr == TIME_VARCONST)
-				return time;
-			return 0;
+
+		if (temp != val){
+			val = temp;
+			return true;
 		}
+		return false;
 	}
-	int16_t readI(ADDR1 addr,uint8_t addr2){
-		Func* func = 0;
-		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else 
-				return func->readI();
-		}
-		uint8_t num;
-		if (getVar(num,addr)){
-			return iVars[num];
-		}else{
-			if (addr.addr == TIME_VARCONST)
-				return time;
-			return 0;
-		}
+
+	uint16_t getVal(){
+		return val;
 	}
-	int32_t readL(ADDR1 addr,uint8_t addr2){
-		Func* func = 0;
-		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else 
-				return func->readL();
+
+	Controller::Controlled* module=0;
+	ADDR1 addr1;
+	uint8_t addr2 = 0;
+
+	uint16_t val;
+};
+
+class BoundText: public Print {
+public:
+	bool parse(uint16_t &pointer,char* text, Controller* controller){
+		constText[0] = '\0';
+		if (text[pointer]=='"'){
+
+			pointer++;
+			int i;
+			for (i = 0; i < MAX_TEXT_LEN ; i++){
+				
+				if (i == MAX_TEXT_LEN - 1){
+					constText[i] = '\0';
+				}else{
+					constText[i] = text[pointer+i];
+					if (constText[i]=='"'){
+						constText[i] = '\0';
+						break;
+					}
+				}
+			}
+			#ifdef DEBUG
+			Serial.print("Parsed text:");
+			Serial.println(constText);
+			#endif
+			pointer+=i+1;
+			module = 0;
+			addr2 = 0;
+			return true;
+		}else if (text[pointer] == '$'){
+			pointer++;
+			ADDR1 temp(pointer,text);
+			addr1 = temp;
+			if (text[pointer]=='.'){
+				pointer++;
+				if (!Controller::parse_uint8(addr2,pointer,text)){
+					Serial.println("Expected addr2 number");
+					return false;
+				}
+			}else{
+				addr2 = 0;
+			}
+
+
+			module = controller->getControlled(addr1.modID);
+
+
+			if (module == 0 ){
+				Serial.print("Failed to find controlled module:");
+				Serial.println(addr1.modID);
+				return false;
+			}		
+			#ifdef DEBUG
+			Serial.println("Parsed text variable");
+			#endif
+			return true;
 		}
-		uint8_t num;
-		if (getVar(num,addr)){
-			return lVars[num];
-		}else{
-			if (addr.addr == TIME_VARCONST)
-				return time;
-			return 0;
-		}
+		Serial.println("Requires either \" or $");
+		return false;
 	}
-	float readF(ADDR1 addr,uint8_t addr2){
-		Func* func = 0;
-		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else 
-				return func->readF();
+
+	bool update(){
+		if (module == 0 )
+			return false;
+		compPointer = 0;
+		changed = false;
+		switch ( addr1.type){
+			case A_BYTE: print(module->readB(addr1,addr2)); break;
+			case A_UINT: print(module->readU(addr1,addr2)); break;
+			case A_INT: print(module->readI(addr1,addr2)); break;
+			case A_LONG: print(module->readL(addr1,addr2)); break;
+			case A_FLOAT: print(module->readF(addr1,addr2)); break;
+			case A_DOUBLE: print(module->readD(addr1,addr2)); break;
+			case A_TIME: print(module->readT(addr1,addr2)); break;
+			case A_STRING: print(module->readS(addr1,addr2)); break;
 		}
-		uint8_t num;
-		if (getVar(num,addr)){
-			return fVars[num];
-		}else{
-			if (addr.addr == TIME_VARCONST)
-				return time;
-			return 0;
-		}
+		constText[compPointer]='\0';
+		return changed;
+
 	}
-	double readD(ADDR1 addr,uint8_t addr2){
-		Func* func = 0;
-		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else 
-				return func->readD();
-		}
-		uint8_t num;
-		if (getVar(num,addr)){
-			return dVars[num];
-		}else{
-			if (addr.addr == TIME_VARCONST)
-				return time;
-			return 0;
-		}
+
+	size_t write(uint8_t c){
+		changed |= (constText[compPointer]!=c);
+		constText[compPointer] = c;
+		compPointer++;
+		return 1;
 	}
-	uint32_t readT(ADDR1 addr,uint8_t addr2){
-		Func* func = 0;
-		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else 
-				return func->readT();
+
+	void printVal(ILI9341_t3 *tft){
+			tft->print(constText);
+			return;
+	
+	}
+
+	virtual ~BoundText(){
+	}
+
+	Controller::Controlled* module;
+	ADDR1 addr1;
+	uint8_t addr2 = 0;
+
+	char constText[64] ;
+	bool changed = false;
+	uint8_t compPointer = 0;
+
+};
+
+class Drawable{
+	public:
+	virtual bool parse(uint16_t &pointer,char* text, Controller* controller)=0;
+	virtual void draw(ILI9341_t3 *tft) = 0;
+	bool update(){
+		if (firstDraw){
+			_update();
+			firstDraw = false;
+			return true;
 		}
-		uint8_t num;
-		if (getVar(num,addr)){
-			return tVars[num];
+		return _update();
+	}
+	virtual bool _update()=0;
+	virtual bool inBounds(uint16_t x, uint16_t y) {
+		return false;
+	};
+
+	virtual ~Drawable(){};
+
+	uint16_t x = 0;
+	uint16_t y = 0;
+
+	bool firstDraw = true;
+
+};
+
+class TextDrawable: public Drawable{
+public:
+	void setButton(bool isB){
+		isButton = isB;
+	}
+
+	bool parse(uint16_t &pointer,char* text,Controller* controller){
+		if (isButton){
+			if (!Controller::parse_uint16(bWidth,pointer,text)){
+				Serial.println("Couldnt read button width");
+				return false;
+			}
+			pointer++;
+			if (!Controller::parse_uint16(bHeight,pointer,text)){
+				Serial.println("Couldnt read button height");
+				return false;
+			}
+			pointer++;
+		}		
+
+		if (text[pointer] == 'B'){
+			bold = true;
+			pointer++;
+		}
+
+		if (!Controller::parse_uint8(size,pointer,text)){
+			Serial.println("Couldnt read font size");
+			return false;
+		}
+		switch(size){
+			case 8: font = &(bold?LiberationSans_8_Bold:LiberationSans_8);break;
+			case 9: font = &(bold?LiberationSans_9_Bold:LiberationSans_9);break;
+			case 10: font = &(bold?LiberationSans_10_Bold:LiberationSans_10);break;
+			case 11: font = &(bold?LiberationSans_11_Bold:LiberationSans_11);break;
+			case 12: font = &(bold?LiberationSans_12_Bold:LiberationSans_12);break;
+			case 13: font = &(bold?LiberationSans_13_Bold:LiberationSans_13);break;
+			case 14: font = &(bold?LiberationSans_14_Bold:LiberationSans_14);break;
+			case 16: font = &(bold?LiberationSans_16_Bold:LiberationSans_16);break;
+			case 18: font = &(bold?LiberationSans_18_Bold:LiberationSans_18);break;
+			case 20: font = &(bold?LiberationSans_20_Bold:LiberationSans_20);break;
+			case 24: font = &(bold?LiberationSans_24_Bold:LiberationSans_24);break;
+			default:
+			Serial.println("Bad Font size.  Use 8,9,10,11,12,13,14,16,18,20,24");
+			return false;
+		}
+
+		pointer++;
+
+		if (!label.parse(pointer,text,controller)){
+			Serial.println("Text could not read text component");
+			return false;
+		}
+
+		pointer++;
+
+		if (!fgR.parse(pointer,text,controller)){
+			Serial.println("Text could not read red foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgG.parse(pointer,text,controller)){
+			Serial.println("Text could not read green foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgB.parse(pointer,text,controller)){
+			Serial.println("Text could not read blue foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgR.parse(pointer,text,controller)){
+			Serial.println("Text could not read red background component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgG.parse(pointer,text,controller)){
+			Serial.println("Text could not read green background component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgB.parse(pointer,text,controller)){
+			Serial.println("Text could not read blue background component");
+			return false;
+		}
+
+
+		
+		return true;
+	}
+	void draw(ILI9341_t3 *tft){
+		tft->setFont(*font);
+		tft->setTextColor(fg);
+			if (isButton){
+				tft->fillRect(x, y, bWidth, bHeight, bg);
+				tft->drawRect(x, y, bWidth, bHeight, fg);
+				tft->setCursor(x+2,y+(bHeight-size)/3);
+				label.printVal(tft);
+			} else {
+				if (lastW>0){
+					tft->fillRect(x, y, lastW, size+size/4, bg);
+				}
+		
+				tft->setCursor(x,y);
+				#ifdef DEBUG
+				Serial.println("Printing label");
+				#endif
+				label.printVal(tft);
+				lastW = tft->getCursorX()-x;
+			}
+
+	}
+	bool _update(){
+		bool changed = false;
+		changed |=fgR.update();
+		changed |=fgG.update();
+		changed |=fgB.update();
+
+		changed |=bgR.update();
+		changed |=bgG.update();
+		changed |=bgB.update();
+
+
+			fg = color565((uint8_t)fgR.getVal(),(uint8_t)fgG.getVal(),(uint8_t)fgB.getVal());
+			bg = color565((uint8_t)bgR.getVal(),(uint8_t)bgG.getVal(),(uint8_t)bgB.getVal());
+
+
+
+		changed |=label.update();
+
+		return changed;
+
+	}
+
+	bool inBounds(uint16_t _x, uint16_t _y) {
+		if (isButton){
+			if (_x>x && _x-x < bWidth){
+				if (_y>y && _y-y < bHeight)
+					return true;
+			}
+		} else{
+			if (_x>x && _x-x < lastW){
+				if (_y>y && _y-y < size + size / 4)
+					return true; 
+			}
+		}
+		return false;
+	};
+
+	~TextDrawable(){
+
+	}
+private:
+	bool bold = false;
+	uint8_t size = 0;
+	const ILI9341_t3_font_t *font = 0;
+	BoundText label ;
+	BoundNum fgR,fgG, fgB ;
+	BoundNum bgR , bgG , bgB;
+	uint16_t fg=0,bg=0;
+	uint16_t lastW = 0;
+	uint16_t bWidth,bHeight;
+	bool isButton= false;
+};
+
+class RectDrawable: public Drawable{
+public:
+	bool parse(uint16_t &pointer,char* text,Controller* controller){
+
+		if (text[pointer] == 'R'){
+			pointer++;
+			if (!Controller::parse_uint8(rounded,pointer,text)){
+				Serial.println("Couldnt read rounded");
+				return false;
+			}
+			pointer++;
+		}
+		
+		if (!Controller::parse_uint16(w,pointer,text)){
+			Serial.println("Couldnt read width");
+			return false;
+		}
+
+		pointer++;
+
+		if (!Controller::parse_uint16(h,pointer,text)){
+			Serial.println("Couldnt read height");
+			return false;
+		}
+
+		pointer++;
+
+		if (!fgR.parse(pointer,text,controller)){
+			Serial.println("Text could not read red foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgG.parse(pointer,text,controller)){
+			Serial.println("Text could not read green foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgB.parse(pointer,text,controller)){
+			Serial.println("Text could not read blue foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgR.parse(pointer,text,controller)){
+			Serial.println("Text could not read red background component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgG.parse(pointer,text,controller)){
+			Serial.println("Text could not read green background component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgB.parse(pointer,text,controller)){
+			Serial.println("Text could not read blue background component");
+			return false;
+		}
+
+
+		
+		return true;
+	}
+	void draw(ILI9341_t3 *tft){
+		if (rounded==0){
+			tft->fillRect(x, y, w, h, bg);
+		
+			if (bg!=fg ){
+
+				tft->drawRect(x, y, w, h, fg);
+			}
 		}else{
-			if (addr.addr == TIME_VARCONST)
-				return time;
-			return 0;
+	
+			tft->fillRoundRect(x, y, w, h, rounded, bg);
+		
+			if (bg!=fg ){
+
+				tft->drawRoundRect(x, y, w, h, rounded, fg);
+			}
 		}
+
+	}
+	bool _update(){
+		bool changed = false;
+
+		changed |=fgR.update();
+		changed |=fgG.update();
+		changed |=fgB.update();
+
+		changed |=bgR.update();
+		changed |=bgG.update();
+		changed |=bgB.update();
+
+
+
+			fg = color565((uint8_t)fgR.getVal(),(uint8_t)fgG.getVal(),(uint8_t)fgB.getVal());
+			bg = color565((uint8_t)bgR.getVal(),(uint8_t)bgG.getVal(),(uint8_t)bgB.getVal());
+
+
+		return changed;
+
+	}
+
+private:
+	uint8_t rounded = 0;
+
+	BoundNum fgR,fgG, fgB ;
+	BoundNum bgR , bgG , bgB;
+	uint16_t fg=0,bg=0;
+	uint16_t w,h = 0;
+
+};
+
+class CircleDrawable: public Drawable{
+public:
+	bool parse(uint16_t &pointer,char* text,Controller* controller){
+
+		
+		if (!Controller::parse_uint16(w,pointer,text)){
+			Serial.println("Couldnt read radius");
+			return false;
+		}
+
+		pointer++;
+
+		if (!fgR.parse(pointer,text,controller)){
+			Serial.println("Text could not read red foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgG.parse(pointer,text,controller)){
+			Serial.println("Text could not read green foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgB.parse(pointer,text,controller)){
+			Serial.println("Text could not read blue foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgR.parse(pointer,text,controller)){
+			Serial.println("Text could not read red background component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgG.parse(pointer,text,controller)){
+			Serial.println("Text could not read green background component");
+			return false;
+		}
+				pointer++;
+
+		if (!bgB.parse(pointer,text,controller)){
+			Serial.println("Text could not read blue background component");
+			return false;
+		}
+
+
+		
+		return true;
+	}
+	void draw(ILI9341_t3 *tft){
+	
+			tft->fillCircle(x, y, w, bg);
+		
+			if (bg!=fg ){
+
+				tft->drawCircle(x, y, w, fg);
+			}
+		
+	}
+	bool _update(){
+		bool changed = false;
+
+		changed |=fgR.update();
+		changed |=fgG.update();
+		changed |=fgB.update();
+
+		changed |=bgR.update();
+		changed |=bgG.update();
+		changed |=bgB.update();
+
+
+
+			fg = color565((uint8_t)fgR.getVal(),(uint8_t)fgG.getVal(),(uint8_t)fgB.getVal());
+			bg = color565((uint8_t)bgR.getVal(),(uint8_t)bgG.getVal(),(uint8_t)bgB.getVal());
+
+
+		return changed;
+
+	}
+
+private:
+
+	BoundNum fgR,fgG, fgB ;
+	BoundNum bgR , bgG , bgB;
+	uint16_t fg=0,bg=0;
+	uint16_t w = 0;
+
+};
+
+class LineDrawable: public Drawable{
+public:
+	bool parse(uint16_t &pointer,char* text,Controller* controller){
+
+		if (text[pointer] == 'X'){
+			horiz = true;
+			pointer++;
+		} else if (text[pointer] == 'Y'){
+			horiz = false;
+			pointer++;
+		} else {
+			Serial.print("L must be followed by X or Y for horiz or vert lines : ");
+			Serial.println(text[pointer]);
+			return false;
+		}
+		
+		if (!Controller::parse_uint16(w,pointer,text)){
+			Serial.println("Couldnt read radius");
+			return false;
+		}
+
+		pointer++;
+
+		if (!fgR.parse(pointer,text,controller)){
+			Serial.println("Text could not read red foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgG.parse(pointer,text,controller)){
+			Serial.println("Text could not read green foreground component");
+			return false;
+		}
+				pointer++;
+
+		if (!fgB.parse(pointer,text,controller)){
+			Serial.println("Text could not read blue foreground component");
+			return false;
+		}
+
+		return true;
+	}
+	void draw(ILI9341_t3 *tft){
+		
+	
+			if (horiz){
+				tft->drawFastHLine(x,y,w,fg);
+			}else{
+				tft->drawFastVLine(x,y,w,fg);
+			}
+		
+	}
+	bool _update(){
+		bool changed = false;
+
+		changed |=fgR.update();
+		changed |=fgG.update();
+		changed |=fgB.update();
+
+			fg = color565((uint8_t)fgR.getVal(),(uint8_t)fgG.getVal(),(uint8_t)fgB.getVal());
+
+
+		return changed;
+
+	}
+
+private:
+
+	BoundNum fgR,fgG, fgB ;
+	uint16_t fg=0;
+	uint16_t w = 0;
+	bool horiz;
+
+};
+
+class ControlledTouchLCD: public Controller::Controlled{
+public:
+
+	char* readS(ADDR1 addr,uint8_t addr2){
+		return 0;
 	}
 
 	void write(ADDR1 addr,uint8_t val){
-		uint8_t num;
-		if (getVar(num,addr)){
-			bVars[num] = val;
-			return;
-		}	
+
+		switch (addr.addr%26){
+			case 1:
+				analogWrite(TFT_PWM,val);
+				break;
+			case 17:
+				tft->setRotation(val);
+				break;
+		}
 	}
 
 	void write(ADDR1 addr,uint16_t val){
-		uint8_t num;
-		if (getVar(num,addr)){
-			uVars[num] = val;
-			return;
-		}	
+		bgColor = val;
 	}
 
-	void write(ADDR1 addr,int16_t val){
-		uint8_t num;
-		if (getVar(num,addr)){
-			iVars[num] = val;
-			return;
-		}	
+	int16_t readI(ADDR1 addr,uint8_t addr2){
+		if (addr2 == 0)
+			return touchX;
+		else if (addr2 == 1)
+			return touchY;
+		return 0;
 	}
 
-	void write(ADDR1 addr,int32_t val){
-		uint8_t num;
-		if (getVar(num,addr)){
-			lVars[num] = val;
-			return;
-		}	
+	uint8_t readB(ADDR1 addr,uint8_t addr2){
+		return lastButtonID;
 	}
 
-	void write(ADDR1 addr,float val){
-		uint8_t num;
-		if (getVar(num,addr)){
-			fVars[num] = val;
-			return;
-		}	
+
+	uint32_t readT(ADDR1 addr,uint8_t addr2){
+		return lastButtonTime;
 	}
 
-	void write(ADDR1 addr,double val){
-		uint8_t num;
-		if (getVar(num,addr)){
-			dVars[num] = val;
-			return;
-		}	
-	}
 
-	void write(ADDR1 addr,uint32_t val){
-		uint8_t num;
-		if (getVar(num,addr)){
-			tVars[num] = val;
-			return;
-		}	
-	}
+
 
 	void begin(void){
-	
+		tft = new ILI9341_t3(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
+		ts = new XPT2046_Touchscreen(CS_PIN);
+		pinMode(TFT_PWM,OUTPUT);
+		digitalWrite(TFT_PWM,LOW);
+		tft->begin();
+		ts->begin();
+		tft->setTextWrap(false);
 	}
-	bool transmit(Logger* logger,uint32_t _time,uint32_t instID, uint8_t width, uint8_t length,ADDR1** addr1Array,uint8_t addr2Offset){
-		time = _time;
 
-		return Controlled::transmit(logger,_time,instID,width,length,addr1Array,addr2Offset);
-	}
 	void execute(uint32_t _time,uint32_t id,char command[]){
-
-		time = _time;
-
-		if (command[0] == 'S' && command[1] == 'E' && command[2] == 'T'){
-			set(command);
-		} else if (command[0] == 'F' && command[1] == 'U' && command[2] == 'N'){
-			fun(command);
-		} else if (command[0] == 'E' && command[1] == 'X' && command[2] == 'E'){
-			exe(command);
-		} else if (command[0] == 'I' && command[1] == 'N' && command[2] == 'T'){
-			interp(command);
+		if (command[0] == 'c' || command[0] == 'C'){
+			#ifdef DEBUG
+			Serial.println("Clearing!");
+			#endif
+			if (command[1] == 'a' || command[1] == 'A'){
+				#ifdef DEBUG
+					Serial.println("And removing renderables!");
+				#endif
+					for (uint8_t i = 0; i < MAX_DRAW ; i++){
+						if (items[i] != 0 ){
+							delete items[i];
+							items[i] = 0;
+						}
+					}
+			} else {
+					for (uint8_t i = 0; i < MAX_DRAW ; i++){
+						if (items[i] != 0 ){
+							items[i]->firstDraw = true;
+						}
+					}
+			}
+			clearCycle = 0;
+			return;
 		}
+		if (command[0] == 'd' || command[0] == 'D'){
+			#ifdef DEBUG
+			Serial.println("Drawing!");
+			#endif
+			boolean istouched = ts->touched();
+			if (istouched) {
+			    TS_Point p = ts->getPoint();
+
+  				 switch(tft->getRotation()){
+  				 	case 0:{
+  				 		uint16_t temp = p.x;
+  				 		p.x = p.y;
+  				 		p.y = temp;
+  				 		p.x = map(p.x, TS_MINX, TS_MAXX,  tft->width(),0);
+  				 		p.y = map(p.y, TS_MINY, TS_MAXY, 0, tft->height());
+  				 		break;
+  				 	}
+  				 	case 1:{
+  				 		p.x = map(p.x, TS_MINX, TS_MAXX,  0,tft->width());
+  				 		p.y = map(p.y, TS_MINY, TS_MAXY, 0, tft->height());
+  				 		break;
+  				 	}
+  				 	case 2:{
+  				 		uint16_t temp = p.x;
+  				 		p.x = p.y;
+  				 		p.y = temp;
+  				 		p.x = map(p.x, TS_MINX, TS_MAXX, 0, tft->width());
+  				 		p.y = map(p.y, TS_MINY, TS_MAXY,  tft->height(),0);
+  				 		break;
+  				 	}
+  				 	 case 3:{
+  				 		p.x = map(p.x, TS_MINX, TS_MAXX,  tft->width(),0);
+  				 		p.y = map(p.y, TS_MINY, TS_MAXY, tft->height(),0);
+  				 		break;
+  				 	}
+  				 }
+  				touchX = p.x;
+  				touchY = p.y;
+			    draw(true,_time);
+			}else{
+				 touchX = -1;
+  				touchY = -1;
+				draw(false,_time);
+			}
+			
+			return;
+		}
+
+		if (command[0]>= '0' && command[0] <= '9'){
+			#ifdef DEBUG
+			Serial.println("Adding item!");
+			#endif
+			uint8_t zID = 0;
+			uint16_t x = 0;
+			uint16_t y = 0;
+
+			uint16_t pointer = 0;
+
+			if (!Controller::parse_uint8(zID,pointer,command) ){
+				Serial.println("Unable to parse zID number first");
+				return ;
+			}
+			if (zID > MAX_DRAW){
+				Serial.println("zID is to large");
+				return ;
+			}
+			if (items[zID]!=0){
+				#ifdef DEBUG
+				Serial.print("Deleted item :");
+				Serial.println(zID);
+				#endif
+				delete items[zID];
+				items[zID]  = 0;
+			}
+			if (command[pointer]=='\0')
+				return;
+			pointer++;
+			if (!Controller::parse_uint16(x,pointer,command) ){
+				Serial.println("Unable to parse x position");
+				return ;
+			}
+			pointer++;
+			if (!Controller::parse_uint16(y,pointer,command) ){
+				Serial.println("Unable to parse y position");
+				return ;
+			}
+			pointer++;
+			switch (command[pointer]){
+				case 'T': items[zID]  =  new TextDrawable(); break;
+				case 'B': items[zID]  =  new TextDrawable();((TextDrawable*)items[zID])->setButton(true); break;
+				case 'R': items[zID]  =  new RectDrawable(); break;
+				case 'C': items[zID]  =  new CircleDrawable(); break;
+				case 'L': items[zID]  =  new LineDrawable(); break;
+				default: Serial.println("Unknown renderable type"); return;
+			}
+			items[zID] -> x = x;
+			items[zID] -> y = y;
+			pointer+=2;
+			if (!items[zID]->parse(pointer,command,controller)){
+				Serial.println("Failed to parse renderable");
+				delete items[zID];
+				items[zID] = 0;
+				return;
+			}
+			return;
+		}
+		Serial.println("Failed to process Display request");
+
 	}
 
 	void startSchedule(char command[], uint32_t id){
@@ -365,194 +887,75 @@ public:
 		
 	}
 
-
-
-	static uint32_t time;
-
 private:
-	bool getFunc(Func* (&match),ADDR1 addr1, uint8_t addr2){
-		char temp[3];
-		addr1.getChars(temp);
-		if (temp[0] == 'F' && temp[1] == 'N'){
-			uint8_t modID = temp[2] - 'A';
-			if (functions[modID] == 0){
-				match = 0;
-				return true;
-			} else {
-				Func** mid = functions[modID];
-	
-				match = mid[addr2];
-				return true;
+
+	void draw(bool isTouch, uint32_t _time){
+		if (clearCycle<CLEAR_COUNT){
+			#ifdef DEBUG
+			Serial.println("Clearing background");
+			#endif
+			if (tft->width()>tft->height()){
+				tft->fillRect(clearCycle*CLEAR_WIDTH,0,CLEAR_WIDTH,240,bgColor);
+			}else{
+				tft->fillRect(0,clearCycle*CLEAR_WIDTH,240,CLEAR_WIDTH,bgColor);
+			}
+			clearCycle++;
+			return;
+		}
+
+		uint8_t step = drawCycle;
+		while(true){
+
+			if (items[step]!=0){
+				#ifdef DEBUG
+					Serial.print("Drawing ");
+					Serial.println(step);
+				#endif
+				if (items[step]->update()){
+					items[step]->draw(tft);
+				}
+				break;
+			}else{
+				step++;
+				if (step == MAX_DRAW)
+					step = 0;
+			}
+			if (step == drawCycle)
+				break;
+
+		}
+		drawCycle=step+1;
+
+		if (drawCycle==MAX_DRAW){
+			drawCycle = 0;
+		}
+
+		if (isTouch){
+			for (uint8_t i = 0 ; i < MAX_DRAW ; i++){
+				if (items[i]!=0){
+					if (items[i]->inBounds(touchX,touchY)){
+						lastButtonID = i;
+						lastButtonTime = _time;
+					}
+				}
 			}
 		}
-		return false;
 	}
 
-	bool getVar(uint8_t &num,ADDR1 addr1){
-		char temp[3];
-		addr1.getChars(temp);
-		if (temp[0] == 'V' && temp[1] == 'R'){
-			num = temp[2]-'A';
-			return true;
-		}
-		return false;
-	}
+	ILI9341_t3 *tft;
+	XPT2046_Touchscreen *ts;
+	uint8_t pwmBrightness;
+	uint16_t bgColor;
 
-	void fun(char command[]){
+	uint8_t clearCycle = 0;
+	uint8_t drawCycle = 0;
 
-		uint16_t offset = 4;
-		uint8_t modID = command[offset]-'A';
-	
-		if (modID > 25)
-			return;
-		offset++;
-		uint8_t addr2;
-		Controller::parse_uint8(addr2,offset,command);
-	
-		offset++;
-		if (addr2 >= FUNC_COUNT)
-			return;
+	int16_t touchX = -1,touchY = -1;
 
-		Func* func = createFunc(offset,command,controller);
-		if (command[offset]!='\0'){
-			Serial.println("Failed to completely parse input:");
-			Serial.println(command);
-			for (uint16_t i = 0; i < offset; i++)
-				Serial.print(' ');
-			Serial.println('^');
-			if (func!=0)
-				delete func;
-			return;
-		}
+	uint8_t lastButtonID = 0;
+	uint32_t lastButtonTime = 0;
 
-		if (functions[modID] == 0){
-			functions[modID] = new Func*[FUNC_COUNT];
-			for (uint8_t i = 0; i < FUNC_COUNT; i++)
-				functions[modID][i] = 0;
-		}else{
-			if (functions[modID][addr2] != 0)
-				delete functions[modID][addr2]; 
-		}
-		functions[modID][addr2] = func;
-
-	}
-
-	void set(char command[]){
-		uint16_t offset = 4;
-		ADDR1 dest(offset,command);
-		Controlled* targetMod = controller->getControlled(dest.modID);
-		if (targetMod == 0){
-			Serial.println("Failed to find mod");
-			return;
-		}
-		offset++;
-		Func* func = createFunc(offset,command,controller);
-		if (command[offset]!='\0'){
-			Serial.println("Failed to completely parse input:");
-			Serial.println(command);
-			for (uint16_t i = 0; i < offset; i++)
-				Serial.print('=');
-			Serial.println('<');
-			if (func!=0)
-				delete func;
-			return;
-		}
-
-		if (func == 0){
-			Serial.println("Failed to creat function");
-			return;
-		}
-
-		switch(dest.type){
-			case A_BYTE: targetMod->write(dest,func->readB());break;
-			case A_UINT: targetMod->write(dest,func->readU());break;
-			case A_INT: targetMod->write(dest,func->readI());break;
-			case A_TIME: targetMod->write(dest,func->readT());break;
-			case A_LONG: targetMod->write(dest,func->readL());break;
-			case A_FLOAT: targetMod->write(dest,func->readF());break;
-			case A_DOUBLE: targetMod->write(dest,func->readD());break;
-
-		}
-
-		delete func;
-	}
-
-	void exe(char command[]){
-		uint16_t offset = 4;
-		char modID = command[offset];
-		modID-='A';
-		if (modID > 25 )
-			return;
-
-		offset++;
-		uint8_t num ;
-		Controller::parse_uint8(num,offset,command);
-
-		if (num>=FUNC_COUNT)
-			return;
-		Func** temp = functions[(uint8_t)modID];
-
-		if (temp == 0)
-			return;
-
-		Func* func = temp[num];
-
-		if (func == 0)
-			return;
-
-		ADDRTYPE type =  func->getType();
-		switch (type){
-			case A_BYTE:func->readB();break;
-			case A_UINT:func->readU();break;
-			case A_INT:func->readI();break;
-			case A_LONG:func->readL();break;
-			case A_FLOAT:func->readF();break;
-			case A_DOUBLE:func->readD();break;
-			case A_TIME:func->readT();break;
-		}
-	
-	}
-
-	void interp(char command[]){
-		#ifdef DEBUG
-			Serial.println("Parsing interp function");
-		#endif
-		uint16_t offset = 4;
-		uint8_t interpID = 0;
-		if (!Controller::parse_uint8(interpID,offset,command)){
-			Serial.println("Failed to parse target interp ID");
-			return;
-		}
-		if (interpID >= MAX_INTERPS){
-			Serial.println("Interp ID too large");
-			return;
-		}
-		
-		offset++;
-
-		if (ISeg::interpRoots[interpID] != 0){
-			#ifdef DEBUG
-				Serial.println("Found existing interp function, deleting...");
-			#endif
-			ISeg::del(ISeg::interpRoots[interpID]);
-		}
-
-		ISeg::interpRoots[interpID] = ISeg::parse(offset, command,controller);
-
-	}
-
-	
-	Func** functions[26]={};
-	
-
-	uint8_t bVars[26]={};
-	uint16_t uVars[26]={};
-	int16_t iVars[26]={};
-	int32_t lVars[26]={};
-	float fVars[26]={};
-	double dVars[26]={};
-	uint32_t tVars[26]={};
-
+	Drawable* items[MAX_DRAW]={};
 };
 
 
