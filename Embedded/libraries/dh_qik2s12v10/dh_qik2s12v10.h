@@ -28,6 +28,22 @@ public:
 		stream->write(m1);
 		stream->flush();
 	}
+	
+	void breaks0(uint8_t m0){
+		if (m0>127)
+			m0 = 127;
+
+		stream->write(134);
+		stream->write(m0);
+	}
+	
+	void breaks1(uint8_t m1){
+		if (m1>127)
+			m1 = 127;
+
+		stream->write(135);
+		stream->write(m1);
+	}
 
 	void move(bool m0Forward, uint8_t m0Speed, bool m1Forward, uint8_t m1Speed){
 		if (isHalfRange){
@@ -71,7 +87,7 @@ public:
 			stream->flush();
 
 			for (uint8_t i =0; i < 50 ; i++){
-			delayMicroseconds(10);
+				delayMicroseconds(5);
 				if (stream->available()){
 					m0= stream->read();
 					break;
@@ -82,11 +98,12 @@ public:
 			}
 
 			for (uint8_t i =0; i < 50 ; i++){
-			delayMicroseconds(10);
+	
 				if (stream->available()){
 					m1= stream->read();
 					break;
 				}
+				delayMicroseconds(5);
 				if (i == 49){
 					Serial1.println("Failed to get M1 Current!");
 				}
@@ -101,7 +118,7 @@ public:
 			stream->flush();
 
 			for (uint8_t i =0; i < 50 ; i++){
-			delayMicroseconds(10);
+			delayMicroseconds(5);
 				if (stream->available()){
 					m0= stream->read();
 					break;
@@ -112,7 +129,6 @@ public:
 			}
 
 			for (uint8_t i =0; i < 50 ; i++){
-			delayMicroseconds(10);
 				if (stream->available()){
 					m1= stream->read();
 					break;
@@ -120,6 +136,7 @@ public:
 				if (i == 49){
 					Serial1.println("Failed to get M1 Speed!");
 				}
+				delayMicroseconds(5);
 			}
 	}
 
@@ -215,11 +232,7 @@ public:
 		Serial1.println("Failed to get getConfig response!");
 		return 0;
 	}
-
-
-private:
-	bool isHalfRange = false;
-
+	
 	uint8_t writeConfig(uint8_t configID, uint8_t value){
 		Serial1.print("Config ");
 		Serial1.print(configID);
@@ -245,6 +258,12 @@ private:
 
 	}
 
+
+
+private:
+	bool isHalfRange = false;
+
+	
 	Stream* stream;
 
 };

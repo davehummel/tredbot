@@ -3,205 +3,129 @@
 #include "dh_controller.h"
 #include "dh_qik2s12v10.h"
 
-
 class ControlledMotor: public Controller::Controlled{
 public:
 
-	void begin(void){
+	void begin(bool flip,uint8_t _resetPin){
 		if (!motor){
 			Serial2.begin(115200);
 			motor = new qik2s12v10(&Serial2);
 		}
+		flipMotors = flip;
+		resetPin = _resetPin;
+		pinMode(resetPin,OUTPUT);
+		digitalWrite(resetPin,0);
 	}
-
-	void execute(uint32_t time,uint32_t id,char command[], bool serializeOnComplete){
-		uint16_t pointer = 0;
-		switch (command[0]){
-			case 'B':
-			{
-				pointer=6;
-
-
-				uint8_t m0break,m1break;
-
-				if (!Controller::parse_uint8(m0break,pointer,command)){
-					return;
-				}
-
-				pointer++;
-		
-				if (!Controller::parse_uint8(m1break,pointer,command)){
-					return;
-				}
-
-				motor->breaks(m0break,m1break);
-				m0Speed=m1Speed=0;
-				break;
-			}
-			case 'M':
-			{
-
-				pointer = 5;
-				
-				if (command[pointer]=='R')
-					m0F = false;
-				else
-					m0F = true;
-
-				pointer++;
-
-				if (!Controller::parse_uint8(m0Speed,pointer,command)){
-					return;
-				}
-
-				pointer++;
-
-				if (command[pointer]=='R')
-					m1F = false;
-				else
-					m1F = true;
-
-				pointer++;
-
-				if (!Controller::parse_uint8(m1Speed,pointer,command)){
-					return;
-				}
-				updateMotor();
-
-				break;
-			}
-			case 'C':
-				readTime = time;
-				motor->getCurrent_150ma(m0Current,m1Current);
-			break;
-			case 'L':{
-				pointer = 5;
-				readTime = time;
-				uint8_t value=0;
-				if (command[pointer]=='R'){
-					pointer+=2;
-					if (!Controller::parse_uint8(value,pointer,command)){
-						return;
-					}
-					motor->setCurrentLimitResponse(value,value);
-				}else{
-					pointer++;
-					if (!Controller::parse_uint8(value,pointer,command)){
-						return;
-					}
-					motor->setCurrentLimit_300ma(value,value);
-				}
-				break;}
-			case 'P':{
-				readTime = time;
-				uint8_t value=0;
-				pointer=4;
-				if (!Controller::parse_uint8(value,pointer,command)){
-					return;
-				}
-				motor->setPWMParm(value);
-				break;
-			}
-			case 'S':
-				readTime = time;
-				motor->getSpeed(m0Speed,m1Speed);
-			break;
-			case 'E':{
-				readTime = time;
-				error = motor->getErrorByte();
-				break;
-			}
-			case 'A':{
-				readTime = time;
-				uint8_t value=0;
-				pointer=6;
-				if (!Controller::parse_uint8(value,pointer,command)){
-					return;
-				}
-				motor->setMotorAccel(value,value);
-				break;
-			}
-			case 'T':{
-				readTime = time;
-				uint8_t value1=0,value2=0;
-				pointer=8;
-				if (!Controller::parse_uint8(value1,pointer,command)){
-					return;
-				}
-				pointer++;
-				Controller::parse_uint8(value2,pointer,command);
-				motor->setTimeOut(value1,value2);
-				break;
-			}
-			case 'R':{
-				readTime = time;
-				pointer = 5;
-
-
-				if (!Controller::parse_uint8(readConfigNum,pointer,command)){
-					return;
-				}
 	
-				readConfigVal = motor->getConfigValue(readConfigNum);
-			}
-
+	uint8_t readB(ADDR1 addr,uint8_t addr2){
+		char command = addr.addr%26+'A';
+		bool isLeft = ((addr.addr/26)%26+'A') == 'L';
+		if (flipMotors)
+			isLeft = !isLeft;
+		switch(command){
+				case 'B': 
+					if (isLeft)
+						return m0Break;
+					else
+						return m1Break;
+				case 'E':
+					uint32_t now = millis();
+					if (now!=readErrorTime){
+						readErrorTime = now;
+						motor->getErrorByte(error);
+					}
+					return error;
+			default: return -1;
 		}
 	}
-	void serialize(Stream* output, uint32_t id,char command[]){
-		if (command[0] =='C'){
-			output->print('<');
-			output->print(id);
-			output->print(":M0C=");
-			output->print(m0Current*.150);
-			output->print(":M1C=");
-			output->print(m1Current*.150);
-			output->print('@');
-			output->println(readTime);
-			return;
+	
+	int16_t readI(ADDR1 addr,uint8_t addr2){
+		char command = addr.addr%26+'A';
+		bool isLeft = ((addr.addr/26)%26+'A') == 'L';
+		if (flipMotors)
+			isLeft = !isLeft;
+		switch(command){
+				case 'T': 
+					return throttle;
+				case 'D':
+					return differential;
+				case 'S':
+					uint32_t now = millis();
+					if (now!=readSpeedTime){
+						readSpeedTime = now;
+						motor->getSpeed(m0Speed,m1Speed);
+					}
+					if (isLeft)
+						return m0F?m0Speed:-m0Speed;
+					else
+						return m1F?m1Speed:-m1Speed;
+			default: return -1;
 		}
-		if (command[0] =='S'){
-			output->print('<');
-			output->print(id);
-			output->print(":M0S=");
-			output->print(m0Speed);
-			output->print(":M1S=");
-			output->print(m1Speed);
-			output->print('@');
-			output->println(readTime);
-			return;
-		}
-		if (command[0] == 'E'){
-			if (error != 0){
-				output->print('<');
-				output->print(id);
-				output->print("Error#");
-				output->println(error);
-			}
-			return;
-		}
-		if (command[0] =='R'){
-			output->print('<');
-			output->print(id);
-			output->print("Config#");
-			output->print(readConfigNum);
-			output->print('=');
-			output->println(readConfigVal);
-			return;
+	}
+	
+	uint16_t readU(ADDR1 addr,uint8_t addr2){
+		char command = addr.addr%26+'A';
+		bool isLeft = ((addr.addr/26)%26+'A') == 'L';
+		if (flipMotors)
+			isLeft = !isLeft;
+		switch(command){
+				case 'C':
+					uint32_t now = millis();
+					if (now!=readErrorTime){
+						readCurrentTime = now;
+						motor->getCurrent_150ma(m0Current,m1Current);
+					}
+
+					if (isLeft)
+						return m0Current*150;
+					else
+						return m1Current*150;
+			default: return -1;
 		}
 	}
 
-	void serialize(Logger* logger, uint32_t id, char command[]) {
-		switch (command[0]) {
-		case 'E':
-			if (error > 0) {
-				logger->setTime(millis());
-				logger->print(error);
-				logger->send();
-			}
+	
+	void write(ADDR1 addr,uint8_t val){
+		char command = addr.addr%26+'A';
+		bool isLeft = ((addr.addr/26)%26+'A') == 'L';
+		if (flipMotors)
+			isLeft = !isLeft;
+		switch(command){
+			case 'B': 
+				if(isLeft){
+					motor->breaks0(m0Break = val);
+					m0Speed = 0;
+				}else{
+					motor->breaks1(m1Break = val);
+					m1Speed = 0;
+				}
 			break;
+			default: break;
 		}
 	}
+	
+	void write(ADDR1 addr,int16_t val){
+		char command = addr.addr%26+'A';
+		switch(command){
+			case 'T': 
+				throttle = val;
+				setMotor();
+				break;
+			case 'D': 
+				differential = val;
+				setMotor();
+				break;
+			break;
+			default: break;
+		}
+	}
+	
+	
 
+	void execute(uint32_t time,uint32_t id,char command[]){
+		
+	}
+	
 
 	void startSchedule(char command[], uint32_t id){
 		
@@ -210,11 +134,13 @@ public:
 		
 	}
 
-	void setMotor(int16_t basethrottle, int16_t differential){
-		if (basethrottle > 255)
-			basethrottle = 255;
-		else if (basethrottle < -255)
-			basethrottle = 255;
+	void setMotor(){
+		breaks0 = 0;
+		breaks1 = 0;
+		if (throttle > 255)
+			throttle = 255;
+		else if (throttle < -255)
+			throttle = 255;
 
 		if (differential>512)
 			differential = 512;
@@ -224,16 +150,16 @@ public:
 
 		int16_t a, b;
 		if (differential == 1){
-			a = basethrottle - 1;
-			b = basethrottle;
+			a = throttle - 1;
+			b = throttle;
 		}
 		else if (differential == -1){
-			a = basethrottle;
-			b = basethrottle - 1;
+			a = throttle;
+			b = throttle - 1;
 		}
 		else {
-			a = basethrottle - differential / 2;
-			b = basethrottle + differential / 2;
+			a = throttle - differential / 2;
+			b = throttle + differential / 2;
 		}
 
 		if (a > 255){
@@ -279,40 +205,21 @@ public:
 			m1Speed = b;
 			m1F = true;
 		}
-	}
-
-	void setMotorDirect(int16_t m0, int16_t m1){
-		if (m0 > 255)
-			m0 = 255;
-		else if (m0 < -255)
-			m0 = -255;
-
-		if (m1 > 255)
-			m1 = 255;
-		else if (m1 < -255)
-			m1 = -255;
-
-		if (m0 < 0){
-			m0Speed = m0*-1;
-			m0F = false;
+		
+		if (flipMotors){
+			uint8_t temp = m0Speed;
+			m0Speed = m1Speed;
+			m1Speed = temp;
+			temp = m0F;
+			m0F = m1F;
+			m1F = temp;
 		}
-		else{
-			m0Speed = m0;
-			m0F = true;
-		}
-
-		if (m1 < 0){
-			m1Speed = m1*-1;
-			m1F = false; 
-		}
-		else{
-			m1Speed = m1;
-			m1F = true;
-		}
+		updateMotor();
 	}
 
 	void updateMotor(){
 		motor->move(m0F,m0Speed,m1F,m1Speed);
+		#ifdef DEBUG
 		Serial.print("Motor:");
 		Serial.print(m0F);
 		Serial.print(",");
@@ -321,25 +228,30 @@ public:
 		Serial.print(m1F);
 		Serial.print(",");
 		Serial.println(m1Speed);
+		#endif
 	}
 
 	void stopMotor(){
-		motor->breaks(255,255);
+		motor->breaks(m0Break=255,m1Break=255);
 		m0Speed=m1Speed=0;
 	}
 
-	uint8_t m0Current,m1Current;
-	uint8_t m0Speed,m1Speed;
+	uint8_t m0Break=0,m1Break=0;
+	uint8_t m0Current=0,m1Current=0;
+	uint8_t m0Speed=0,m1Speed=0;
 	bool m0F,m1F;
+	
+	int16_t throttle,differential;
+
 
 	uint8_t error;
 
-	uint8_t readConfigNum,readConfigVal;
-
-	uint32_t readTime;
+	uint32_t readSpeedTime = 0;
+	uint32_t readCurrentTime = 0;
+	uint32_t readErrorTime = 0;
 	
 private:
-
+	bool flipMotors = false;
 
 	qik2s12v10 *motor;
 
