@@ -57,34 +57,38 @@ Serial.println("Starting Controlled Modules");
   controller.loadControlled('L',&lidar);
   controller.loadControlled('E',&echo);
   
-  Serial.println("Modules have started!");
+  Serial.println("Modules have started!!");
   
   controller.run(2,Controller::newString("B BRT 255"),'D',2);
   controller.run(2,Controller::newString("B ROT 1"),'D',2);
-  
+   controller.run(28,Controller::newString("FUN C0 w[$DC:VRV={{$DV:VLT+$DC:VRV}/#D2}]"),'C'); 
+    controller.run(28,Controller::newString("FUN C1 w[$DC:VRC={{$DV:CUR+$DC:VRC}/#D2}]"),'C'); 
    controller.run(27,Controller::newString("FUN D0 ?{$TD:BTN>{t-#T11}}[?{$BD:BTN==#B0}[w[$BB:RRR={$BB:RRR+#B1}],?{$BD:BTN==#B1}[w[$BB:GGG={$BB:GGG+#B1}],?{$BD:BTN==#B2}[w[$BB:BBB={$BB:BBB+#B1}],#B0]]],#B0]"),'C');
 
 
-  controller.run(2,Controller::newString("0 40 40 B 45,28 B16 $BB:RRR 255,255,255 $BB:RRR,0,0"),'D');
-  controller.run(2,Controller::newString("1 90 40 B 45,28 B16 $BB:GGG 255,255,255 0,$BB:GGG,0"),'D');
-  controller.run(2,Controller::newString("2 140 40 B 45,28 B16 $BB:BBB 255,255,255 0,0,$BB:BBB"),'D');
-  controller.run(2,Controller::newString("3 10 80 T B12 $FF:HED.0 255,255,255 0,0,0"),'D');
-   controller.run(2,Controller::newString("4 70 80 T 12 $FV:VLT 255,255,255 0,0,0"),'D');
-      controller.run(2,Controller::newString("40 70 100 T 12 $FV:CUR 255,255,255 0,0,0"),'D');
-     controller.run(2,Controller::newString("5 120 80 T 12 $UL:AAA 255,255,255 0,0,0"),'D');
-    controller.run(2,Controller::newString("6 160 80 T 12 $UE:AAA 255,255,255 0,0,0"),'D');
-        controller.run(2,Controller::newString("7 190 80 T 12 $UE:BBB 255,255,255 0,0,0"),'D');
-controller.run(2,Controller::newString("INT 0 #D0,#D512/#D179.999,#D0|#D180,#D1024/#D360,#D512"),'C');
+  controller.run(2,Controller::newString("0 40 40 B 45,28 B8 $BB:RRR 255,255,255 $BB:RRR,0,0"),'D');
+  controller.run(2,Controller::newString("1 90 40 B 45,28 B8 $BB:GGG 255,255,255 0,$BB:GGG,0"),'D');
+  controller.run(2,Controller::newString("2 140 40 B 45,28 B8 $BB:BBB 255,255,255 0,0,$BB:BBB"),'D');
+  controller.run(2,Controller::newString("3 10 80 T B8 $DF:HED.0 255,255,255 0,0,0"),'D');
+   controller.run(2,Controller::newString("4 70 80 T 8 $DC:VRV 255,255,255 0,0,0"),'D');
+      controller.run(2,Controller::newString("40 70 100 T 8 $DC:VRC 255,255,255 0,0,0"),'D');
+     controller.run(2,Controller::newString("5 140 80 T 8 $UL:AAA 255,255,255 0,0,0"),'D');
+    controller.run(2,Controller::newString("6 180 80 T 8 $UE:AAA 255,255,255 0,0,0"),'D');
+        controller.run(2,Controller::newString("7 220 80 T 8 $UE:BBB 255,255,255 0,0,0"),'D');
+
  controller.schedule(2,0,10,false,0,Controller::newString("EXE D0"),'C');
+  controller.schedule(2,0,1,false,0,Controller::newString("EXE C0"),'C');
+
+   controller.schedule(2,0,1,false,0,Controller::newString("EXE C1"),'C');
 
    controller.run(2,Controller::newString("SET BP:ENA #B1"),'C');
-      controller.run(2,Controller::newString("SET BE:ENA #B1"),'C');
+      controller.run(2,Controller::newString("SET BE:ENA #B0"),'C');
        controller.run(2,Controller::newString("SET BL:ENA #B1"),'C');
   controller.schedule(4,1000,10,false,0,Controller::newString("SET UP:PAN {{{#U200+$BB:RRR}+$BB:GGG}+$BB:BBB}"),'C');
 
 
  controller.schedule(4,0,10,false,0,Controller::newString("D"),'D');
- 
+
 }
 
 void loop() {

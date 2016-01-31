@@ -328,23 +328,12 @@ public:
 	}
 protected:
 	void updateHeading(){
-		// if (headingElapsed>=HEADING_CACHETIME && started){
-		// 	uint8_t rawData[6];  // x/y/z gyro register data stored here
-		// 	readBytes(BNO055_ADDRESS, BNO055_EUL_HEADING_LSB, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
-		// 	headingF[0] = ((double)(headingI[0] = (((int16_t)rawData[1] << 8) | rawData[0]))) / 16.f;       // Turn the MSB and LSB into a signed 16-bit value
-		// 	headingF[1] = ((double)(headingI[1] = (((int16_t)rawData[3] << 8) | rawData[2]))) / 16.f;
-		// 	headingF[2] = ((double)(headingI[2] = (((int16_t)rawData[5] << 8) | rawData[4]))) / 16.f;
-		// }
+
 	}
 
 	void updateQuat(){
-		if (quatElapsed>=QUAT_CACHETIME && started){
-			// uint8_t rawData[6];  // x/y/z gyro register data stored here
-			// readBytes(BNO055_ADDRESS, BNO055_EUL_HEADING_LSB, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
-			// heading[0] = ((double)(headingI[0] = (((int16_t)rawData[1] << 8) | rawData[0]))) / 16.f;       // Turn the MSB and LSB into a signed 16-bit value
-			// heading[1] = ((double)(headingI[1] = (((int16_t)rawData[3] << 8) | rawData[2]))) / 16.f;
-			// heading[2] = ((double)(headingI[2] = (((int16_t)rawData[5] << 8) | rawData[4]))) / 16.f;
-		}
+
+
 	}
 
 	void updateGyro() {}

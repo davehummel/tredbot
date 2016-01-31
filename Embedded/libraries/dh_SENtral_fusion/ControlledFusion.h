@@ -45,6 +45,10 @@ public:
 		return 0.0;
 	}
 
+	double readD(ADDR1 addr,uint8_t addr2){
+		return readF(addr,addr2);
+	}
+
 	uint32_t readT(ADDR1 addr,uint8_t addr2){
 		return 0;
 	}

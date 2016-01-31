@@ -12,7 +12,7 @@ public:
 
 	void begin(void){
 		analogReadAveraging(32);
-		analogReadResolution(12);
+		analogReadResolution(16);
 		pinMode(vPin, INPUT);
 		pinMode(cPin, INPUT);
 
@@ -28,7 +28,7 @@ public:
 	}
 
 
-	int16_t readI(ADDR1 addr,uint8_t addr2){
+	uint16_t readU(ADDR1 addr,uint8_t addr2){
 			switch(addr.addr%26+'A'){
 				case 'C': return analogRead(cPin);
 				case 'V': return analogRead(vPin);
@@ -38,13 +38,19 @@ public:
 
 	float readF(ADDR1 addr,uint8_t addr2){
 			switch(addr.addr%26+'A'){
-				case 'C': return ((float)readI(addr,addr2))*0.006511-4.1265;
-				case 'V': return ((float)readI(addr,addr2))*0.002164+0.1937;
+				case 'C': return ((float)readU(addr,addr2))*0.4121-4159.24;
+				case 'V': return ((float)readU(addr,addr2))*0.000137 + 0.2056; 
 				default: return -1;
 			}
 	}
 
-
+	double readD(ADDR1 addr,uint8_t addr2){
+			switch(addr.addr%26+'A'){
+				case 'C': return ((double)readU(addr,addr2))*0.413l-4162l;
+				case 'V': return ((double)readU(addr,addr2))*0.0001370023l + 0.205587l;
+				default: return -1;
+			}
+	}
 
 	
 private:

@@ -618,8 +618,13 @@ class WriteFunc:public Func{
 		if (input[pointer]!='[')
 			return false;
 		pointer++;
+		if (input[pointer]!='$')
+			return false;
+		pointer++;
+
 		target = new ADDR1(pointer,input);
-		pointer+=2;
+	
+		pointer++;
 		if (input[pointer]=='"'){
 				pointer++;
 				int i;

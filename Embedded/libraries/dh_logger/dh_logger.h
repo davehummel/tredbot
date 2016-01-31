@@ -56,13 +56,19 @@ public:
 
 	ADDR1(uint16_t &offset, const char* text){
 		if (! parseType(type,text[offset])){
+			Serial.print("Error:");
+			Serial.println(text[offset]);
 			type = A_BYTE;
 		}
 		offset++;
 		modID = text[offset];
 		if (modID<'A' || modID > 'Z')
 			modID = 'A';
-		offset+=2;
+		offset++;
+		if (text[offset]!=':'){
+			Serial.println("Missing ':' in var");
+		}
+		offset++;
 		addr = 0;
 		uint16_t mult = 1;
 		for (uint8_t i = 0; i < 3 ; i++){

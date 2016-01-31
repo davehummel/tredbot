@@ -481,6 +481,7 @@ private:
 	void exe(char command[]){
 		uint16_t offset = 4;
 		char modID = command[offset];
+
 		modID-='A';
 		if (modID > 25 )
 			return;
@@ -502,6 +503,7 @@ private:
 			return;
 
 		ADDRTYPE type =  func->getType();
+
 		switch (type){
 			case A_BYTE:func->readB();break;
 			case A_UINT:func->readU();break;
