@@ -58,7 +58,7 @@ public:
 
 			if (!ADDR1::parseType(type,command[0]))
 				return;
-	
+
 
 			char temp[3];
 
@@ -127,28 +127,28 @@ public:
 		}
 
 		virtual void write(ADDR1 addr,uint8_t val){
-			
+
 		}
 		virtual void write(ADDR1 addr,uint16_t val){
-			
+
 		}
 		virtual void write(ADDR1 addr,int16_t val){
-			
+
 		}
 		virtual void write(ADDR1 addr,int32_t val){
-			
+
 		}
 		virtual void write(ADDR1 addr,float val){
-			
+
 		}
 		virtual void write(ADDR1 addr,double val){
-			
+
 		}
 		virtual void write(ADDR1 addr,uint32_t val){
-			
+
 		}
 		virtual void write(ADDR1 addr,const char* val){
-			
+
 		}
 		virtual bool transmit(Logger* logger,uint32_t time,uint32_t id,char command[]){
 			uint16_t c = 0;
@@ -179,7 +179,7 @@ public:
 			if (width == 0)
 				return false;
 
-			ADDR1* addr1Array[width]; 
+			ADDR1* addr1Array[width];
 			char temp[3];
 			for (uint8_t i = 0; i < width ; i++){
 				temp[0] = command[2+i*4];
@@ -188,7 +188,7 @@ public:
 				addr1Array[i] = new ADDR1(temp,type);
 			}
 
-	
+
 
 			c+=width*4;
 
@@ -200,7 +200,7 @@ public:
 				}
 				return false;
 			}
-	
+
 			c++;
 			if (!parse_uint8(offset,c,command)){
 				for (uint8_t i = 0; i < width; i++){
@@ -208,9 +208,9 @@ public:
 				}
 				return false;
 			}
-		
+
 			bool finally = transmit(logger,time,id,width,length,addr1Array,offset);
-	
+
 				for (uint8_t i = 0; i < width; i++){
 					delete addr1Array[i];
 				}
@@ -226,7 +226,7 @@ public:
 			}
 			uint32_t size = width*length;
 			switch (type){
-				case A_BYTE: //do nothing *1 
+				case A_BYTE: //do nothing *1
 				break;
 				case A_UINT:
 				case A_INT:
@@ -244,7 +244,7 @@ public:
 
 			size+=width*2; // bytes to write the names of each ADDR1
 			size+=4; // bytes to hold Type,width,length,offset
-			if (size > 65532)  // might need to save space for the length encoding bytes 
+			if (size > 65532)  // might need to save space for the length encoding bytes
 				return false;
 			logger->startStreamSend(size,time,id,instID);
 			logger->print((uint8_t) type);
@@ -279,7 +279,7 @@ public:
 
 
 
-		
+
 			uint16_t remainder = logger->streamSend();
 			// if (remainder>0){
 			// 	Serial.print('*');
@@ -289,17 +289,17 @@ public:
 			return remainder==0;
 		}
 
-		
+
 		char* error;
 		Controller* controller;
 		char id;
-		
-	private:  
+
+	private:
 
 	};
 
 	void loadControlled(char id,Controlled* controlled);
-	
+
 	Controlled* getControlled(char id);
 
 	void schedule(uint32_t id, uint16_t initialExecDelay, uint16_t executeInterval,bool additiveInterval, uint32_t runCount,char command[],char controlled,uint8_t style = INST);
@@ -311,16 +311,18 @@ public:
 	void runProgram(uint8_t id);
 
 	void deleteProgram(uint8_t id);
-	
+
 	void execute(Stream* output);
 
 	bool kill(uint32_t id);
 
 	void kill(void);
-	
+
 	void processInput(Stream* serial);
 
 	void printError(uint16_t offset,const char* errorTitle);
+
+	char* getInputBuffer();
 
 	static bool parse_uint8(uint8_t &val, uint16_t &pointer,char* text);
 
@@ -335,7 +337,7 @@ public:
 	static bool parse_double(double &val, uint16_t &pointer, char* text);
 
 	static char* newString(const char original[]);
-	
+
 	static uint32_t lastProcessedMSTime;
 
 private:
@@ -359,7 +361,7 @@ private:
 
 
 	Logger logger;
-	
+
 	Entry* currentlyRunning;
 	bool isANext = true;
 	Entry* timedA[MAX_SCHED];
@@ -372,18 +374,18 @@ private:
 	uint8_t timedSize = 0;
 
 	uint8_t remainingTimedSize = 0;
-	
+
 	char inputbuffer[MAX_BUFF];
 	uint16_t bufferCount=0;
 
 
 
 	elapsedMillis millis;
-	
+
 	void parseBuffer();
 
 
-	
+
 };
 
 

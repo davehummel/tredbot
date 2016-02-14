@@ -76,7 +76,7 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,uint8_t
 	entry->id = id;
 	entry->command = command;
 	entry->style = style;
-	
+
 	entry->controlled = library[controlledIndex];
 	entry->runCount = runCount;
 	entry->executeInterval = executeInterval;
@@ -84,7 +84,7 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,uint8_t
 	entry->controlled->startSchedule(command,id);
 
 	entry->nextExecuteTime = (uint32_t)millis;
-	entry->nextExecuteTime = entry->nextExecuteTime+initialExecDelay;	
+	entry->nextExecuteTime = entry->nextExecuteTime+initialExecDelay;
 
 	entry->killed = false;
 
@@ -152,7 +152,7 @@ void Controller::runProgram(uint8_t id){
 void Controller::run(uint32_t id, char command[],uint8_t controlled,uint8_t style){
 	#ifdef DEBUG
 		Serial.println("Running  command");
-	#endif 
+	#endif
 	if (immediateSize == MAX_IMMED){
 		Serial.println("Too many immediate tasks, exceeded MAX_IMMED");
 		return;
@@ -166,8 +166,8 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,uint8_t styl
 	else{
 		Serial.println("Illegal controllable id, must be A-Z value");
 		return;
-	} 
-	
+	}
+
 	Entry* entry = new Entry();
 	entry->id = id;
 	entry->command = command;
@@ -186,7 +186,7 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,uint8_t styl
 	#ifdef DEBUG
 		Serial.print("Succesfully loaded command, immediate list at size:");
 		Serial.println(immediateSize);
-	#endif 
+	#endif
 }
 
 void Controller::execute(Stream* output){
@@ -197,9 +197,9 @@ void Controller::execute(Stream* output){
 		#ifdef DEBUG
 			Serial.print("Running immediate command :");
 			Serial.println(i);
-		#endif 
+		#endif
 		switch(immediate[i]->style){
-			case INST: 
+			case INST:
 				immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command);
 				break;
 			case READ:
@@ -209,14 +209,14 @@ void Controller::execute(Stream* output){
 				immediate[i]->controlled->write(immediate[i]->command);
 				break;
 		}
-		
+
 		#ifdef DEBUG
 			Serial.print("deleting immediate command :");
 			Serial.println(i);
-		#endif 
+		#endif
 
 		delete immediate[i]->command;
-			
+
 		delete immediate[i];
 	}
 
@@ -253,11 +253,11 @@ void Controller::execute(Stream* output){
 		bool addBack = true;
 
 		if (iter->killed){
-			
+
 			iter->controlled->endSchedule(iter->command, iter->id);
 
 			delete iter->command;
-				
+
 			delete iter;
 
 			continue;
@@ -280,19 +280,19 @@ void Controller::execute(Stream* output){
 					iter->controlled->write(iter->command);
 				break;
 			}
-		
+
 			remainingTimedSize -- ;
-			
+
 			if (iter->runCount>0){
 				iter->runCount--;
 				if (iter->runCount == 0){
-	
+
 					iter->controlled->endSchedule(iter->command, iter->id);
 
 					delete iter->command;
-				
+
 					delete iter;
-				
+
 					addBack = false;
 				}
 			}
@@ -308,26 +308,29 @@ void Controller::execute(Stream* output){
 	}
 
 	currentlyRunning = 0;
-		
+
 }
 
 void Controller::processInput(Stream* stream){
 	while (stream->available()){
 		char next = stream->read();
+		Serial.print(next);
 		if (next == '\n'||next == '\r'){
-			inputbuffer[bufferCount]='\0';
 			parseBuffer();
 			bufferCount = 0;
+			inputbuffer[0] = '#';
+			inputbuffer[1] = '\0';
 		}else{
 			inputbuffer[bufferCount] = next;
-			if (bufferCount == MAX_BUFF){
+			inputbuffer[bufferCount+1] = '\0';
+			if (bufferCount == MAX_BUFF-1){
 				bufferCount = 0;
 			}else{
 				bufferCount++;
 			}
 		}
 	}
-	
+
 }
 
 
@@ -420,8 +423,8 @@ void Controller::parseBuffer(){
 	if (inputbuffer[0] == 'S' ) {
 
 		char modID;
-	
-	
+
+
 
 		uint32_t id = 0;
 		uint16_t timeDelay;
@@ -499,7 +502,7 @@ void Controller::parseBuffer(){
 		Serial.print(" ");
 		Serial.println(command);
 		#endif
-	
+
 			schedule(id, timeDelay, timeInterval, false, runCount, command, modID, style);
 
 		#ifdef DEBUG
@@ -536,7 +539,7 @@ void Controller::parseBuffer(){
 		printError(offset,"instruction id");
 		return;
 	}
-	
+
 	offset++;
 
 	char commandID;
@@ -562,10 +565,10 @@ void Controller::parseBuffer(){
 	 Serial1.print(command);
 	 Serial1.print(" Controlled ID:");
 	 Serial1.println((char)commandID);
-	#endif 
-	
+	#endif
+
 	run(id,command,commandID,style);
-	
+
 }
 
 void Controller::addTimedEntry(Entry* entry){
@@ -593,7 +596,7 @@ bool Controller::kill(uint32_t id){
 		if (entry->id == id || id == 0){
 			entry->killed = true;
 			success = true;
-		} 
+		}
 	}
 	for (int i = 0 ; i < remainingTimedSize + timedSize; i++){
 		Entry* entry = !isANext?timedA[i]:timedB[i];
@@ -602,7 +605,7 @@ bool Controller::kill(uint32_t id){
 		if (entry->id == id || id == 0){
 			entry->killed = true;
 			success = true;
-		} 
+		}
 	}
 	return success;
 }
@@ -809,6 +812,10 @@ bool Controller::parse_uint32(uint32_t &val, uint16_t &pointer,char* text){
 
 	return true;
 
+}
+
+char* Controller::getInputBuffer(){
+	return inputbuffer;
 }
 
 char* Controller::newString(const char original[]){

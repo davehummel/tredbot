@@ -1,9 +1,9 @@
 void setup() {
-  Serial1.begin(3500000);
+  Serial1.begin(115200);
   Serial.begin(115200);
   pinMode(13,OUTPUT);
   delay(1000);
-  Serial.println("Begin!");
+  Serial1.println("Begin!");
   digitalWrite(13,HIGH);
 }
 
@@ -11,23 +11,14 @@ bool flip = true;
   char out4[10];
 void loop() {
   digitalWrite(13,flip);
-//
-//  uint32_t now = millis();
-//  Serial1.write(5);
-//  Serial1.write(1);
-//  
-//  byte b[4];
-//  IntegerToBytes(now, b);
-//  for (int i=0; i<4; ++i) {
-//      Serial1.write(b[i]);
-//  }
-
-  while(!Serial1.available());
-  while(Serial1.available()){
-    Serial.print("|");
-    Serial.print((int)Serial1.read());
+  while (Serial.available()){
+    Serial1.write( Serial.read());
+  };
+  while (Serial1.available()){
+    Serial.write( Serial1.read());
   }
-  flip = !flip;
+  delay(1000);
+  flip = ! flip;
 }
 
 

@@ -14,11 +14,11 @@ public:
 	}
 
 	void begin(void){
-		pinMode(r, OUTPUT);
-		pinMode(g, OUTPUT);
-		pinMode(b, OUTPUT);
+		pinMode(rPin, OUTPUT);
+		pinMode(gPin, OUTPUT);
+		pinMode(bPin, OUTPUT);
 
-		pinMode(blink, OUTPUT);
+		pinMode(blinkPin, OUTPUT);
 	}
 	void execute(uint32_t time,uint32_t id,char command[]){
 

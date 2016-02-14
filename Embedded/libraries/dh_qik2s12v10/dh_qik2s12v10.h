@@ -9,7 +9,6 @@ public:
 
 	qik2s12v10(Stream* source){
 		stream = source;
-		Serial1.println("Motor Started!");
 		//setPWMParm(0);
 		//setMotorAccel(0, 0);
 		isHalfRange = true;

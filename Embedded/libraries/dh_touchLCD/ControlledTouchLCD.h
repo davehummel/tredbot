@@ -18,7 +18,7 @@
 #define TFT_MISO    12
 #define TFT_PWM 25
 
-#define MAX_DRAW 50
+#define MAX_DRAW 100
 #define MAX_TEXT_LEN 64
 
 #define CLEAR_WIDTH 5

@@ -6,15 +6,20 @@
 class ControlledMotor: public Controller::Controlled{
 public:
 
-	void begin(bool flip,uint8_t _resetPin){
-		if (!motor){
-			Serial2.begin(115200);
-			motor = new qik2s12v10(&Serial2);
-		}
+	ControlledMotor(bool flip,uint8_t _resetPin){
 		flipMotors = flip;
 		resetPin = _resetPin;
 		pinMode(resetPin,OUTPUT);
 		digitalWrite(resetPin,0);
+		delay(100);
+		digitalWrite(resetPin,1);
+	}
+
+	void begin(){
+		if (!motor){
+			Serial2.begin(115200);
+			motor = new qik2s12v10(&Serial2);
+		}
 	}
 	
 	uint8_t readB(ADDR1 addr,uint8_t addr2){
@@ -29,14 +34,15 @@ public:
 					else
 						return m1Break;
 				case 'E':
-					uint32_t now = millis();
+					uint32_t now = millis(); // Keep from repeatedly reading the error byte
 					if (now!=readErrorTime){
 						readErrorTime = now;
-						motor->getErrorByte(error);
+						error = motor->getErrorByte();
 					}
 					return error;
-			default: return -1;
+			
 		}
+			return 0;
 	}
 	
 	int16_t readI(ADDR1 addr,uint8_t addr2){
@@ -59,8 +65,8 @@ public:
 						return m0F?m0Speed:-m0Speed;
 					else
 						return m1F?m1Speed:-m1Speed;
-			default: return -1;
 		}
+		return -1;
 	}
 	
 	uint16_t readU(ADDR1 addr,uint8_t addr2){
@@ -80,8 +86,8 @@ public:
 						return m0Current*150;
 					else
 						return m1Current*150;
-			default: return -1;
 		}
+			return -1;
 	}
 
 	
@@ -135,8 +141,8 @@ public:
 	}
 
 	void setMotor(){
-		breaks0 = 0;
-		breaks1 = 0;
+		m0Break = 0;
+		m1Break = 0;
 		if (throttle > 255)
 			throttle = 255;
 		else if (throttle < -255)
@@ -252,7 +258,7 @@ public:
 	
 private:
 	bool flipMotors = false;
-
+	uint8_t resetPin;
 	qik2s12v10 *motor;
 
 };
