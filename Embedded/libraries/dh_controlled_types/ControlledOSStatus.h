@@ -2,6 +2,11 @@
 #define DH_CONTROLLEDOSSTATUS_H__
 #include "dh_controller.h"
 
+const uint16_t INP = ADDR1::solveADDR("INP");
+const uint16_t ETX = ADDR1::solveADDR("ETX");
+const uint16_t ETM = ADDR1::solveADDR("ETM");
+const uint16_t ECD = ADDR1::solveADDR("ECD");
+
 class ControlledOSStatus: public Controller::Controlled{
 
 public:
@@ -23,22 +28,27 @@ public:
 	}
 
 
-	// uint16_t readU(ADDR1 addr,uint8_t addr2){
-	//
-	// }
+	uint8_t readB(ADDR1 addr,uint8_t addr2){
+	//	if (addr.addr == ECD) return controller->getErrorCode();
+		return 0 ;
+	}
 	//
 	// float readF(ADDR1 addr,uint8_t addr2){
 	//
 	// }
 	//
-	// double readD(ADDR1 addr,uint8_t addr2){
-	//
-	// }
+	uint32_t readT(ADDR1 addr,uint8_t addr2){
+			//	if (addr.addr == ETM) return controller->getErrorTime();
+				return 0;
+	}
 
 	char* readS(ADDR1 addr,uint8_t addr2){
-		switch (addr.addr%26+'A'){
-			case 'B':  return controller->getInputBuffer();
-		}
+
+			if (addr.addr == INP) return controller->getInputBuffer();
+
+			if (addr.addr == ETX) return controller->getErrorLogger().getErrorText();
+
+
 		return 0;
 	}
 

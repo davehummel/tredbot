@@ -13,60 +13,44 @@ void Logger::setStream(Stream* in){
 bool Logger::print(uint8_t val) {
 	if (!validate(1))
 		return false;
-	buffer[byteCount] = val;
+	memcpy(buffer+byteCount,&val,1);
 	byteCount++;
 	return true;
 }
 bool Logger::print(int8_t val) {
 	if (!validate(1))
 		return false;
-	buffer[byteCount] = val;
-	byteCount++;
+		memcpy(buffer+byteCount,&val,1);
+		byteCount++;
 	return true;
 }
 bool Logger::print(uint16_t val) {
 	if (!validate(2))
 		return false;
-	buffer[byteCount] = (byte)(val & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 8) & 0xff);
-	byteCount++;
+		memcpy(buffer+byteCount,&val,2);
+		byteCount+=2;
 	return true;
 }
 bool Logger::print(int16_t val) {
 	if (!validate(2))
 		return false;
-	buffer[byteCount] = (byte)(val & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 8) & 0xff);
-	byteCount++;
+		memcpy(buffer+byteCount,&val,2);
+		byteCount+=2;
 	return true;
 }
 bool Logger::print(uint32_t val) {
 	if (!validate(4))
 		return false;
-	buffer[byteCount] = (byte)(val & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 8) & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 16) & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 24) & 0xff);
-	byteCount++;
+		memcpy(buffer+byteCount,&val,4);
+		byteCount+=4;
 	return true;
 }
 bool Logger::print(int32_t val) {
 	if (!validate(4))
 		return false;
-	buffer[byteCount] = (byte)(val & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 8) & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 16) & 0xff);
-	byteCount++;
-	buffer[byteCount] = (byte)((val >> 24) & 0xff);
-	byteCount++;
-	return true;
+		memcpy(buffer+byteCount,&val,4);
+		byteCount+=4;
+		return true;
 }
 bool Logger::print(bool val) {
 	if (!validate(1))
@@ -77,17 +61,25 @@ bool Logger::print(bool val) {
 }
 
 bool Logger::print(float val) {
-	return false;
+	if (!validate(4))
+		return false;
+	memcpy(buffer+byteCount,&val,4);
+	byteCount+=4;
+	return true;
 }
 bool Logger::print(double val) {
-	return false;
+	if (!validate(8))
+		return false;
+	memcpy(buffer+byteCount,&val,8);
+	byteCount+=8;
+	return true;
 }
 bool Logger::print(const char text[], uint8_t len) {
 	if (!validate(len))
 		return false;
-	memcpy(buffer + byteCount, text, len);
-	byteCount += len;
-	return true;
+		memcpy(buffer+byteCount,text,len);
+		byteCount+=len;
+		return true;
 }
 
 bool Logger::batchSend() {
@@ -117,14 +109,6 @@ void Logger::sendTimeSync() {
 	tmp[5] = (byte)((time >> 24) & 0xff);
 
 	stream->write(tmp, 6);
-}
-
-void Logger::sendError(const char error[], uint8_t len) {
-	if (inStreamSend || inBatchSend)
-		return;
-	stream->write(len + 1);
-	stream->write((uint8_t)0);
-	stream->write(error, len);
 }
 
 bool Logger::startBatchSend(uint32_t timein, char mod, uint32_t instID){
@@ -213,4 +197,41 @@ void Logger::abortSend(){
 		inStreamSend = false;
 		return;
 	}
+}
+
+void ErrorLogger::clearError(){
+	errBufCount = 0;
+	errorCode = NONE;
+	errorTime = 0;
+	errorComplete = false;
+}
+
+char* ErrorLogger::getErrorText(){
+	errorBuffer[errBufCount] = '\0';
+	return errorBuffer;
+}
+
+uint32_t ErrorLogger::getErrorTime(){
+	return errorTime;
+}
+
+ErrorLogger::ERROR_CODE ErrorLogger::getErrorCode(){
+	return errorCode;
+}
+
+size_t ErrorLogger::write(uint8_t ch){
+	if (errorComplete)
+		return 0;
+	if (errBufCount == ERR_BUFF-1){
+		return 0;
+	}
+	errorBuffer[errBufCount] = ch;
+	errBufCount++;
+	return 1;
+}
+
+void ErrorLogger::finished(uint32_t time, ERROR_CODE code){
+	errorComplete = true;
+	errorTime = time;
+	errorCode = code;
 }

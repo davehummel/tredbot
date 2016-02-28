@@ -28,8 +28,9 @@ void Controller::loadControlled(char id,Controlled* controlled){
 Controller::Controlled* Controller::getControlled(char id){
 	uint8_t val = id - 'A';
 	if (val>25){
-		Serial.print("Bad getControlled Lookup:");
-		Serial.println(id);
+		error.print("Bad getControlled Lookup:");
+		error.println(id);
+		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return 0;
 	}
 	return library[val];
@@ -131,14 +132,14 @@ void Controller::runProgram(uint8_t id){
 			char c = program[offset];
 			offset++;
 			if (c ==';' || c =='\0'){
-				inputbuffer[bufferCount] = '\0';
+				inputBuffer[bufferCount] = '\0';
 				parseBuffer();
 				bufferCount = 0;
 				if (c == '\0'){
 					return;
 				}
 			} else {
-				inputbuffer[bufferCount] = c;
+				inputBuffer[bufferCount] = c;
 				bufferCount++;
 			}
 		}
@@ -154,7 +155,8 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,uint8_t styl
 		Serial.println("Running  command");
 	#endif
 	if (immediateSize == MAX_IMMED){
-		Serial.println("Too many immediate tasks, exceeded MAX_IMMED");
+		error.println("Too many immediate tasks, exceeded MAX_IMMED");
+		error.finished(lastProcessedMSTime,ErrorLogger::OS_MISC);
 		return;
 	}
 
@@ -164,7 +166,8 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,uint8_t styl
 	else if (controlled>='A' && controlled<='Z')
 		controlled-='A';
 	else{
-		Serial.println("Illegal controllable id, must be A-Z value");
+		error.println("Illegal controllable id, must be A-Z value");
+		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return;
 	}
 
@@ -173,8 +176,9 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,uint8_t styl
 	entry->command = command;
 	entry->controlled = library[controlled];
 	if (!entry->controlled){
-		Serial.print("Error, unknown controllable referenced as ");
-		Serial.println((char)controlled);
+		error.print("Error, unknown controllable referenced as ");
+		error.println((char)controlled);
+		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		delete entry;
 		return;
 	}
@@ -314,16 +318,15 @@ void Controller::execute(Stream* output){
 void Controller::processInput(Stream* stream){
 	while (stream->available()){
 		char next = stream->read();
-		Serial.print(next);
 		if (next == '\n'||next == '\r'){
 			parseBuffer();
 			bufferCount = 0;
-			inputbuffer[0] = '#';
-			inputbuffer[1] = '\0';
+			inputBuffer[0] = '#';
+			inputBuffer[1] = '\0';
 		}else{
-			inputbuffer[bufferCount] = next;
-			inputbuffer[bufferCount+1] = '\0';
-			if (bufferCount == MAX_BUFF-1){
+			inputBuffer[bufferCount] = next;
+			inputBuffer[bufferCount+1] = '\0';
+			if (bufferCount == INP_BUFF-1){
 				bufferCount = 0;
 			}else{
 				bufferCount++;
@@ -335,16 +338,17 @@ void Controller::processInput(Stream* stream){
 
 
 void Controller::parseBuffer(){
-
-	if (inputbuffer[0]=='K'){
+  error.clearError();
+	if (inputBuffer[0]=='K'){
 		if (bufferCount<3){
-			Serial.println("Missing data after (K)ill command");
+			error.println("Missing data after (K)ill command");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 		uint16_t offset = 2;
 		uint32_t id=0;
-		if (!parse_uint32(id,offset,inputbuffer)){
-			printError(offset,"instruction id");
+		if (!parse_uint32(id,offset,inputBuffer)){
+			//printError(offset,"instruction id");
 			return;
 		}
  	#ifdef DEBUG
@@ -358,16 +362,17 @@ void Controller::parseBuffer(){
 		return;
 	}
 
-	if (inputbuffer[0]=='P'){
+	if (inputBuffer[0]=='P'){
 		if (bufferCount<3){
-			Serial.println("Missing data after (P)rogram command");
+			error.println("Missing data after (P)rogram command");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 		uint8_t id=0;
 		uint16_t offset = 2;
 
-		if (!parse_uint8(id,offset,inputbuffer)){
-			printError(offset,"program id");
+		if (!parse_uint8(id,offset,inputBuffer)){
+			//printError(offset,"program id");
 			return;
 		}
 
@@ -385,7 +390,7 @@ void Controller::parseBuffer(){
 		char* program = new char[bufferCount-offset];
 
 		for (uint16_t i = 0; i < bufferCount-offset; i++){
-			program[i] = inputbuffer[i+offset];
+			program[i] = inputBuffer[i+offset];
 		}
 
 		#ifdef DEBUG
@@ -399,7 +404,7 @@ void Controller::parseBuffer(){
 		return;
 	}
 
-	if (inputbuffer[0]=='R'){
+	if (inputBuffer[0]=='R'){
 		if (bufferCount<3){
 			Serial.println("Missing data after (R)un program command");
 			return;
@@ -407,8 +412,8 @@ void Controller::parseBuffer(){
 		uint8_t id=0;
 		uint16_t offset = 2;
 
-		if (!parse_uint8(id,offset,inputbuffer)){
-			printError(offset,"run id");
+		if (!parse_uint8(id,offset,inputBuffer)){
+			//printError(offset,"run id");
 			return;
 		}
 
@@ -420,7 +425,7 @@ void Controller::parseBuffer(){
 
 		return;
 	}
-	if (inputbuffer[0] == 'S' ) {
+	if (inputBuffer[0] == 'S' ) {
 
 		char modID;
 
@@ -431,40 +436,41 @@ void Controller::parseBuffer(){
 		uint16_t timeInterval;
 		uint16_t offset = 2;
 		uint8_t style = INST;
-		if (inputbuffer[1] != ' '){
-			if (inputbuffer[1] == 'R'){
+		if (inputBuffer[1] != ' '){
+			if (inputBuffer[1] == 'R'){
 				style = READ;
 				offset++;
-			} else if (inputbuffer[1] == 'W'){
+			} else if (inputBuffer[1] == 'W'){
 				style = WRITE;
 				offset++;
 			} else {
-				Serial.println("(S)chedule command must be 'S ','SR ','SW '");
+				error.println("(S)chedule command must be 'S ','SR ','SW '");
+				error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 				return;
 			}
 		}
 		uint32_t runCount;
-		if (!parse_uint32(id, offset, inputbuffer)){
-			printError(offset,"instruction id");
+		if (!parse_uint32(id, offset, inputBuffer)){
+			//printError(offset,"instruction id");
 			return;
 		}
 
 		offset++;
 
 
-		modID = inputbuffer[offset];
+		modID = inputBuffer[offset];
 
 		offset += 2;
 
-		if (!parse_uint16(timeDelay, offset, inputbuffer)){
-			printError(offset,"schedule initial delay");
+		if (!parse_uint16(timeDelay, offset, inputBuffer)){
+			//printError(offset,"schedule initial delay");
 			return;
 		}
 
 		offset++;
 
-		if (!parse_uint16(timeInterval, offset, inputbuffer)){
-			printError(offset,"schedule interval");
+		if (!parse_uint16(timeInterval, offset, inputBuffer)){
+			//printError(offset,"schedule interval");
 			return;
 		}
 
@@ -472,8 +478,8 @@ void Controller::parseBuffer(){
 		offset++;
 
 
-		if (!parse_uint32(runCount, offset, inputbuffer)){
-			printError(offset,"Run count");
+		if (!parse_uint32(runCount, offset, inputBuffer)){
+			//printError(offset,"Run count");
 			return;
 		}
 
@@ -482,10 +488,12 @@ void Controller::parseBuffer(){
 		char* command = new char[bufferCount - offset + 1];
 
 		for (uint16_t i = 0; i <= bufferCount - offset; i++) {
-			command[i] = inputbuffer[i + offset];
+			command[i] = inputBuffer[i + offset];
 		}
 		if (command[bufferCount - offset] != '\0') {
-			Serial.println("Incomplete Input");
+			error.println("Incomplete Input");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
+			return;
 		}
 		#ifdef DEBUG
 		Serial.print("Scheduling");
@@ -512,8 +520,9 @@ void Controller::parseBuffer(){
 		return;
 	}
 
-	if (inputbuffer[0]!='I'){
-		Serial.println("Command must start with I,S,SW,SR,IW,IR,K,R,P");
+	if (inputBuffer[0]!='I'){
+		error.print("Command must start with I,S,SW,SR,IW,IR,K,R,P");
+		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return;
 	}
 
@@ -522,38 +531,40 @@ void Controller::parseBuffer(){
 	uint32_t id = 0;
 	uint16_t offset = 2;
 	uint8_t style = INST;
-		if (inputbuffer[1] != ' '){
-			if (inputbuffer[1] == 'R'){
+		if (inputBuffer[1] != ' '){
+			if (inputBuffer[1] == 'R'){
 				style = READ;
 				offset++;
-			} else if (inputbuffer[1] == 'W'){
+			} else if (inputBuffer[1] == 'W'){
 				style = WRITE;
 				offset++;
 			} else {
-				Serial.println("Immediate commands can only be I,IR,IW");
+				error.println("Immediate commands can only be I,IR,IW");
+				error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 				return;
 			}
 		}
 
-	if (!parse_uint32(id, offset, inputbuffer)){
-		printError(offset,"instruction id");
+	if (!parse_uint32(id, offset, inputBuffer)){
+		//printError(offset,"instruction id");
 		return;
 	}
 
 	offset++;
 
 	char commandID;
-	commandID = inputbuffer[offset];
+	commandID = inputBuffer[offset];
 
 	offset += 2;
 
 	char* command =new char[bufferCount-offset+1];
 
 	for (uint16_t i = 0; i <= bufferCount-offset; i++){
-		command[i] = inputbuffer[i+offset];
+		command[i] = inputBuffer[i+offset];
 	}
 	if (command[bufferCount-offset]!='\0'){
-		Serial.println("Incomplete input");
+		error.println("Incomplete input");
+		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return;
 	}
 
@@ -588,8 +599,9 @@ bool Controller::kill(uint32_t id){
 		Entry* entry = isANext?timedA[i]:timedB[i];
 		if (!entry){
 			if (success == false) {
-				Serial.print("Could not kill - Failed to find process id:");
-				Serial.println(id);
+				error.print("Could not kill - Failed to find process id:");
+				error.println(id);
+				error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			}
 			break;
 		}
@@ -815,12 +827,12 @@ bool Controller::parse_uint32(uint32_t &val, uint16_t &pointer,char* text){
 }
 
 char* Controller::getInputBuffer(){
-	return inputbuffer;
+	return inputBuffer;
 }
 
 char* Controller::newString(const char original[]){
 	uint16_t size;
-	for (size = 0 ; size < MAX_BUFF-1 ; size++){
+	for (size = 0 ; size < INP_BUFF-1 ; size++){
 		if (original[size]=='\0')
 			break;
 	}
@@ -832,14 +844,20 @@ char* Controller::newString(const char original[]){
 
 	return data;
 }
-
-void Controller::printError(uint16_t pointer, const char* errorTitle){
-	Serial.print("Failed to parse ");
-	Serial.print(errorTitle);
-	Serial.print(" :");
-	Serial.println(inputbuffer[pointer]);
-	Serial.println(inputbuffer);
-	for (uint16_t i = 0 ; i < pointer; i++)
-		Serial.print(" ");
-	Serial.println('^');
-}
+//
+// void Controller::parserError(char modID, uint16_t pointer, const char* errorTitle){
+// 	if (parserAttempt == lastParseErrorAttempt){
+// 		return;
+// 	}else{
+// 		lastParseErrorAttempt = parserAttempt;
+// 	}
+// 	errorTime = millis;
+// 	Serial.print("Parser Failed[");
+// 	Serial.print(errorTitle);
+// 	Serial.print("] @ ");
+// 	Serial.println(inputBuffer[pointer]);
+// 	Serial.println(inputBuffer);
+// 	for (uint16_t i = 0 ; i < pointer; i++)
+// 		Serial.print(" ");
+// 	Serial.println('^');
+// }

@@ -53,6 +53,7 @@ void setup() {
   echo.setWire(&Wire);
   logger.setStream(&Serial1); 
 delay(2000);
+
 Serial.println("Starting Controlled Modules");
 
   controller.loadControlled('Z',&os);
@@ -84,7 +85,8 @@ Serial.println("Starting Controlled Modules");
      controller.run(2,Controller::newString("5 140 80 T 8 $UL:AAA 255,255,255 0,0,0"),'D');
     controller.run(2,Controller::newString("6 180 80 T 8 $UE:AAA 255,255,255 0,0,0"),'D');
    controller.run(2,Controller::newString("7 220 80 T 8 $UE:BBB 255,255,255 0,0,0"),'D');
-   controller.run(2,Controller::newString("8 0 228 T 8 $SZ:BUF 0,0,0 255,255,255"),'D');
+   controller.run(2,Controller::newString("8 0 218 T 8 $SZ:INP 0,255,0 10,10,10"),'D');
+      controller.run(2,Controller::newString("9 0 230 T 8 $SZ:ETX 255,0,0 10,10,10"),'D');
     controller.run(2,Controller::newString("80 2 2 T B8 \"Motor: ERR THR  DIF  M0B M1B M0Sp M1Sp M0Cur  M1Cur\" 255,255,255 0,0,0"),'D');
     controller.run(2,Controller::newString("81 42 16 T B8 $BM:ERR 255,12,12 0,0,0"),'D');
     controller.run(2,Controller::newString("82 116 16 T 8 $BM:BLL 255,255,255 0,0,0"),'D');
@@ -106,9 +108,9 @@ Serial.println("Starting Controlled Modules");
       controller.run(2,Controller::newString("SET BE:ENA #B0"),'C');
        controller.run(2,Controller::newString("SET BL:ENA #B1"),'C');
   controller.schedule(4,1000,10,false,0,Controller::newString("SET UP:PAN {{{#U200+$BB:RRR}+$BB:GGG}+$BB:BBB}"),'C');
+controller.schedule(4214,1000,1000,false,0,Controller::newString("U AAA 1 0"),'L',1);
 
-
- controller.schedule(4,0,2,false,0,Controller::newString("D"),'D');
+ controller.schedule(1,3,3,false,0,Controller::newString("D"),'D');
 
 }
 

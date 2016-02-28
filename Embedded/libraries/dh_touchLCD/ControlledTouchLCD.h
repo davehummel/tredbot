@@ -8,10 +8,10 @@
 
 //#define DEBUG ON
 
-#define CS_PIN  17
+#define CS_PIN  8
 
-#define TFT_DC      20
-#define TFT_CS      15
+#define TFT_DC      9
+#define TFT_CS      10
 #define TFT_RST    255  // 255 = unused, connect to 3.3V
 #define TFT_MOSI     11
 #define TFT_SCLK    14
@@ -59,7 +59,7 @@ public:
 				Serial.print("Failed to find controlled module:");
 				Serial.println(addr1.modID);
 				return false;
-			}		
+			}
 			#ifdef DEBUG
 			Serial.println("Parsed numeric variable");
 			#endif
@@ -72,7 +72,7 @@ public:
 			}
 			return true;
 		}
-	
+
 	}
 
 	bool update(){
@@ -117,7 +117,7 @@ public:
 			pointer++;
 			int i;
 			for (i = 0; i < MAX_TEXT_LEN ; i++){
-				
+
 				if (i == MAX_TEXT_LEN - 1){
 					constText[i] = '\0';
 				}else{
@@ -158,7 +158,7 @@ public:
 				Serial.print("Failed to find controlled module:");
 				Serial.println(addr1.modID);
 				return false;
-			}		
+			}
 			#ifdef DEBUG
 			Serial.println("Parsed text variable");
 			#endif
@@ -183,7 +183,10 @@ public:
 			case A_TIME: print(module->readT(addr1,addr2)); break;
 			case A_STRING: print(module->readS(addr1,addr2)); break;
 		}
+
+
 		constText[compPointer]='\0';
+
 		return changed;
 
 	}
@@ -198,7 +201,7 @@ public:
 	void printVal(ILI9341_t3 *tft){
 			tft->print(constText);
 			return;
-	
+
 	}
 
 	virtual ~BoundText(){
@@ -258,7 +261,7 @@ public:
 				return false;
 			}
 			pointer++;
-		}		
+		}
 
 		if (text[pointer] == 'B'){
 			bold = true;
@@ -331,7 +334,7 @@ public:
 		}
 
 
-		
+
 		return true;
 	}
 	void draw(ILI9341_t3 *tft){
@@ -346,10 +349,11 @@ public:
 				if (lastW>0){
 					tft->fillRect(x, y, lastW, size+size/4, bg);
 				}
-		
+
 				tft->setCursor(x,y);
 				#ifdef DEBUG
-				Serial.println("Printing label");
+				Serial.print("Printing label:");
+				Serial.println(label.constText);
 				#endif
 				label.printVal(tft);
 				lastW = tft->getCursorX()-x;
@@ -373,7 +377,6 @@ public:
 
 
 		changed |=label.update();
-
 		return changed;
 
 	}
@@ -387,7 +390,7 @@ public:
 		} else{
 			if (_x>x && _x-x < lastW){
 				if (_y>y && _y-y < size + size / 4)
-					return true; 
+					return true;
 			}
 		}
 		return false;
@@ -421,7 +424,7 @@ public:
 			}
 			pointer++;
 		}
-		
+
 		if (!Controller::parse_uint16(w,pointer,text)){
 			Serial.println("Couldnt read width");
 			return false;
@@ -472,21 +475,21 @@ public:
 		}
 
 
-		
+
 		return true;
 	}
 	void draw(ILI9341_t3 *tft){
 		if (rounded==0){
 			tft->fillRect(x, y, w, h, bg);
-		
+
 			if (bg!=fg ){
 
 				tft->drawRect(x, y, w, h, fg);
 			}
 		}else{
-	
+
 			tft->fillRoundRect(x, y, w, h, rounded, bg);
-		
+
 			if (bg!=fg ){
 
 				tft->drawRoundRect(x, y, w, h, rounded, fg);
@@ -529,7 +532,7 @@ class CircleDrawable: public Drawable{
 public:
 	bool parse(uint16_t &pointer,char* text,Controller* controller){
 
-		
+
 		if (!Controller::parse_uint16(w,pointer,text)){
 			Serial.println("Couldnt read radius");
 			return false;
@@ -573,18 +576,18 @@ public:
 		}
 
 
-		
+
 		return true;
 	}
 	void draw(ILI9341_t3 *tft){
-	
+
 			tft->fillCircle(x, y, w, bg);
-		
+
 			if (bg!=fg ){
 
 				tft->drawCircle(x, y, w, fg);
 			}
-		
+
 	}
 	bool _update(){
 		bool changed = false;
@@ -631,7 +634,7 @@ public:
 			Serial.println(text[pointer]);
 			return false;
 		}
-		
+
 		if (!Controller::parse_uint16(w,pointer,text)){
 			Serial.println("Couldnt read radius");
 			return false;
@@ -659,14 +662,14 @@ public:
 		return true;
 	}
 	void draw(ILI9341_t3 *tft){
-		
-	
+
+
 			if (horiz){
 				tft->drawFastHLine(x,y,w,fg);
 			}else{
 				tft->drawFastVLine(x,y,w,fg);
 			}
-		
+
 	}
 	bool _update(){
 		bool changed = false;
@@ -813,7 +816,7 @@ public:
   				touchY = -1;
 				draw(false,_time);
 			}
-			
+
 			return;
 		}
 
@@ -880,11 +883,11 @@ public:
 	}
 
 	void startSchedule(char command[], uint32_t id){
-		
+
 	}
 
 	void endSchedule(char command[], uint32_t id){
-		
+
 	}
 
 private:

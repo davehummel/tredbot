@@ -5,6 +5,7 @@
 #include <Arduino.h>
 
 #define HEADER_SIZE 11
+#define ERR_BUFF 1024
 
 enum ADDRTYPE
 {
@@ -52,7 +53,7 @@ public:
 		addr = 0;
 		addr = solveADDR(name);
 		type = intype;
-	} 
+	}
 
 	ADDR1(uint16_t &offset, const char* text){
 		if (! parseType(type,text[offset])){
@@ -84,7 +85,7 @@ public:
 		}
 		offset+=3;
 
-	} 
+	}
 
 	void getChars(char* chars){
 		uint16_t temp = addr;
@@ -118,7 +119,6 @@ public:
 	bool startBatchSend(uint32_t timein, char mod, uint32_t instID);
 	uint16_t streamSend();
 	bool batchSend();
-	void sendError(const char error[], uint8_t len);
 	void sendTimeSync();
 	void setStream(Stream* in);
 	void abortSend();
@@ -138,5 +138,33 @@ private:
 	bool inBatchSend = false;
 };
 
+class ErrorLogger: public Print{
+public:
+	enum ERROR_CODE{
+		NONE,OS_PARSER,OS_MISC,MOD_PARSER
+	};
+
+
+	char* getErrorText();
+
+	uint32_t getErrorTime();
+
+	ERROR_CODE getErrorCode();
+
+	void clearError();
+
+	void finished(uint32_t time, ERROR_CODE code);
+
+  virtual size_t write(uint8_t);
+
+private:
+	char errorBuffer[ERR_BUFF];
+	uint16_t errBufCount=0;
+
+	bool errorComplete = false;
+
+	ERROR_CODE errorCode = NONE;
+	uint32_t errorTime;
+};
 
 #endif
