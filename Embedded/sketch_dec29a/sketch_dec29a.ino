@@ -23,7 +23,7 @@
 
 Logger logger;
 ControlledOSStatus os;
-ControlledLED led(21,22,23);
+ControlledLED led;
 ControlledTouchLCD disp;
 ControlledCalc calc;
 BNO055Fusion fusion;
@@ -52,7 +52,7 @@ void setup() {
   lidar.setWire(&Wire);
   echo.setWire(&Wire);
   logger.setStream(&Serial1); 
-delay(2000);
+delay(200);
 
 Serial.println("Starting Controlled Modules");
 
@@ -68,7 +68,9 @@ Serial.println("Starting Controlled Modules");
   controller.loadControlled('M',&motor);
   
   Serial.println("Modules have started!!");
-
+  controller.run(2,Controller::newString("PWM R 21"),'B');
+    controller.run(2,Controller::newString("PWM G 22"),'B');
+      controller.run(2,Controller::newString("PWM B 23"),'B');
   controller.run(2,Controller::newString("B BRT 255"),'D',2);
   controller.run(2,Controller::newString("B ROT 1"),'D',2);
    controller.run(28,Controller::newString("FUN C0 w[$DC:VRV={{$DV:VLT+$DC:VRV}/#D2}]"),'C'); 
@@ -107,7 +109,8 @@ Serial.println("Starting Controlled Modules");
    controller.run(2,Controller::newString("SET BP:ENA #B1"),'C');
       controller.run(2,Controller::newString("SET BE:ENA #B0"),'C');
        controller.run(2,Controller::newString("SET BL:ENA #B1"),'C');
-  controller.schedule(4,1000,10,false,0,Controller::newString("SET UP:PAN {{{#U200+$BB:RRR}+$BB:GGG}+$BB:BBB}"),'C');
+  controller.schedule(4,1000,10,false,0,Controller::newString("SET UP:PAN {{t/#T50}%#T1024}"),'C');
+  controller.schedule(4,1000,10,false,0,Controller::newString("SET UP:TLT {#U300+{{t/#T10}%#T300}}"),'C');
 controller.schedule(4214,1000,1000,false,0,Controller::newString("U AAA 1 0"),'L',1);
 
  controller.schedule(1,3,3,false,0,Controller::newString("D"),'D');

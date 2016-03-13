@@ -8,10 +8,14 @@
 
 //#define DEBUG ON
 
-#define CS_PIN  8
+//#define CS_PIN  8
+#define CS_PIN  17
 
-#define TFT_DC      9
-#define TFT_CS      10
+//#define TFT_DC      9
+#define TFT_DC      20
+
+//#define TFT_CS      10
+#define TFT_CS      15
 #define TFT_RST    255  // 255 = unused, connect to 3.3V
 #define TFT_MOSI     11
 #define TFT_SCLK    14
