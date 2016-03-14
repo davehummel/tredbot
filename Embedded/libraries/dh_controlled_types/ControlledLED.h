@@ -37,6 +37,13 @@ public:
 					pinID[letter] = pID;
 					pinVal[letter] = 0;
 					pinPWM[letter] = isPWM;
+					if (pID!=0){
+						pinMode(pID,WRITE);
+						if (isPWM)
+							analogWrite(pID,0);
+						else
+						  digitalWrite(pID,0);
+					}
 				break;}
 			case 'F':{
 			  uint32_t sampleRate;
@@ -80,7 +87,7 @@ public:
 		if (pinPWM[letter]) {
 			analogWrite(pinID[letter],pinVal[letter]=val);
 		}else{
-			digitalWrite(pinID[letter],pinVal[letter]=val);
+			digitalWrite(pinID[letter],(pinVal[letter]=val!=0));
 		}
 
 	}
