@@ -38,11 +38,11 @@ public:
 					pinVal[letter] = 0;
 					pinPWM[letter] = isPWM;
 					if (pID!=0){
-						pinMode(pID,WRITE);
+						pinMode(pID,OUTPUT);
 						if (isPWM)
 							analogWrite(pID,0);
 						else
-						  digitalWrite(pID,0);
+						  digitalWrite(pID,LOW);
 					}
 				break;}
 			case 'F':{
@@ -87,7 +87,8 @@ public:
 		if (pinPWM[letter]) {
 			analogWrite(pinID[letter],pinVal[letter]=val);
 		}else{
-			digitalWrite(pinID[letter],(pinVal[letter]=val!=0));
+			digitalWrite(pinID[letter],(pinVal[letter]=(val!=0)));
+			Serial.println(pinVal[letter]);
 		}
 
 	}
