@@ -116,6 +116,8 @@ Serial.println("Starting Controlled Modules");
 controller.schedule(4214,1000,1000,false,0,Controller::newString("U AAA 1 0"),'L',1);
 
  controller.schedule(1,3,3,false,0,Controller::newString("D"),'D');
+ 
+  controller.schedule(101,1000,1000,false,0,Controller::newString("D HED 0 0"),'F',1);
 
 }
 
