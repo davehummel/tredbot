@@ -8,14 +8,14 @@
 
 //#define DEBUG ON
 
-//#define CS_PIN  8
-#define CS_PIN  17
+#define TCH_CS  8
+//#define TCH_CS  17
 
-//#define TFT_DC      9
-#define TFT_DC      20
+#define TFT_DC      9
+//#define TFT_DC      20
 
-//#define TFT_CS      10
-#define TFT_CS      15
+#define TFT_CS      10
+//#define TFT_CS      15
 #define TFT_RST    255  // 255 = unused, connect to 3.3V
 #define TFT_MOSI     11
 #define TFT_SCLK    14
@@ -32,6 +32,8 @@
 #define TS_MINY 200
 #define TS_MAXX 3700
 #define TS_MAXY 3800
+
+#define REPRESS_TIME 200
 
 uint16_t color565(uint8_t r, uint8_t g, uint8_t b) {
 	return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
@@ -244,6 +246,11 @@ class Drawable{
 	uint16_t y = 0;
 
 	bool firstDraw = true;
+
+  bool mappedFunc = false;
+
+	ADDR1 funcAddr1;
+	uint8_t funcAddr2 = 0;
 
 };
 
@@ -522,6 +529,17 @@ public:
 
 	}
 
+	bool inBounds(uint16_t _x, uint16_t _y) {
+
+			if (_x>x && _x-x < w){
+				if (_y>y && _y-y < h)
+					return true;
+			}
+
+		return false;
+	};
+
+
 private:
 	uint8_t rounded = 0;
 
@@ -742,8 +760,8 @@ public:
 
 
 	void begin(void){
-		tft = new ILI9341_t3(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
-		ts = new XPT2046_Touchscreen(CS_PIN);
+		tft = new ILI9341_t3(tft_cs, tft_dc, tft_rst, tft_mosi, tft_sclk, tft_miso);
+		ts = new XPT2046_Touchscreen(tch_cs);
 		pinMode(TFT_PWM,OUTPUT);
 		digitalWrite(TFT_PWM,LOW);
 		tft->begin();
@@ -751,7 +769,55 @@ public:
 		tft->setTextWrap(false);
 	}
 
+	uint8_t tft_cs=TFT_CS,tft_dc=TFT_DC,tft_rst=TFT_RST,tft_mosi=TFT_MOSI,tft_sclk=TFT_SCLK,tft_miso=TFT_MISO,tch_cs=TCH_CS;
+
 	void execute(uint32_t _time,uint32_t id,char command[]){
+		if (command[0] == 'f' || command[0] == 'F'){
+			#ifdef DEBUG
+			Serial.println("Mapping function!");
+			#endif
+			uint16_t pointer = 4;
+			uint8_t zID;
+			if (!Controller::parse_uint8(zID,pointer,command) ){
+				controller->getErrorLogger().println("Unable to parse zID:");
+				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+				return ;
+			}
+			if (zID > MAX_DRAW){
+			controller->getErrorLogger().print("zID is too large:");
+				controller->getErrorLogger().println(zID);
+				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+				return ;
+			}
+
+			if (items[zID]== 0){
+				controller->getErrorLogger().print("No drawble for id:");
+				controller->getErrorLogger().println(zID);
+				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+				return;
+			}
+
+			items[zID]->mappedFunc = false;
+
+			if (command[pointer]=='\0'){
+				return;
+			}
+
+			pointer++;
+
+			items[zID]->funcAddr1 = ADDR1(pointer,command);
+			pointer++;
+
+			if (!Controller::parse_uint8(items[zID]->funcAddr2,pointer,command) ){
+				controller->getErrorLogger().println("Unable to parse Addr2:");
+				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+				return ;
+			}
+
+			items[zID]->mappedFunc = true;
+			return;
+		}
+
 		if (command[0] == 'c' || command[0] == 'C'){
 			#ifdef DEBUG
 			Serial.println("Clearing!");
@@ -938,11 +1004,46 @@ private:
 		}
 
 		if (isTouch){
+				#ifdef DEBUG
+			Serial.print("Try:");
+			Serial.print(touchX);
+			Serial.print(",");
+			Serial.print(touchY);
+			Serial.println();
+			#endif
 			for (uint8_t i = 0 ; i < MAX_DRAW ; i++){
 				if (items[i]!=0){
 					if (items[i]->inBounds(touchX,touchY)){
+						bool repeat = lastButtonID==i;
 						lastButtonID = i;
 						lastButtonTime = _time;
+						if (repeat && _time-lastButtonPermTime<REPRESS_TIME)
+							continue;
+						if (items[i]->mappedFunc){
+							lastButtonPermTime = _time;
+							 ADDR1 addr1 = items[i]->funcAddr1;
+							 uint8_t addr2 = items[i]->funcAddr2;
+							 Controlled* controlled = controller->getControlled(addr1.modID);
+							 if (controlled!=0){
+								 switch (addr1.type){
+		 							case A_BYTE: controlled->readB(addr1,addr2);
+		 							break;
+		 							case A_UINT: controlled->readU(addr1,addr2);
+		 							break;
+		 							case A_INT: controlled->readI(addr1,addr2);
+		 							break;
+		 							case A_FLOAT: controlled->readF(addr1,addr2);
+		 							break;
+		 							case A_LONG: controlled->readL(addr1,addr2);
+		 							break;
+		 							case A_DOUBLE: controlled->readD(addr1,addr2);
+		 							break;
+		 							case A_TIME: controlled->readT(addr1,addr2);
+		 							break;
+		 							case A_STRING: controlled->readS(addr1,addr2);
+		 						}
+							 }
+						}
 					}
 				}
 			}
@@ -961,6 +1062,7 @@ private:
 
 	uint8_t lastButtonID = 0;
 	uint32_t lastButtonTime = 0;
+	uint32_t lastButtonPermTime = 0;
 
 	Drawable* items[MAX_DRAW]={};
 };

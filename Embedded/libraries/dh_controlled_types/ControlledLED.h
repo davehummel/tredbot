@@ -46,13 +46,19 @@ public:
 					}
 				break;}
 			case 'F':{
+				uint8_t pin;
 			  uint32_t sampleRate;
 				temp = 4;
+				if (!Controller::parse_uint8(pin,temp,command)){
+					controller->getErrorLogger().println("FRQ must be set to a number.");
+					return;
+				}
+				temp++;
 				if (!Controller::parse_uint32(sampleRate,temp,command)){
 					controller->getErrorLogger().println("FRQ must be set to a number.");
 					return;
 				}
-				setFreq(sampleRate);
+				setFreq(pin,sampleRate);
 			break;}
 			case 'R':{
 				uint8_t resolution;
@@ -61,6 +67,10 @@ public:
 					controller->getErrorLogger().println("RES must be set to a number.");
 					return;
 				}
+				if (resolution<2)
+					resolution = 2;
+				if (resolution>16)
+					resolution = 16;
 				analogWriteResolution(resolution);
 			break;}
 			default:
@@ -78,6 +88,12 @@ public:
 	uint8_t readB(ADDR1 addr,uint8_t addr2){
 			return pinVal[addr.addr%26];
 	}
+	uint16_t readU(ADDR1 addr,uint8_t addr2){
+			return pinVal[addr.addr%26];
+	}
+	uint32_t readT(ADDR1 addr,uint8_t addr2){
+			return pinVal[addr.addr%26];
+	}
 
 
 	void write(ADDR1 addr,uint8_t val){
@@ -90,20 +106,34 @@ public:
 			digitalWrite(pinID[letter],(pinVal[letter]=(val!=0)));
 			Serial.println(pinVal[letter]);
 		}
+	}
 
+	void write(ADDR1 addr,uint16_t val){
+		uint8_t letter = addr.addr%26;
+		if (pinID[letter] == 0)
+			return;
+		if (pinPWM[letter]) {
+			analogWrite(pinID[letter],pinVal[letter]=val);
+		}else{
+			digitalWrite(pinID[letter],(pinVal[letter]=(val!=0)));
+			Serial.println(pinVal[letter]);
+		}
 	}
 
 private:
-	void setFreq(uint32_t freq){
-		analogWriteFrequency(5, freq);
-		analogWriteFrequency(3, freq);
-		analogWriteFrequency(25, freq);
+	void setFreq(uint8_t pin,uint32_t freq){
+		if (pin == 0){
+			analogWriteFrequency(5, freq);
+			analogWriteFrequency(3, freq);
+			analogWriteFrequency(25, freq);
+		} else {
+			analogWriteFrequency(pin, freq);
+		}
 	}
 
 	uint8_t pinID[26] = {0};
-	uint8_t pinVal[26] = {0};
+	uint32_t pinVal[26] = {0};
 	bool pinPWM[26] = {false};
-
 
 };
 

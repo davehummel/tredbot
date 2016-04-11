@@ -57,8 +57,9 @@ public:
 
 	ADDR1(uint16_t &offset, const char* text){
 		if (! parseType(type,text[offset])){
-			Serial.print("Error:");
-			Serial.println(text[offset]);
+	
+			Serial.println("Unable to parse Addr type [B,U,I,L,F,D,T,S]:");
+
 			type = A_BYTE;
 		}
 		offset++;
@@ -68,6 +69,8 @@ public:
 		offset++;
 		if (text[offset]!=':'){
 			Serial.println("Missing ':' in var");
+			addr = 0;
+			return;
 		}
 		offset++;
 		addr = 0;

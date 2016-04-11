@@ -26,6 +26,9 @@ void Controller::loadControlled(char id,Controlled* controlled){
 }
 
 Controller::Controlled* Controller::getControlled(char id){
+	if (id<26)
+		return library[(uint8_t)id];
+
 	uint8_t val = id - 'A';
 	if (val>25){
 		error.print("Bad getControlled Lookup:");
