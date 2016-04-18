@@ -2,6 +2,7 @@
 #include "ILI9341_t3.h"
 #include <XPT2046_Touchscreen.h>
 #include "CTFont.h"
+#include <OneWire.h>
 
 #include "dh_logger.h"
 #include "dh_controller.h"
@@ -10,12 +11,15 @@
 #include "ControlledLED.h"
 #include "ControlledCalc.h"
 #include "ControlledTouchLCD.h"
+#include "ControlledThermometer.h"
 
 Logger logger;
 ControlledOSStatus os;
 ControlledLED led;
 ControlledTouchLCD disp;
 ControlledCalc calc;
+byte thermoIDs[2] = { 0xAD , 0xC5 };
+ControlledThermometer thermo(17,thermoIDs, 2);
 
 Controller controller;
 
@@ -31,6 +35,7 @@ Serial.println("Starting Controlled Modules");
   controller.loadControlled('B',&led); 
   controller.loadControlled('C',&calc);
   controller.loadControlled('D',&disp); 
+  controller.loadControlled('T',&thermo);
 
   Serial.println("Modules have started!!");
 
@@ -39,12 +44,17 @@ Serial.println("Starting Controlled Modules");
    controller.run(2,Controller::newString("FUN D2 ?{$BD:BTN==#B7}[?{$UB:BBB<#U4096}[w[$UB:BBB={#I128+$UB:BBB}],#B0],?{$UB:BBB>#U0}[w[$UB:BBB={#I-128+$UB:BBB}],#B0]]"),'C');
    controller.run(2,Controller::newString("FUN D3 ?{$BD:BTN==#B10}[?{$UB:WWW<#U4096}[w[$UB:WWW={#I128+$UB:WWW}],#B0],?{$UB:WWW>#U0}[w[$UB:WWW={#I-128+$UB:WWW}],#B0]]"),'C');
   controller.run(2,Controller::newString("FUN D4 ?{$BD:BTN==#B13}[?{$UB:UUU<#U4096}[w[$UB:UUU={#I128+$UB:UUU}],#B0],?{$UB:UUU>#U0}[w[$UB:UUU={#I-128+$UB:UUU}],#B0]]"),'C');
+   controller.run(2,Controller::newString("FUN D5 ?{$BD:BTN==#B31}[?{$UB:XXX<#U4096}[w[$UB:XXX={#I2+$UB:XXX}],#B0],?{$UB:XXX>#U3890}[w[$UB:XXX={#I-2+$UB:XXX}],#B0]]"),'C');
+    controller.run(2,Controller::newString("FUN D6 ?{$BD:BTN==#B34}[?{$UB:YYY<#U4096}[w[$UB:YYY={#I2+$UB:YYY}],#B0],?{$UB:YYY>#U3890}[w[$UB:YYY={#I-2+$UB:YYY}],#B0]]"),'C');
+
+      controller.schedule(4,1000,10,false,1,Controller::newString("SET UB:XXX #U3890"),'C');
   
+      controller.schedule(4,1000,10,false,1,Controller::newString("SET UB:YYY #U3890"),'C');
   controller.run(2,Controller::newString("RES 12"),'B');
   controller.run(2,Controller::newString("FRQ 3 1000"),'B');
   controller.run(2,Controller::newString("FRQ 5 3500"),'B');
-  controller.run(2,Controller::newString("PWM A 3"),'B');
-  controller.run(2,Controller::newString("PWM B 4"),'B');
+  controller.run(2,Controller::newString("PWM X 3"),'B');
+  controller.run(2,Controller::newString("PWM Y 4"),'B');
   controller.run(2,Controller::newString("PWM U 5"),'B');
   controller.run(2,Controller::newString("PWM W 20"),'B');
   controller.run(2,Controller::newString("PWM R 23"),'B');
@@ -90,10 +100,25 @@ Serial.println("Starting Controlled Modules");
  controller.execute(&Serial1); 
 
  controller.run(2,Controller::newString("18 245 33 B 60,32 12 \"Manual\" 255,255,0 155,155,0"),'D');
- 
+ controller.run(2,Controller::newString("30 2 82 T B9 \" Pumps:  Left      Right\" 255,255,255 0,0,0"),'D');
 
+ controller.run(2,Controller::newString("31 56 100 B 35,20 10 \"   +\" 100,60,25 255,210,180"),'D');
+ controller.run(2,Controller::newString("32 62 124 T 8 $UB:XXX 255,210,180 0,0,0"),'D');
+   controller.run(2,Controller::newString("33 56 136 B 35,20 10 \"   -\" 100,60,25 255,210,180"),'D');
+ controller.run(2,Controller::newString("FUN 31 UC:FND 5"),'D');
+ controller.run(2,Controller::newString("FUN 33 UC:FND 5"),'D');
+
+ controller.run(2,Controller::newString("34 96 100 B 35,20 10 \"   +\" 100,60,25 255,210,180"),'D');
+ controller.run(2,Controller::newString("35 102 124 T 8 $UB:YYY 255,210,180 0,0,0"),'D');
+   controller.run(2,Controller::newString("36 96 136 B 35,20 10 \"   -\" 100,60,25 255,210,180"),'D');
+ controller.run(2,Controller::newString("FUN 34 UC:FND 6"),'D');
+
+ controller.run(2,Controller::newString("40 2 162 T B9 \" Top Tmp    Btm Tmp\" 255,255,255 0,0,0"),'D');
+ controller.run(2,Controller::newString("41 20 178 T 8 $FT:AAA 180,210,240 0,0,0"),'D');
+ controller.run(2,Controller::newString("42 90 178 T 8 $FT:BBB 180,210,240 0,0,0"),'D');
+ controller.execute(&Serial1); 
  controller.schedule(1,3,3,false,0,Controller::newString("D"),'D');
-
+ controller.run(2,Controller::newString("Enable"),'T');
 
 }
 
