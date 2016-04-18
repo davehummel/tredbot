@@ -4,7 +4,7 @@
 #include "Stream.h"
 #include <Arduino.h>
 
-#define HEADER_SIZE 11
+#define HEADER_SIZE 7
 #define ERR_BUFF 1024
 
 enum ADDRTYPE
@@ -57,7 +57,7 @@ public:
 
 	ADDR1(uint16_t &offset, const char* text){
 		if (! parseType(type,text[offset])){
-	
+
 			Serial.println("Unable to parse Addr type [B,U,I,L,F,D,T,S]:");
 
 			type = A_BYTE;
@@ -118,24 +118,23 @@ public:
 	bool print(double val);
 	bool print(const char text[], uint8_t len);
 
-	bool startStreamSend(uint16_t sendSize, uint32_t timein, char mod, uint32_t instID);
-	bool startBatchSend(uint32_t timein, char mod, uint32_t instID);
+	bool startStreamSend(uint16_t sendSize, char mod, uint32_t instID);
+	bool startBatchSend(char mod, uint32_t instID);
 	uint16_t streamSend();
 	bool batchSend();
-	void sendTimeSync();
+	void sendTimeSync(uint32_t time);
 	void setStream(Stream* in);
 	void abortSend();
 
 private:
 	bool validate(uint8_t size);
 	void flushBuffer();
-	void setHeader(uint16_t otherbytes);
+	void setHeader(uint16_t length);
 	Stream* stream;
 	uint8_t byteCount = HEADER_SIZE;
 	uint16_t streamRemainder;
 	char module;
 	uint32_t id;
-	uint32_t time;
 	char buffer[255];
 	bool inStreamSend = false;
 	bool inBatchSend = false;

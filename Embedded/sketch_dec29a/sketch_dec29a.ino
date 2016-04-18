@@ -41,7 +41,7 @@ void setup() {
   digitalWrite(27,LOW);
 
   Serial.begin(115200);
-  Serial1.begin(115200);
+  Serial1.begin(3500000);
   delay(1000);
      
   Wire1.begin(I2C_MASTER, 0x00, I2C_PINS_29_30, I2C_PULLUP_EXT, I2C_RATE_1200,I2C_OP_MODE_DMA);
@@ -52,6 +52,11 @@ void setup() {
   lidar.setWire(&Wire);
   echo.setWire(&Wire);
   logger.setStream(&Serial1); 
+
+  disp.tch_cs = 17;
+  disp.tft_dc = 20;
+  disp.tft_cs = 15;
+  
 delay(200);
 
 Serial.println("Starting Controlled Modules");

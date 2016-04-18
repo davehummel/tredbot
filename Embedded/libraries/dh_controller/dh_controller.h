@@ -248,7 +248,7 @@ public:
 				size+=4; // bytes to hold Type,width,length,offset
 				if (size > 65532)  // might need to save space for the length encoding bytes
 					return false;
-				logger->startStreamSend(size,time,id,instID);
+				logger->startStreamSend(size,id,instID);
 				logger->print((uint8_t) type);
 				logger->print(width);
 				logger->print(length);
