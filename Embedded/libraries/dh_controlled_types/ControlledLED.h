@@ -104,7 +104,6 @@ public:
 			analogWrite(pinID[letter],pinVal[letter]=val);
 		}else{
 			digitalWrite(pinID[letter],(pinVal[letter]=(val!=0)));
-			Serial.println(pinVal[letter]);
 		}
 	}
 

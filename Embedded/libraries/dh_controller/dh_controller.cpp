@@ -437,21 +437,20 @@ void Controller::parseBuffer(){
 		uint32_t id = 0;
 		uint16_t timeDelay;
 		uint16_t timeInterval;
-		uint16_t offset = 2;
+		uint16_t offset = 3;
 		uint8_t style = INST;
-		if (inputBuffer[1] != ' '){
-			if (inputBuffer[1] == 'R'){
+		if (inputBuffer[1] == 'C'){
+			style = COMMAND
+		} else if (inputBuffer[1] == 'R'){
 				style = READ;
-				offset++;
 			} else if (inputBuffer[1] == 'W'){
 				style = WRITE;
-				offset++;
 			} else {
-				error.println("(S)chedule command must be 'S ','SR ','SW '");
+				error.println("(S)chedule command must be 'SC','SR ','SW '");
 				error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 				return;
 			}
-		}
+
 		uint32_t runCount;
 		if (!parse_uint32(id, offset, inputBuffer)){
 			//printError(offset,"instruction id");
@@ -532,17 +531,18 @@ void Controller::parseBuffer(){
 
 
 	uint32_t id = 0;
-	uint16_t offset = 2;
-	uint8_t style = INST;
-		if (inputBuffer[1] != ' '){
-			if (inputBuffer[1] == 'R'){
+	uint16_t offset = 3;
+	uint8_t style = COMMAND;
+		if (inputBuffer[1] == 'C'){
+			style = COMMAND;
+		} else if (inputBuffer[1] == 'R'){
 				style = READ;
-				offset++;
+
 			} else if (inputBuffer[1] == 'W'){
 				style = WRITE;
-				offset++;
+
 			} else {
-				error.println("Immediate commands can only be I,IR,IW");
+				error.println("Immediate commands can only be IC,IR,IW");
 				error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 				return;
 			}

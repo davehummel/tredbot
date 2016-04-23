@@ -41,7 +41,7 @@ void setup() {
   digitalWrite(27,LOW);
 
   Serial.begin(115200);
-  Serial1.begin(3500000);
+  Serial1.begin(115200);
   delay(1000);
      
   Wire1.begin(I2C_MASTER, 0x00, I2C_PINS_29_30, I2C_PULLUP_EXT, I2C_RATE_1200,I2C_OP_MODE_DMA);
@@ -94,7 +94,8 @@ Serial.println("Starting Controlled Modules");
     controller.run(2,Controller::newString("6 180 80 T 8 $UE:AAA 255,255,255 0,0,0"),'D');
    controller.run(2,Controller::newString("7 220 80 T 8 $UE:BBB 255,255,255 0,0,0"),'D');
    controller.run(2,Controller::newString("8 0 218 T 8 $SZ:INP 0,255,0 10,10,10"),'D');
-      controller.run(2,Controller::newString("9 0 230 T 8 $SZ:ETX 255,0,0 10,10,10"),'D');
+    controller.run(2,Controller::newString("9 0 230 T 8 $SZ:ETX 255,0,0 10,10,10"),'D');
+    controller.run(2,Controller::newString("10 260 230 T B8 $TZ:ETM 200,0,0 10,10,10"),'D');
     controller.run(2,Controller::newString("80 2 2 T B8 \"Motor: ERR THR  DIF  M0B M1B M0Sp M1Sp M0Cur  M1Cur\" 255,255,255 0,0,0"),'D');
     controller.run(2,Controller::newString("81 42 16 T B8 $BM:ERR 255,12,12 0,0,0"),'D');
     controller.run(2,Controller::newString("82 116 16 T 8 $BM:BLL 255,255,255 0,0,0"),'D');

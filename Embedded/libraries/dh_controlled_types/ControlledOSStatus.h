@@ -38,8 +38,9 @@ public:
 	// }
 	//
 	uint32_t readT(ADDR1 addr,uint8_t addr2){
-			//	if (addr.addr == ETM) return controller->getErrorTime();
-				return 0;
+			if (addr.addr == ETM) return controller->getErrorLogger().getErrorTime();
+			
+			return 0;
 	}
 
 	char* readS(ADDR1 addr,uint8_t addr2){

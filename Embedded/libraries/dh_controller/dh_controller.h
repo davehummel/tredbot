@@ -13,7 +13,7 @@
 #define INP_BUFF 1024
 
 
-#define INST 0
+#define COMMAND 0
 #define READ 1
 #define WRITE 2
 
