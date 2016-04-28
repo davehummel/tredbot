@@ -5,6 +5,7 @@
 const uint16_t INP = ADDR1::solveADDR("INP");
 const uint16_t ETX = ADDR1::solveADDR("ETX");
 const uint16_t ETM = ADDR1::solveADDR("ETM");
+const uint16_t TIM = ADDR1::solveADDR("TIM");
 const uint16_t ECD = ADDR1::solveADDR("ECD");
 
 class ControlledOSStatus: public Controller::Controlled{
@@ -39,7 +40,7 @@ public:
 	//
 	uint32_t readT(ADDR1 addr,uint8_t addr2){
 			if (addr.addr == ETM) return controller->getErrorLogger().getErrorTime();
-			
+			if (addr.addr == TIM) return controller->lastProcessedMSTime;
 			return 0;
 	}
 

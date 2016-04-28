@@ -206,7 +206,7 @@ void Controller::execute(Stream* output){
 			Serial.println(i);
 		#endif
 		switch(immediate[i]->style){
-			case INST:
+			case COMMAND:
 				immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command);
 				break;
 			case READ:
@@ -245,6 +245,10 @@ void Controller::execute(Stream* output){
 
 	lastProcessedMSTime +=offset;
 
+	if (transmitTimeOnTick){
+	  logger.sendTimeSync(lastProcessedMSTime);
+	}
+
 	bool doA = isANext;
 	isANext = !isANext;
 	uint8_t count = timedSize;
@@ -277,7 +281,7 @@ void Controller::execute(Stream* output){
 				iter->runCount = 1;
 			}
 			switch (iter->style){
-				case INST:
+				case COMMAND:
 					iter->controlled->execute((uint32_t)millis,iter->id,iter->command);
 				break;
 				case READ:
@@ -438,9 +442,9 @@ void Controller::parseBuffer(){
 		uint16_t timeDelay;
 		uint16_t timeInterval;
 		uint16_t offset = 3;
-		uint8_t style = INST;
+		uint8_t style;
 		if (inputBuffer[1] == 'C'){
-			style = COMMAND
+			style = COMMAND;
 		} else if (inputBuffer[1] == 'R'){
 				style = READ;
 			} else if (inputBuffer[1] == 'W'){
@@ -546,10 +550,10 @@ void Controller::parseBuffer(){
 				error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 				return;
 			}
-		}
 
 	if (!parse_uint32(id, offset, inputBuffer)){
-		//printError(offset,"instruction id");
+		error.println("Bad instruction ID");
+		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return;
 	}
 
@@ -572,13 +576,13 @@ void Controller::parseBuffer(){
 	}
 
 	#ifdef DEBUG
-	 Serial1.print("Command processed:");
-	 Serial1.print(" id =");
-	 Serial1.print(id);
-	 Serial1.print(" command ");
-	 Serial1.print(command);
-	 Serial1.print(" Controlled ID:");
-	 Serial1.println((char)commandID);
+	 Serial.print("Command processed:");
+	 Serial.print(" id =");
+	 Serial.print(id);
+	 Serial.print(" command ");
+	 Serial.print(command);
+	 Serial.print(" Controlled ID:");
+	 Serial.println((char)commandID);
 	#endif
 
 	run(id,command,commandID,style);

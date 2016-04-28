@@ -12,11 +12,11 @@
 // http://ae-bst.resource.bosch.com/media/products/dokumente/bno055/BST_BNO055_DS000_10_Release.pdf
 //
 // BNO055 Page 0
-#define BNO055_CHIP_ID          0x00    // should be 0xA0              
-#define BNO055_ACC_ID           0x01    // should be 0xFB              
-#define BNO055_MAG_ID           0x02    // should be 0x32              
-#define BNO055_GYRO_ID          0x03    // should be 0x0F              
-#define BNO055_SW_REV_ID_LSB    0x04                                                                          
+#define BNO055_CHIP_ID          0x00    // should be 0xA0
+#define BNO055_ACC_ID           0x01    // should be 0xFB
+#define BNO055_MAG_ID           0x02    // should be 0x32
+#define BNO055_GYRO_ID          0x03    // should be 0x0F
+#define BNO055_SW_REV_ID_LSB    0x04
 #define BNO055_SW_REV_ID_MSB    0x05
 #define BNO055_BL_REV_ID        0x06
 #define BNO055_PAGE_ID          0x07
@@ -128,7 +128,7 @@
 #define BNO055_GYR_AM_SET       0x1F
 
 
-// Using the BNO055_MS5637 breakout board/Teensy 3.1 Add-On Shield, ADO is set to 1 by default 
+// Using the BNO055_MS5637 breakout board/Teensy 3.1 Add-On Shield, ADO is set to 1 by default
 #define ADO 1
 #if ADO
 #define BNO055_ADDRESS 0x29   //  Device address of BNO055 when ADO = 1
@@ -136,7 +136,7 @@
 #else
 #define BNO055_ADDRESS 0x28   //  Device address of BNO055 when ADO = 0
 #define MS5637_ADDRESS   0x76   //  Address of MS5637 altimeter
-#endif  
+#endif
 
 #define ADC_256  0x00 // define pressure and temperature conversion rates
 #define ADC_512  0x02
@@ -190,38 +190,38 @@ public:
 		byte lid = readByte(BNO055_ADDRESS, BNO055_CHIP_ID);
 		if (lid != 0xA0){
 			Serial.print("BAD BNO055 SW Revision ID: "); Serial.println(lid, HEX);
-			return; 
+			return;
 		}
 	    byte swlsb = readByte(BNO055_ADDRESS, BNO055_SW_REV_ID_LSB);
 	    byte swmsb = readByte(BNO055_ADDRESS, BNO055_SW_REV_ID_MSB);
-	    Serial.print("BNO055 SW Revision ID: "); Serial.print(swmsb, HEX); Serial.print("."); Serial.println(swlsb, HEX); 
-	    
+	    Serial.print("BNO055 SW Revision ID: "); Serial.print(swmsb, HEX); Serial.print("."); Serial.println(swlsb, HEX);
+
 	    // Check bootloader version
 	    byte blid = readByte(BNO055_ADDRESS, BNO055_BL_REV_ID);
-	    Serial.print("BNO055 bootloader Version: "); Serial.println(blid); 
-	    
+	    Serial.print("BNO055 bootloader Version: "); Serial.println(blid);
+
 	    // Check self-test results
 	    byte selftest = readByte(BNO055_ADDRESS, BNO055_ST_RESULT);
-	    
+
 	    if(selftest & 0x01) {
-	      Serial.println("accelerometer passed selftest"); 
+	      Serial.println("accelerometer passed selftest");
 	    } else {
-	      Serial.println("accelerometer failed selftest"); 
+	      Serial.println("accelerometer failed selftest");
 	    }
 	    if(selftest & 0x02) {
-	      Serial.println("magnetometer passed selftest"); 
+	      Serial.println("magnetometer passed selftest");
 	    } else {
-	      Serial.println("magnetometer failed selftest"); 
-	    }  
+	      Serial.println("magnetometer failed selftest");
+	    }
 	    if(selftest & 0x04) {
-	      Serial.println("gyroscope passed selftest"); 
+	      Serial.println("gyroscope passed selftest");
 	    } else {
-	      Serial.println("gyroscope failed selftest"); 
-	    }      
+	      Serial.println("gyroscope failed selftest");
+	    }
 	    if(selftest & 0x08) {
-	      Serial.println("MCU passed selftest"); 
+	      Serial.println("MCU passed selftest");
 	    } else {
-	      Serial.println("MCU failed selftest"); 
+	      Serial.println("MCU failed selftest");
 	      return;
 	    }
 
@@ -230,7 +230,7 @@ public:
 	  Serial.println("MS5637 pressure sensor reset...");
 	  // Read PROM data from MS5637 pressure sensor
 
-	     
+
 	 // // Select page 1 to configure sensors
 	 //   writeByte(BNO055_ADDRESS, BNO055_PAGE_ID, 0x01);
 	 //   // Configure ACC
@@ -240,21 +240,21 @@ public:
 	 //   writeByte(BNO055_ADDRESS, BNO055_GYRO_CONFIG_1, GPwrMode);
 	 //   // Configure MAG
 	 //   writeByte(BNO055_ADDRESS, BNO055_MAG_CONFIG, MPwrMode << 4 | MOpMode << 2 | Modr );
-	   
+
 	   // Select page 0 to read sensors
 	   writeByte(BNO055_ADDRESS, BNO055_PAGE_ID, 0x00);
 
 	   //Select external crystal
 	   writeByte(BNO055_ADDRESS, BNO055_SYS_TRIGGER, 0x00);
-	   // Select BNO055 gyro temperature source 
+	   // Select BNO055 gyro temperature source
 	   writeByte(BNO055_ADDRESS, BNO055_TEMP_SOURCE, 0x01 );
 
 	   // Select BNO055 sensor units (temperature in degrees C, rate in dps, accel in mg)
-	   writeByte(BNO055_ADDRESS, BNO055_UNIT_SEL, 0x01 );
-	   
+	   writeByte(BNO055_ADDRESS, BNO055_UNIT_SEL, 0b00010000 );
+
 	   // Select BNO055 system power mode
 	   writeByte(BNO055_ADDRESS, BNO055_PWR_MODE, 0x00 );
-	 
+
 	   // Select BNO055 system operation mode
 	   writeByte(BNO055_ADDRESS, BNO055_OPR_MODE, OPRMode );
 
@@ -274,41 +274,41 @@ public:
 			}
 			step2Read = false;
 			uint8_t * rawData = &buffer[0];
-
-			// raw_rotVel[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
-			// raw_rotVel[1] = ((int16_t)rawData[3] << 8) | rawData[2];
-			// raw_rotVel[2] = ((int16_t)rawData[5] << 8) | rawData[4];
-
-			rawData += 6;
-
-			headingF[0] = ((double)(headingI[0] = (((int16_t)rawData[1] << 8) | rawData[0]))) / 16.f;       // Turn the MSB and LSB into a signed 16-bit value
-			headingF[1] = ((double)(headingI[1] = (((int16_t)rawData[3] << 8) | rawData[2]))) / 16.f;
-			headingF[2] = ((double)(headingI[2] = (((int16_t)rawData[5] << 8) | rawData[4]))) / 16.f;
+ // int16_t val = ((int16_t)rawData[1] << 8) | rawData[0];
+			gyroF[0] =((float) ((int16_t)((int16_t)rawData[1] << 8) | rawData[0]))/16.f;       // Turn the MSB and LSB into a signed 16-bit value
+			gyroF[1] =((float) ((int16_t)((int16_t)rawData[3] << 8) | rawData[2]))/16.f;
+			gyroF[2] =((float) ((int16_t)((int16_t)rawData[5] << 8) | rawData[4]))/16.f;
 
 			rawData += 6;
 
-			// raw_quat[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
-			// raw_quat[1] = ((int16_t)rawData[3] << 8) | rawData[2];
-			// raw_quat[2] = ((int16_t)rawData[5] << 8) | rawData[4];
-			// raw_quat[3] = ((int16_t)rawData[7] << 8) | rawData[6];
+			headingF[0] = ((float) ((int16_t)((int16_t)rawData[1] << 8) | rawData[0]))/ 16.f;       // Turn the MSB and LSB into a signed 16-bit value
+			headingF[1] = ((float) ((int16_t)((int16_t)rawData[3] << 8) | rawData[2])) / 16.f;
+			headingF[2] = ((float) ((int16_t)((int16_t)rawData[5] << 8) | rawData[4])) / 16.f;
+
+			rawData += 6;
+
+			quatF[0] =((float) ((int16_t)((int16_t)rawData[1] << 8) | rawData[0]))/16384.f;       // Turn the MSB and LSB into a signed 16-bit value
+			quatF[1] =((float)  ((int16_t)((int16_t)rawData[3] << 8) | rawData[2]))/16384.f;
+			quatF[2] =((float) ((int16_t)((int16_t)rawData[5] << 8) | rawData[4]))/16384.f;
+			quatF[3] =((float) ((int16_t)((int16_t)rawData[7] << 8) | rawData[6]))/16384.f;
 
 			rawData += 8;
 
-			// raw_linAccel[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
-			// raw_linAccel[1] = ((int16_t)rawData[3] << 8) | rawData[2];
-			// raw_linAccel[2] = ((int16_t)rawData[5] << 8) | rawData[4];
+			accelF[0] = ((float) ((int16_t)((int16_t)rawData[1] << 8) | rawData[0]))/100.f;       // Turn the MSB and LSB into a signed 16-bit value
+			accelF[1] =((float) ((int16_t)((int16_t)rawData[3] << 8) | rawData[2]))/100.f;
+			accelF[2] = ((float) ((int16_t)((int16_t)rawData[5] << 8) | rawData[4]))/100.f;
 
 			rawData += 6;
-			// raw_grav[0] = ((int16_t)rawData[1] << 8) | rawData[0];       // Turn the MSB and LSB into a signed 16-bit value
-			// raw_grav[1] = ((int16_t)rawData[3] << 8) | rawData[2];
-			// raw_grav[2] = ((int16_t)rawData[5] << 8) | rawData[4];
+      gravF[0] = ((float) ((int16_t)((int16_t)rawData[1] << 8) | rawData[0]))/100.f;       // Turn the MSB and LSB into a signed 16-bit value
+			gravF[1] =((float) ((int16_t)((int16_t)rawData[3] << 8) | rawData[2]))/100.f;
+			gravF[2] = ((float) ((int16_t)((int16_t)rawData[5] << 8) | rawData[4]))/100.f;
 
 			rawData++;
 
-		//	raw_temp = rawData[0];
+			tempF = rawData[0];
 
-			rawData++;
-
+			// rawData++;
+      //
 			// statusSys = (rawData[0] >> 6) & 0b00000011;
 			// statusGyr = (rawData[0] >> 4) & 0b00000011;
 			// statusAcc = (rawData[0] >> 2) & 0b00000011;
@@ -328,12 +328,12 @@ public:
 	}
 protected:
 	void updateHeading(){
-
 	}
 
 	void updateQuat(){
+	}
 
-
+  void updateGrav(){
 	}
 
 	void updateGyro() {}
@@ -343,26 +343,26 @@ protected:
 private:
 	uint8_t readByte(uint8_t address, uint8_t subAddress)
 	{
-		uint8_t data; // `data` will store the register data	 
+		uint8_t data; // `data` will store the register data
 		wire->beginTransmission(address);         // Initialize the Tx buffer
 		wire->write(subAddress);	                 // Put slave register address in Tx buffer
 		wire->endTransmission(I2C_NOSTOP);        // Send the Tx buffer, but send a restart to keep connection alive
 	//	wire->endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
-	//	wire->requestFrom(address, 1);  // Read one byte from slave register address 
-		wire->requestFrom(address, (size_t) 1);   // Read one byte from slave register address 
+	//	wire->requestFrom(address, 1);  // Read one byte from slave register address
+		wire->requestFrom(address, (size_t) 1);   // Read one byte from slave register address
 		data = wire->read();                      // Fill Rx buffer with result
 		return data;                             // Return data read from slave register
 	}
 
 	void readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest)
-	{  
+	{
 		wire->beginTransmission(address);   // Initialize the Tx buffer
 		wire->write(subAddress);            // Put slave register address in Tx buffer
 		wire->endTransmission(I2C_NOSTOP);  // Send the Tx buffer, but send a restart to keep connection alive
 	//	wire->endTransmission(false);       // Send the Tx buffer, but send a restart to keep connection alive
 		uint8_t i = 0;
-	//        wire->requestFrom(address, count);  // Read bytes from slave register address 
-	        wire->requestFrom(address, (size_t) count);  // Read bytes from slave register address 
+	//        wire->requestFrom(address, count);  // Read bytes from slave register address
+	        wire->requestFrom(address, (size_t) count);  // Read bytes from slave register address
 		while (wire->available()) {
 	        dest[i++] = wire->read(); }         // Put read results in the Rx buffer
 	}
@@ -383,7 +383,7 @@ private:
 		wire->beginTransmission(address);   // Initialize the Tx buffer
 		wire->write(subAddress);            // Put slave register address in Tx buffer
 		wire->endTransmission(I2C_NOSTOP);  // Send the Tx buffer, but send a restart to keep connection alive
-		wire->sendRequest(address, (size_t)count, I2C_STOP);  // Read bytes from slave register address 
+		wire->sendRequest(address, (size_t)count, I2C_STOP);  // Read bytes from slave register address
 	  	return true;
 	}
 

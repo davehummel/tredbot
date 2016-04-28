@@ -40,8 +40,8 @@ void setup() {
   pinMode(27,OUTPUT);
   digitalWrite(27,LOW);
 
-  Serial.begin(115200);
-  Serial1.begin(115200);
+  Serial.begin(3000000);
+  Serial1.begin(3000000);
   delay(1000);
      
   Wire1.begin(I2C_MASTER, 0x00, I2C_PINS_29_30, I2C_PULLUP_EXT, I2C_RATE_1200,I2C_OP_MODE_DMA);
@@ -87,7 +87,8 @@ Serial.println("Starting Controlled Modules");
   controller.run(2,Controller::newString("0 40 40 B 45,28 B8 $BB:RRR 255,255,255 $BB:RRR,0,0"),'D');
   controller.run(2,Controller::newString("1 90 40 B 45,28 B8 $BB:GGG 255,255,255 0,$BB:GGG,0"),'D');
   controller.run(2,Controller::newString("2 140 40 B 45,28 B8 $BB:BBB 255,255,255 0,0,$BB:BBB"),'D');
-  controller.run(2,Controller::newString("3 10 80 T B8 $DF:HED.0 255,255,255 0,0,0"),'D');
+  controller.run(2,Controller::newString("3 10 80 T B8 $FF:HED.0 255,255,255 0,0,0"),'D');
+    controller.run(2,Controller::newString("30 10 100 T B8 $FF:GYR.0 255,255,255 0,0,0"),'D');
    controller.run(2,Controller::newString("4 70 80 T 8 $DC:VRV 255,255,255 0,0,0"),'D');
       controller.run(2,Controller::newString("40 70 100 T 8 $DC:VRC 255,255,255 0,0,0"),'D');
      controller.run(2,Controller::newString("5 140 80 T 8 $UL:AAA 255,255,255 0,0,0"),'D');
@@ -119,11 +120,10 @@ Serial.println("Starting Controlled Modules");
   controller.schedule(4,1000,10,false,1,Controller::newString("SET UP:PAN #U200"),'C');
   controller.schedule(4,1000,10,false,1,Controller::newString("SET UP:TLT #U512"),'C');
     controller.schedule(4,1000,1000,false,0,Controller::newString("SET BB:ZZZ ?{$BB:ZZZ==#B0}[#B1,#B0]"),'C');
-controller.schedule(4214,1000,1000,false,0,Controller::newString("U AAA 1 0"),'L',1);
 
  controller.schedule(1,3,3,false,0,Controller::newString("D"),'D');
  
-  controller.schedule(101,1000,1000,false,0,Controller::newString("D HED 0 0"),'F',1);
+ controller.transmitTimeOnTick = true;
 
 }
 

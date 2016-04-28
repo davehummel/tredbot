@@ -17,6 +17,7 @@
 #define READ 1
 #define WRITE 2
 
+//#define DEBUG ON
 
 class Controller{
 public:
@@ -153,6 +154,12 @@ public:
 
 			}
 			virtual bool transmit(Logger* logger,uint32_t time,uint32_t id,char command[]){
+				#ifdef DEBUG
+					Serial.print("Outer Transmit :\n ID = ");
+					Serial.print(id);
+					Serial.print("\n command = ");
+					Serial.println(command);
+				#endif
 				uint16_t c = 0;
 					ADDRTYPE type;
 				if (!ADDR1::parseType(type,command[c]))
@@ -160,7 +167,7 @@ public:
 				c+=2;
 				uint8_t width;
 				for (width = 0;width<255;width++){
-					if (width>253 || command[width] == '\0')
+					if (width>253 || command[width+c] == '\0')
 						return false;
 					if (command[width+c] == ' ')
 						break;
@@ -187,6 +194,14 @@ public:
 					temp[0] = command[2+i*4];
 					temp[1] = command[3+i*4];
 					temp[2] = command[4+i*4];
+					#ifdef DEBUG
+						Serial.print("Creating addr");
+						Serial.print(temp);
+						Serial.print("\n n = ");
+						Serial.print(i);
+						Serial.print(" type = ");
+						Serial.println((int)type);
+					#endif
 					addr1Array[i] = new ADDR1(temp,type);
 				}
 
@@ -219,43 +234,68 @@ public:
 				return finally;
 			}
 			virtual bool transmit(Logger* logger,uint32_t time,uint32_t instID, uint8_t width, uint8_t length,ADDR1** addr1Array,uint8_t addr2Offset){
+				#ifdef DEBUG
+					Serial.print("Starting Transmit :\n ID = ");
+					Serial.print(instID);
+					Serial.print("\n width = ");
+					Serial.print(width);
+					Serial.print(" length = ");
+					Serial.print(length);
+					Serial.print(" offset = ");
+					Serial.println(addr2Offset);
+				#endif
 				if (length == 0)
 					return false;
 				ADDRTYPE type = addr1Array[0]->type;
-				for (uint8_t i=0 ; i< length ; i ++){
+				for (uint8_t i=0 ; i< width ; i ++){
+					#ifdef DEBUG
+						Serial.print(".");
+						Serial.flush();
+					#endif
 					if (type!=addr1Array[i]->type)
 						return false;
 				}
+				#ifdef DEBUG
+					Serial.print(".");
+					Serial.flush();
+				#endif
 				uint32_t size = width*length;
 				switch (type){
 					case A_BYTE: //do nothing *1
 					break;
 					case A_UINT:
 					case A_INT:
-					case A_FLOAT:
 					 size *=2;
 					break;
 					case A_LONG:
-					case A_DOUBLE:
+					case A_FLOAT:
 					case A_TIME:
 					 size *=4;
+					break;
+					case A_DOUBLE:
+					 size*=8;
+					break;
 					case A_STRING:
 					 size *=64;
 					break;
 				}
-
-				size+=width*2; // bytes to write the names of each ADDR1
-				size+=4; // bytes to hold Type,width,length,offset
+				//
+				// size+=width*2; // bytes to write the names of each ADDR1
+				// size+=4; // bytes to hold Type,width,length,offset
 				if (size > 65532)  // might need to save space for the length encoding bytes
 					return false;
+					#ifdef DEBUG
+						Serial.print("Starting Stream send. Size=");
+						Serial.println(size);
+					#endif
 				logger->startStreamSend(size,id,instID);
-				logger->print((uint8_t) type);
-				logger->print(width);
-				logger->print(length);
-				for(uint8_t i = 0 ; i < width ; i++){
-					logger->print(addr1Array[i]->addr);
-				}
-				logger->print(addr2Offset);
+				// logger->print((uint8_t) type);
+				// logger->print(width);
+				// logger->print(length);
+				// for(uint8_t i = 0 ; i < width ; i++){
+				// 	logger->print(addr1Array[i]->addr);
+				// }
+				// logger->print(addr2Offset);
 
 				for (uint8_t x = 0; x < width; x++){
 					for (uint8_t y = 0; y < length ; y++){
@@ -283,11 +323,11 @@ public:
 
 
 				uint16_t remainder = logger->streamSend();
-				// if (remainder>0){
-				// 	Serial.print('*');
-				// 	Serial.print(remainder);
-				// 	Serial.print('*');
-				// }
+				if (remainder>0){
+					Serial.print('X');
+					Serial.print(remainder);
+					Serial.print('X');
+				}
 				return remainder==0;
 			}
 
@@ -304,9 +344,9 @@ public:
 
 	Controlled* getControlled(char id);
 
-	void schedule(uint32_t id, uint16_t initialExecDelay, uint16_t executeInterval,bool additiveInterval, uint32_t runCount,char command[],char controlled,uint8_t style = INST);
+	void schedule(uint32_t id, uint16_t initialExecDelay, uint16_t executeInterval,bool additiveInterval, uint32_t runCount,char command[],char controlled,uint8_t style = COMMAND);
 
-	void run(uint32_t id,char command[],uint8_t controlled,uint8_t style = INST);
+	void run(uint32_t id,char command[],uint8_t controlled,uint8_t style = COMMAND);
 
 	void loadProgram(uint8_t id, char command[]);
 
@@ -345,6 +385,8 @@ public:
 	static char* newString(const char original[]);
 
 	static uint32_t lastProcessedMSTime;
+
+	bool transmitTimeOnTick = false;
 
 private:
 

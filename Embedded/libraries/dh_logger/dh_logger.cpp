@@ -96,9 +96,9 @@ void Logger::sendTimeSync(uint32_t time) {
 		return;
 
 	byte tmp[6];
-	tmp[0] = 5;
+	tmp[0] = 4;
 
-	tmp[1] = 1;
+	tmp[1] = 0;
 
 	tmp[2] = (byte)(time & 0xff);
 
