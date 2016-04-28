@@ -4,7 +4,7 @@
 #include "Stream.h"
 #include <Arduino.h>
 
-#define HEADER_SIZE 7
+#define HEADER_SIZE 9
 #define ERR_BUFF 1024
 
 enum ADDRTYPE

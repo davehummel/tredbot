@@ -85,7 +85,7 @@ bool Logger::print(const char text[], uint8_t len) {
 bool Logger::batchSend() {
 	if (!inBatchSend)
 		return false;
-	setHeader(byteCount-2);
+	setHeader(byteCount-4);
 	flushBuffer();
 	inBatchSend = false;
 	return true;
@@ -95,20 +95,24 @@ void Logger::sendTimeSync(uint32_t time) {
 	if (inStreamSend || inBatchSend)
 		return;
 
-	byte tmp[6];
+	byte tmp[7];
 	tmp[0] = 4;
 
 	tmp[1] = 0;
 
-	tmp[2] = (byte)(time & 0xff);
+  tmp[2] = 0xFF;
 
-	tmp[3] = (byte)((time >> 8) & 0xff);
+	tmp[3] = 0xFF;
 
-	tmp[4] = (byte)((time >> 16) & 0xff);
+	tmp[4] = (byte)(time & 0xff);
 
-	tmp[5] = (byte)((time >> 24) & 0xff);
+	tmp[5] = (byte)((time >> 8) & 0xff);
 
-	stream->write(tmp, 6);
+	tmp[6] = (byte)((time >> 16) & 0xff);
+
+	tmp[7] = (byte)((time >> 24) & 0xff);
+
+	stream->write(tmp, 8);
 }
 
 bool Logger::startBatchSend( char mod, uint32_t instID){
@@ -129,7 +133,7 @@ bool Logger::startStreamSend(uint16_t sendSize, char mod, uint32_t instID) {
 	id = instID;
 
 	byteCount = HEADER_SIZE;
-	setHeader(sendSize+HEADER_SIZE-2);
+	setHeader(sendSize+HEADER_SIZE-4);
 	inStreamSend = true;
 	streamRemainder = sendSize;
 	return true;
@@ -169,11 +173,13 @@ bool Logger::validate(uint8_t size) {
 void Logger::setHeader(uint16_t length) {
 	buffer[0] = (byte)(length & 0xff);
 	buffer[1] = (byte)((length >> 8) & 0xff);
-	buffer[2] = (byte)module;
-	buffer[3] = (byte)(id & 0xff);
-	buffer[4] = (byte)((id >> 8) & 0xff);
-	buffer[5] = (byte)((id >> 16) & 0xff);
-	buffer[6] = (byte)((id >> 24) & 0xff);
+	buffer[2] = 0xff;
+	buffer[3] = 0xff;
+ 	buffer[4] = (byte)module;
+	buffer[5] = (byte)(id & 0xff);
+	buffer[6] = (byte)((id >> 8) & 0xff);
+	buffer[7] = (byte)((id >> 16) & 0xff);
+	buffer[8] = (byte)((id >> 24) & 0xff);
 }
 void Logger::flushBuffer() {
 	stream->write(buffer, byteCount);
