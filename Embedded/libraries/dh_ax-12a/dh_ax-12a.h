@@ -3,10 +3,10 @@
 #include "Stream.h"
 #include "Arduino.h"
 
-//#define DEBUG 1
+#define DEBUG 1
 
 #define BUFFER_SIZE 128
-
+#define READCYCLEDELAY 10
 
 
 class ax_12a {
@@ -82,13 +82,17 @@ public:
 
 	float askVoltage(uint8_t deviceNum){
 		uint8_t t = readByte(deviceNum,38);
-		
+
 		return ((float)t)*.1;
 
 	}
 
 	bool askMoving(uint8_t devNum){
 		return readByte(devNum,46);
+	}
+
+	uint16_t askAngleLimit(bool isCCW,uint16_t devNum){
+		return read2Bytes(devNum,isCCW?8:6);
 	}
 
 	uint8_t readByte(uint8_t deviceNum, uint8_t addr){
@@ -126,12 +130,12 @@ public:
 				return 0;
 			}
 
-	
+
 			if (data[2] != deviceNum){
 				Serial.println("Wrong device responded");
 				return 0;
 			}
-			
+
 			if ( data[3] != 3){
 				Serial.println("Wrong length response");
 				return 0;
@@ -148,7 +152,7 @@ public:
 				Serial.println("Bad checksum");
 				return 0;
 			}
-			
+
 			return data[5];
 		}
 
@@ -159,11 +163,14 @@ public:
 	 	uint8_t parms[] = {addr,2};
 
 	 	stream->flush();
+		#ifdef DEBUG
+			Serial.print("Sending read command:");
+		#endif
 	 	execute(deviceNum,2,2,parms);
 
 		for (uint8_t i = 0; i < 40; i++){
 
-			delayMicroseconds(10);
+			delayMicroseconds(READCYCLEDELAY);
 
 			uint16_t bytes = stream->available();
 
@@ -191,12 +198,12 @@ public:
 				return 0;
 			}
 
-	
+
 			if (data[2] != deviceNum){
 				Serial.println("Wrong device responded");
 				return 0;
 			}
-			
+
 			if ( data[3] != 4){
 				Serial.println("Wrong length response");
 				return 0;
@@ -214,7 +221,7 @@ public:
 				return 0;
 			}
 
-			
+
 			return ((uint16_t)data[5]) | ((uint16_t)data[6])<<8;
 
 		}
@@ -263,7 +270,7 @@ public:
 	// 	#ifdef DEBUG
 
 	// 	Serial.print("Processing[");
-			
+
 	// 	for (int i =0 ; i < currentSize ; i++){
 	// 		Serial.print(data[i],HEX);
 	// 		Serial.print(' ');
@@ -273,7 +280,7 @@ public:
 
 
 	// 	uint16_t index=0;
-	
+
 	// 	while(currentSize-index>=6){
 	// 		waitingForRead = false;
 	// 		if (data[index++]!=255){
@@ -287,7 +294,7 @@ public:
 	// 		}
 
 	// 		uint8_t deviceNum = data[index++];
-		
+
 
 	// 		uint8_t plength = data[index++];
 
@@ -298,7 +305,7 @@ public:
 	// 		 Serial.print(" plength = ");
 	// 		 Serial.println(plength);
 	// 		#endif
-		
+
 	// 		if (plength+index>bytes){
 	// 			Serial1.println("Failed Parse:Incomplete message");
 	// 			break;
@@ -323,12 +330,12 @@ public:
 	// 			continue;
 	// 		}
 
-	// 		if (plength == 3){ 
+	// 		if (plength == 3){
 	// 			uint8_t inst = data[index++];
 	// 			if (inst!=0){
 	// 				Serial.println("Failed Parse:Unknown 3 length message or error");
 	// 			}
-	
+
 	// 			readData[deviceNum]  = data[index++];
 	// 			readAddr[deviceNum] = -readAddr[deviceNum];
 
@@ -341,18 +348,18 @@ public:
 	// 				Serial.println(readData[deviceNum]);
 	// 			#endif
 
-				
+
 	// 			index++;
 	// 			continue;
 	// 		}
 
-	// 		if (plength == 4){ 
+	// 		if (plength == 4){
 	// 			uint8_t inst = data[index++];
 
 	// 			if (inst!=0 ){
 	// 				Serial.println("Failed Parse:Unknown 4 length message or errors");
 	// 			}
-	
+
 	// 			readData[deviceNum]  =  data[index++];
 	// 			readData[deviceNum]  |= data[index++]<<8;
 
@@ -395,8 +402,8 @@ private:
 			return false;
 
 		  uint8_t data[parmCount+6];
-		  uint16_t checksum=0; 
-		  
+		  uint16_t checksum=0;
+
 		  data[0]=data[1]=0xff;
 		  data[2]=deviceNum;
 		  checksum+=data[2];
@@ -405,10 +412,10 @@ private:
 		  data[4]=command;
 		  checksum+=data[4];
 		  for (int i = 0; i < parmCount ; i++){
-		    data[5+i] = parms[i];  
+		    data[5+i] = parms[i];
 		    checksum+=parms[i];
 		  }
-		  
+
 		  data[parmCount+5]=(uint8_t)(255-(checksum%256));
 
 		  digitalWrite(triPin,HIGH);

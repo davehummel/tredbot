@@ -95,7 +95,8 @@ void Logger::sendTimeSync(uint32_t time) {
 	if (inStreamSend || inBatchSend)
 		return;
 
-	byte tmp[7];
+	byte tmp[8];
+
 	tmp[0] = 4;
 
 	tmp[1] = 0;
@@ -113,6 +114,33 @@ void Logger::sendTimeSync(uint32_t time) {
 	tmp[7] = (byte)((time >> 24) & 0xff);
 
 	stream->write(tmp, 8);
+}
+
+void Logger::sendLineSync( char mod, uint32_t instID) {
+	if (inStreamSend || inBatchSend)
+		return;
+
+	byte tmp[9];
+
+	tmp[0] = 5;
+
+	tmp[1] = 0;
+
+  tmp[2] = 0xFF;
+
+	tmp[3] = 0xFF;
+
+	tmp[4] = (byte)mod;
+
+	tmp[5] = (byte)(instID & 0xff);
+
+	tmp[6] = (byte)((instID >> 8) & 0xff);
+
+	tmp[7] = (byte)((instID >> 16) & 0xff);
+
+	tmp[8] = (byte)((instID >> 24) & 0xff);
+
+	stream->write(tmp, 9);
 }
 
 bool Logger::startBatchSend( char mod, uint32_t instID){

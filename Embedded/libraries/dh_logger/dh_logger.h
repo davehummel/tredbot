@@ -123,6 +123,7 @@ public:
 	uint16_t streamSend();
 	bool batchSend();
 	void sendTimeSync(uint32_t time);
+	void sendLineSync( char mod, uint32_t instID);
 	void setStream(Stream* in);
 	void abortSend();
 

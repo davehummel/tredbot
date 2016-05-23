@@ -88,7 +88,7 @@ protected:
 	virtual void updateAccel() = 0;
 	virtual void updateQuat() = 0;
 		virtual void updateGrav() = 0;
-	
+
 
 	i2c_t3 *wire;
 

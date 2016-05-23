@@ -84,7 +84,7 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,uint8_t
 	entry->controlled = library[controlledIndex];
 	entry->runCount = runCount;
 	entry->executeInterval = executeInterval;
-
+	logger.sendLineSync(entry->controlled->id,entry->id);
 	entry->controlled->startSchedule(command,id);
 
 	entry->nextExecuteTime = (uint32_t)millis;
@@ -196,15 +196,19 @@ void Controller::run(uint32_t id, char command[],uint8_t controlled,uint8_t styl
 	#endif
 }
 
-void Controller::execute(Stream* output){
+void Controller::setOutputStream(Stream* output){
 	// First check immediate run queue
 	logger.setStream(output);
+}
+
+void Controller::execute(){
 
 	for (int i = 0; i < immediateSize; i ++){
 		#ifdef DEBUG
 			Serial.print("Running immediate command :");
 			Serial.println(i);
 		#endif
+		logger.sendLineSync(immediate[i]->controlled->id,immediate[i]->id);
 		switch(immediate[i]->style){
 			case COMMAND:
 				immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command);

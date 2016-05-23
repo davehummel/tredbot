@@ -14,7 +14,7 @@ public:
 
 	void begin(void){
 		 Serial3.begin(2000000); // change this to 1000000 if you havent changed default baud
-	
+
 		 pinMode(ENABLE_PIN, OUTPUT);
 		 digitalWrite(ENABLE_PIN, enabled);
 
@@ -35,9 +35,15 @@ public:
 			if (!enabled)
 				return 0;
 			switch(addr.addr%26+'A'){
-				case 'P': return servo->askPos(addr2+1); // Position
+				case 'P':{
+				uint16_t test =   servo->askPos(addr2+1); // Position
+				return test;
+			}
 				case 'G': return servo->askGoal(addr2+1); // Goal
-				case 'M':
+				case 'C':{ //CWL or CCL
+					bool isCCW =  ((addr.addr/26)%26+'A') == 'C';
+					return servo->askAngleLimit(isCCW,addr2+1);
+				}
 				case 'O': return enabled;
 				default: return 0;
 			}
@@ -55,8 +61,9 @@ public:
 
 	void write(ADDR1 addr,uint8_t val){
 		switch(addr.addr%26+'A'){
-			case 'E': 
+			case 'E':
 				enabled = val == 1;
+				Serial.println(enabled?"Pan on":"pan off");
 				digitalWrite(ENABLE_PIN,enabled);
 				break;
 			default: break;
@@ -73,23 +80,23 @@ public:
 
 	void execute(uint32_t time,uint32_t id,char command[]){
 
-				
+
 	}
 
 	void startSchedule(char command[], uint32_t id){
-	
+
 	}
 	void endSchedule(char command[], uint32_t id){
-		
+
 	}
 
 
-	
+
 private:
 	bool enabled = false;
 	ax_12a *servo;
 };
 
-	
+
 
 #endif

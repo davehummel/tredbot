@@ -17,7 +17,7 @@
 #define READ 1
 #define WRITE 2
 
-//#define DEBUG ON
+//#define DEBUG 1
 
 class Controller{
 public:
@@ -354,7 +354,9 @@ public:
 
 	void deleteProgram(uint8_t id);
 
-	void execute(Stream* output);
+	void setOutputStream(Stream* stream);
+
+	void execute();
 
 	bool kill(uint32_t id);
 

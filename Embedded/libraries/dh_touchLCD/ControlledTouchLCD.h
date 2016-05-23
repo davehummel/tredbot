@@ -368,6 +368,9 @@ public:
 				#endif
 				label.printVal(tft);
 				lastW = tft->getCursorX()-x;
+				if (endDot){
+					tft->drawPixel(lastW+x,y,fg);
+				}
 			}
 
 	}
@@ -412,6 +415,7 @@ public:
 	}
 private:
 	bool bold = false;
+	bool endDot = true;
 	uint8_t size = 0;
 	const ILI9341_t3_font_t *font = 0;
 	BoundText label ;

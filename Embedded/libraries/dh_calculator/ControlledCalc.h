@@ -73,7 +73,7 @@ class ISeg{
 			return calculate(xTarget);
 			#endif
 	}
-	
+
 	double getX0(){
 		if (expiredX0){
 			x0 = fx0->readD();
@@ -168,7 +168,7 @@ public:
 		if (getFunc(func,addr,addr2)){
 			if (func == 0)
 				return 0;
-			else 
+			else
 				return func->readB();
 		}
 		uint8_t num;
@@ -185,7 +185,7 @@ public:
 		if (getFunc(func,addr,addr2)){
 			if (func == 0)
 				return 0;
-			else 
+			else
 				return func->readU();
 		}
 		uint8_t num;
@@ -202,7 +202,7 @@ public:
 		if (getFunc(func,addr,addr2)){
 			if (func == 0)
 				return 0;
-			else 
+			else
 				return func->readI();
 		}
 		uint8_t num;
@@ -219,7 +219,7 @@ public:
 		if (getFunc(func,addr,addr2)){
 			if (func == 0)
 				return 0;
-			else 
+			else
 				return func->readL();
 		}
 		uint8_t num;
@@ -236,7 +236,7 @@ public:
 		if (getFunc(func,addr,addr2)){
 			if (func == 0)
 				return 0;
-			else 
+			else
 				return func->readF();
 		}
 		uint8_t num;
@@ -253,7 +253,7 @@ public:
 		if (getFunc(func,addr,addr2)){
 			if (func == 0)
 				return 0;
-			else 
+			else
 				return func->readD();
 		}
 		uint8_t num;
@@ -270,7 +270,7 @@ public:
 		if (getFunc(func,addr,addr2)){
 			if (func == 0)
 				return 0;
-			else 
+			else
 				return func->readT();
 		}
 		uint8_t num;
@@ -288,7 +288,7 @@ public:
 		if (getVar(num,addr)){
 			bVars[num] = val;
 			return;
-		}	
+		}
 	}
 
 	void write(ADDR1 addr,uint16_t val){
@@ -296,7 +296,7 @@ public:
 		if (getVar(num,addr)){
 			uVars[num] = val;
 			return;
-		}	
+		}
 	}
 
 	void write(ADDR1 addr,int16_t val){
@@ -304,7 +304,7 @@ public:
 		if (getVar(num,addr)){
 			iVars[num] = val;
 			return;
-		}	
+		}
 	}
 
 	void write(ADDR1 addr,int32_t val){
@@ -312,7 +312,7 @@ public:
 		if (getVar(num,addr)){
 			lVars[num] = val;
 			return;
-		}	
+		}
 	}
 
 	void write(ADDR1 addr,float val){
@@ -320,7 +320,7 @@ public:
 		if (getVar(num,addr)){
 			fVars[num] = val;
 			return;
-		}	
+		}
 	}
 
 	void write(ADDR1 addr,double val){
@@ -328,7 +328,7 @@ public:
 		if (getVar(num,addr)){
 			dVars[num] = val;
 			return;
-		}	
+		}
 	}
 
 	void write(ADDR1 addr,uint32_t val){
@@ -336,14 +336,14 @@ public:
 		if (getVar(num,addr)){
 			tVars[num] = val;
 			return;
-		}	
+		}
 	}
 
 
 
 
 	void begin(void){
-	
+
 	}
 	bool transmit(Logger* logger,uint32_t _time,uint32_t instID, uint8_t width, uint8_t length,ADDR1** addr1Array,uint8_t addr2Offset){
 
@@ -363,11 +363,11 @@ public:
 	}
 
 	void startSchedule(char command[], uint32_t id){
-		
+
 	}
 
 	void endSchedule(char command[], uint32_t id){
-		
+
 	}
 
 private:
@@ -381,7 +381,7 @@ private:
 				return true;
 			} else {
 				Func** mid = functions[modID];
-	
+
 				match = mid[addr2];
 				return true;
 			}
@@ -403,13 +403,13 @@ private:
 
 		uint16_t offset = 4;
 		uint8_t modID = command[offset]-'A';
-	
+
 		if (modID > 25)
 			return;
 		offset++;
 		uint8_t addr2;
 		Controller::parse_uint8(addr2,offset,command);
-	
+
 		offset++;
 		if (addr2 >= FUNC_COUNT)
 			return;
@@ -432,14 +432,17 @@ private:
 				functions[modID][i] = 0;
 		}else{
 			if (functions[modID][addr2] != 0)
-				delete functions[modID][addr2]; 
+				delete functions[modID][addr2];
 		}
 		functions[modID][addr2] = func;
 
 	}
 
 	void set(char command[]){
+		Serial.println(command);
 		uint16_t offset = 4;
+		if (command[offset]=='$')
+			offset++;
 		ADDR1 dest(offset,command);
 		Controlled* targetMod = controller->getControlled(dest.modID);
 		if (targetMod == 0){
@@ -514,7 +517,7 @@ private:
 			case A_TIME:func->readT();break;
 			case A_STRING:break;
 		}
-	
+
 	}
 
 	void interp(char command[]){
@@ -531,7 +534,7 @@ private:
 			Serial.println("Interp ID too large");
 			return;
 		}
-		
+
 		offset++;
 
 		if (ISeg::interpRoots[interpID] != 0){
@@ -545,9 +548,9 @@ private:
 
 	}
 
-	
+
 	Func** functions[26]={};
-	
+
 
 	uint8_t bVars[26]={};
 	uint16_t uVars[26]={};
