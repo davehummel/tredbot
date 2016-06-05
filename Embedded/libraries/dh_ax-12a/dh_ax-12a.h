@@ -7,6 +7,7 @@
 
 #define BUFFER_SIZE 128
 #define READCYCLEDELAY 10
+#define WRITEDELAY 5
 
 
 class ax_12a {
@@ -97,7 +98,10 @@ public:
 
 	uint8_t readByte(uint8_t deviceNum, uint8_t addr){
 		uint8_t parms[] = {addr,1};
-
+		#ifdef DEBUG
+			Serial.print("Sending read1 command:");
+		#endif
+				stream->flush();
 		execute(deviceNum,2,2,parms);
 		for (uint8_t i = 0; i < 40; i ++){
 
@@ -120,16 +124,30 @@ public:
 				Serial.println(']');
 			#endif
 
-			if (data[0]!=255){
-				Serial.print("Failed ParseBad Header 1:");
-				Serial.println(data[0]);
-				return 0;
-			}
-			if (data[1]!=255){
-				Serial.println("Failed Parse:Bad Header 2");
-				return 0;
-			}
+			if (data[0]!=255 || data[1]!=255){
+				Serial.print("Failed ParseBad Header :");
+				Serial.print(data[0],HEX);
+				Serial.print(data[2],HEX);
+				Serial.print(" Syncing:");
 
+				uint8_t offset = 1;
+
+				while (data [offset] != 255 || data[offset+1] != 255){
+					Serial.print('.');
+					offset++;
+					if (offset == 6){
+										Serial.print("Failed!");
+										return 0;
+					}
+				}
+
+				for (uint8_t i = 0; i < 7- offset; i ++){
+					data[i]= data[i+offset];
+				}
+
+					stream->readBytes(&data[offset+2],7-offset-1);
+					Serial.print("Success!");
+			}
 
 			if (data[2] != deviceNum){
 				Serial.println("Wrong device responded");
@@ -162,17 +180,17 @@ public:
 	 uint16_t read2Bytes(uint8_t deviceNum, uint8_t addr){
 	 	uint8_t parms[] = {addr,2};
 
-	 	stream->flush();
 		#ifdef DEBUG
-			Serial.print("Sending read command:");
+			Serial.print("Sending read2 command:");
 		#endif
+		stream->flush();
 	 	execute(deviceNum,2,2,parms);
-
+   uint16_t bytes = 0;
 		for (uint8_t i = 0; i < 40; i++){
 
 			delayMicroseconds(READCYCLEDELAY);
 
-			uint16_t bytes = stream->available();
+			 bytes = stream->available();
 
 			if (bytes<8)
 				continue;
@@ -182,20 +200,36 @@ public:
 
 			#ifdef DEBUG
 				Serial.print("Processing[");
-				for (int i =0 ; i < 7 ; i++){
+				for (int i =0 ; i < 8 ; i++){
 					Serial.print(data[i],HEX);
 					Serial.print(' ');
 				}
 				Serial.println(']');
 			#endif
 
-			if (data[0]!=255){
-				Serial.println("Failed ParseBad Header 1");
-				return 0;
-			}
-			if (data[1]!=255){
-				Serial.println("Failed Parse:Bad Header 2");
-				return 0;
+			if (data[0]!=255 || data[1]!=255){
+				Serial.print("Failed ParseBad Header :");
+				Serial.print(data[0],HEX);
+				Serial.print(data[2],HEX);
+				Serial.print(" Syncing:");
+
+				uint8_t offset = 1;
+
+				while (data [offset] != 255 || data[offset+1] != 255){
+					Serial.print('.');
+					offset++;
+					if (offset == 7){
+										Serial.print("Failed!");
+										return 0;
+					}
+				}
+
+				for (uint8_t i = 0; i < 8- offset; i ++){
+					data[i]= data[i+offset];
+				}
+
+					stream->readBytes(&data[offset+2],8-offset-1);
+					Serial.print("Success!");
 			}
 
 
@@ -225,7 +259,9 @@ public:
 			return ((uint16_t)data[5]) | ((uint16_t)data[6])<<8;
 
 		}
-
+	   Serial.print("Failed to recieve enough data:");
+		 Serial.print(bytes);
+		 Serial.println(" Bytes.");
 		return 0;
 	}
 
