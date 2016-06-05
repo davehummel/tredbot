@@ -404,7 +404,7 @@ private:
 		bool killed;
 	};
 
-	void addTimedEntry(Entry* entry);
+	bool addTimedEntry(Entry* entry);
 
 	Controller::Controlled* library[26];
 
@@ -413,17 +413,13 @@ private:
 	Logger logger;
 
 	Entry* currentlyRunning;
-	bool isANext = true;
-	Entry* timedA[MAX_SCHED];
-	Entry* timedB[MAX_SCHED];
+	Entry* timed[MAX_SCHED];
 	Entry* immediate[MAX_IMMED];
 
 	char* programs[MAX_PROG]={};
 
 	uint8_t immediateSize = 0;
 	uint8_t timedSize = 0;
-
-	uint8_t remainingTimedSize = 0;
 
 	char inputBuffer[INP_BUFF];
 	uint16_t bufferCount=0;

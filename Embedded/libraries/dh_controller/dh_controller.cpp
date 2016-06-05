@@ -253,28 +253,25 @@ void Controller::execute(){
 	  logger.sendTimeSync(lastProcessedMSTime);
 	}
 
-	bool doA = isANext;
-	isANext = !isANext;
-	uint8_t count = timedSize;
 
-	timedSize = 0;
-	remainingTimedSize = count;
+uint16_t targetCount = 0; // THis is used to track killed count  and copy back when something is killed
+	for (uint16_t i =0 ; i < timedSize; i ++){
 
-
-	for (int i =0 ; i < count; i ++){
-
-		Entry* iter = doA?timedA[i]:timedB[i];
+		Entry* iter =timed[i];
 		currentlyRunning = iter;
-		bool addBack = true;
+
 
 		if (iter->killed){
-
+   Serial.print("Killing...");
+	 Serial.print(iter->id);
+	// Serial.print(iter->command);
 			iter->controlled->endSchedule(iter->command, iter->id);
 
 			delete iter->command;
 
 			delete iter;
 
+     Serial.println("KILLED!");
 			continue;
 
 		}
@@ -296,8 +293,6 @@ void Controller::execute(){
 				break;
 			}
 
-			remainingTimedSize -- ;
-
 			if (iter->runCount>0){
 				iter->runCount--;
 				if (iter->runCount == 0){
@@ -308,7 +303,7 @@ void Controller::execute(){
 
 					delete iter;
 
-					addBack = false;
+					continue;
 				}
 			}
 			if (iter->additiveInterval)
@@ -317,11 +312,10 @@ void Controller::execute(){
 				iter->nextExecuteTime += iter->executeInterval;
 		}
 
-		if (addBack){
-			addTimedEntry(iter);
-		}
+		timed[targetCount]=iter;
+		targetCount++;
 	}
-
+ timedSize = targetCount;
 	currentlyRunning = 0;
 
 }
@@ -593,21 +587,27 @@ void Controller::parseBuffer(){
 
 }
 
-void Controller::addTimedEntry(Entry* entry){
-	if (isANext){
-		timedA[timedSize] = entry;
-	}else{
-		timedB[timedSize] = entry;
-	}
+bool Controller::addTimedEntry(Entry* entry){
+
+if (timedSize>=MAX_SCHED)
+  return false;
+
+		timed[timedSize] = entry;
+
 	timedSize++;
+	return true;
 }
 
 // ID = 0 kills all running controllables
 bool Controller::kill(uint32_t id){
 	bool success = false;
+	Serial.println("Part1");
+	Serial.print(" ts ");
+	Serial.println(timedSize);
 	// for (int i = remainingTimedSize  ; i < remainingTimedSize + timedSize ; i++){
-	for (int i = 0  ; i < remainingTimedSize + timedSize ; i++){
-		Entry* entry = isANext?timedA[i]:timedB[i];
+	for (int i = 0  ; i <  timedSize ; i++){
+
+		Entry* entry = timed[i];
 		if (!entry){
 			if (success == false) {
 				error.print("Could not kill - Failed to find process id:");
@@ -617,19 +617,16 @@ bool Controller::kill(uint32_t id){
 			break;
 		}
 		if (entry->id == id || id == 0){
+			Serial.print("Killed ");
+
+				Serial.print(entry->id);
+				Serial.print(':');
+				Serial.println(entry->command);
 			entry->killed = true;
 			success = true;
 		}
 	}
-	for (int i = 0 ; i < remainingTimedSize + timedSize; i++){
-		Entry* entry = !isANext?timedA[i]:timedB[i];
-		if (!entry)
-			break;
-		if (entry->id == id || id == 0){
-			entry->killed = true;
-			success = true;
-		}
-	}
+
 	return success;
 }
 

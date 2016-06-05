@@ -435,7 +435,7 @@ private:
 				delete functions[modID][addr2];
 		}
 		functions[modID][addr2] = func;
-
+ Serial.println("Parsed func!");
 	}
 
 	void set(char command[]){
