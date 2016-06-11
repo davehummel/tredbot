@@ -12,11 +12,11 @@ void setup() {
    digitalWrite(DIRPIN,LOW);
 }
 
-uint32_t pwmH = 90;
-uint32_t pwmL = 40;
-uint32_t intH = 9000;
-uint32_t intL = 1000;
-uint32_t dirInt = 1000;
+uint32_t pwmH = 200;
+uint32_t pwmL = 0;
+uint32_t intH = 500;
+uint32_t intL = 500;
+uint32_t dirInt = 500;
 
 elapsedMicros time;
 

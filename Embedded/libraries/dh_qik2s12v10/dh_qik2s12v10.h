@@ -3,7 +3,7 @@
 #include "Stream.h"
 
 
-class qik2s12v10 {   
+class qik2s12v10 {
 public:
 
 
@@ -27,7 +27,7 @@ public:
 		stream->write(m1);
 		stream->flush();
 	}
-	
+
 	void breaks0(uint8_t m0){
 		if (m0>127)
 			m0 = 127;
@@ -35,7 +35,7 @@ public:
 		stream->write(134);
 		stream->write(m0);
 	}
-	
+
 	void breaks1(uint8_t m1){
 		if (m1>127)
 			m1 = 127;
@@ -92,19 +92,19 @@ public:
 					break;
 				}
 				if (i == 49){
-					Serial1.println("Failed to get M0 Current!");
+					Serial.println("Failed to get M0 Current!");
 				}
 			}
 
 			for (uint8_t i =0; i < 50 ; i++){
-	
+
 				if (stream->available()){
 					m1= stream->read();
 					break;
 				}
 				delayMicroseconds(5);
 				if (i == 49){
-					Serial1.println("Failed to get M1 Current!");
+					Serial.println("Failed to get M1 Current!");
 				}
 			}
 	}
@@ -123,7 +123,7 @@ public:
 					break;
 				}
 				if (i == 49){
-					Serial1.println("Failed to get M0 Speed!");
+					Serial.println("Failed to get M0 Speed!");
 				}
 			}
 
@@ -133,7 +133,7 @@ public:
 					break;
 				}
 				if (i == 49){
-					Serial1.println("Failed to get M1 Speed!");
+					Serial.println("Failed to get M1 Speed!");
 				}
 				delayMicroseconds(5);
 			}
@@ -142,7 +142,7 @@ public:
 
 	void setPWMParm(uint8_t mode){
 		writeConfig(1,mode);
-	} 
+	}
 
 	void setShutDownErrorMode(bool onSerial,bool onOverCurrent, bool onMotorFault){
 		writeConfig(2,onSerial+(onOverCurrent<<1)+(onMotorFault<<2));
@@ -211,7 +211,7 @@ public:
 				return stream->read();
 			}
 		}
-		Serial1.println("Failed to get error response!");
+
 		Serial.println("Failed to get error response!");
 		return 0;
 	}
@@ -228,15 +228,15 @@ public:
 				return stream->read();
 			}
 		}
-		Serial1.println("Failed to get getConfig response!");
+		Serial.println("Failed to get getConfig response!");
 		return 0;
 	}
-	
+
 	uint8_t writeConfig(uint8_t configID, uint8_t value){
-		Serial1.print("Config ");
-		Serial1.print(configID);
-		Serial1.print(' ');
-		Serial1.println(value);
+		Serial.print("Config ");
+		Serial.print(configID);
+		Serial.print(' ');
+		Serial.println(value);
 
 		stream->write(132);
 		stream->write(configID);
@@ -252,7 +252,7 @@ public:
 				return stream->read();
 			}
 		}
-		Serial1.println("Failed to get setConfig response!");
+		Serial.println("Failed to get setConfig response!");
 		return 0;
 
 	}
@@ -262,7 +262,7 @@ public:
 private:
 	bool isHalfRange = false;
 
-	
+
 	Stream* stream;
 
 };

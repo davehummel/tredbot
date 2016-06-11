@@ -262,8 +262,7 @@ uint16_t targetCount = 0; // THis is used to track killed count  and copy back w
 
 
 		if (iter->killed){
-   Serial.print("Killing...");
-	 Serial.print(iter->id);
+
 	// Serial.print(iter->command);
 			iter->controlled->endSchedule(iter->command, iter->id);
 
@@ -271,7 +270,6 @@ uint16_t targetCount = 0; // THis is used to track killed count  and copy back w
 
 			delete iter;
 
-     Serial.println("KILLED!");
 			continue;
 
 		}
@@ -601,9 +599,7 @@ if (timedSize>=MAX_SCHED)
 // ID = 0 kills all running controllables
 bool Controller::kill(uint32_t id){
 	bool success = false;
-	Serial.println("Part1");
-	Serial.print(" ts ");
-	Serial.println(timedSize);
+
 	// for (int i = remainingTimedSize  ; i < remainingTimedSize + timedSize ; i++){
 	for (int i = 0  ; i <  timedSize ; i++){
 
@@ -617,11 +613,6 @@ bool Controller::kill(uint32_t id){
 			break;
 		}
 		if (entry->id == id || id == 0){
-			Serial.print("Killed ");
-
-				Serial.print(entry->id);
-				Serial.print(':');
-				Serial.println(entry->command);
 			entry->killed = true;
 			success = true;
 		}
