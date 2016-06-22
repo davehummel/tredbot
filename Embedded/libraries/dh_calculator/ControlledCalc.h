@@ -28,7 +28,76 @@ class Func{
 	}
 	virtual ~Func(){};
 	Controller* controller=0;
+};
 
+class CommandListFunc:public Func{
+public:
+	CommandListFunc(Func* inc ){
+					func = inc;
+	}
+	bool parse(uint16_t &pointer,char* text){
+		return false;
+	}
+
+	const char* getName(){
+		return "Command List(,)";
+	}
+
+	~CommandListFunc(){
+		if (func != 0)
+			delete func;
+		if (next != 0)
+			delete next;
+	};
+
+	ADDRTYPE getType(){
+		return func->getType();
+	}
+	uint8_t readB(){
+		uint8_t temp = func->readB();
+		if (next!=0)
+			next->readB();
+		return temp;
+	}
+	uint16_t readU(){
+		uint16_t temp = func->readU();
+		if (next!=0)
+			next->readU();
+		return  temp;
+	}
+	int16_t readI(){
+		int16_t temp = func->readI();
+		if (next!=0)
+			next->readI();
+		return  temp;
+	}
+	int32_t readL(){
+		int32_t temp = func->readL();
+		if (next!=0)
+			next->readL();
+		return  temp;
+	}
+	float readF(){
+		float temp = func->readF();
+		if (next!=0)
+			next->readF();
+		return  temp;
+	}
+	double readD(){
+		double temp = func->readD();
+		if (next!=0)
+			next->readD();
+		return  temp;
+	}
+	uint32_t readT(){
+		uint32_t temp = func->readT();
+		if (next!=0)
+			next->readT();
+		return  temp;
+	}
+
+	Func* func=0;
+	Func* next=0;
 };
 
 Func* createFunc(uint16_t &pointer,char* text, Controller* controller);
@@ -183,9 +252,16 @@ public:
 	uint16_t readU(ADDR1 addr,uint8_t addr2){
 		Func* func = 0;
 		if (getFunc(func,addr,addr2)){
-			if (func == 0)
-				return 0;
-			else
+			if (func == 0){
+				char x[4];
+				x[3] = '\0';
+				addr.getChars(x);
+				Serial.print(x);
+				Serial.print(":");
+				Serial.print(addr2);
+				Serial.println(" Missed!");
+							return 0;
+			}else
 				return func->readU();
 		}
 		uint8_t num;
@@ -345,6 +421,7 @@ public:
 	void begin(void){
 
 	}
+
 	bool transmit(Logger* logger,uint32_t _time,uint32_t instID, uint8_t width, uint8_t length,ADDR1** addr1Array,uint8_t addr2Offset){
 
 		return Controlled::transmit(logger,_time,instID,width,length,addr1Array,addr2Offset);
@@ -371,6 +448,8 @@ public:
 	}
 
 private:
+ double process();
+
 	bool getFunc(Func* (&match),ADDR1 addr1, uint8_t addr2){
 		char temp[3];
 		addr1.getChars(temp);
@@ -415,6 +494,25 @@ private:
 			return;
 
 		Func* func = createFunc(offset,command,controller);
+		if (command[offset]== ','){
+
+			CommandListFunc* clf = new CommandListFunc(func);
+			func = clf;
+
+			while (true){
+				offset++;
+				Func* func2 = createFunc(offset,command,controller);
+				if (command[offset]!= ','){
+					clf->next = func2;
+					break;
+				}else{
+					CommandListFunc* clf2 = new CommandListFunc(func2);
+					clf->next = clf2;
+					clf = clf2;
+				}
+			}
+		}
+
 		if (command[offset]!='\0'){
 			Serial.println("Failed to completely parse input:");
 			Serial.println(command);
@@ -435,7 +533,6 @@ private:
 				delete functions[modID][addr2];
 		}
 		functions[modID][addr2] = func;
- Serial.println("Parsed func!");
 	}
 
 	void set(char command[]){

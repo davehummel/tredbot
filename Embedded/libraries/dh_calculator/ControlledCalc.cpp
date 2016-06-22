@@ -11,7 +11,7 @@ class InterpFunc:public Func{
 				Serial.println("Unable to parse interp function id");
 				return false;
 			}
-			
+
 			if (text[pointer]!='['){
 				Serial.println("Missing opening bracket for interp");
 				return false;
@@ -602,7 +602,7 @@ class VariableFunc:public Func{
 
 
 	~VariableFunc(){
-	
+
 	};
 
 	private:
@@ -623,7 +623,7 @@ class WriteFunc:public Func{
 		pointer++;
 
 		target = new ADDR1(pointer,input);
-	
+
 		pointer++;
 		if (input[pointer]=='"'){
 				pointer++;
@@ -660,90 +660,100 @@ class WriteFunc:public Func{
 	ADDRTYPE getType(){
 		return target->type;
 	}
-	uint8_t readB(){
-		if (text!= 0){
-			writeText();
-			return 0;
-		}
-		uint8_t val = valFunc->readB();
 
-		Controller::Controlled* targetMod = controller->getControlled(target->modID);
-		if (targetMod == 0)
-			return val;
-		targetMod->write(*target,val);
-		return val;
+ double process(){
+
+	 if (text!= 0){
+		 writeText();
+		 return 0;
+	 }
+
+	 Controller::Controlled* targetMod = controller->getControlled(target->modID);
+
+	 double val = 0;
+	 switch(target->type){
+		 case A_BYTE: {
+			 uint8_t temp;
+			 temp  =  valFunc->readB();
+			 val = (double) temp ;
+			 if (targetMod != 0)
+			 	targetMod->write(*target,temp);
+		 break;
+	 }
+		 case A_UINT: {
+			 uint16_t temp;
+			 temp  =  valFunc->readU();
+			 val = (double) temp ;
+			 if (targetMod != 0)
+			 	targetMod->write(*target,temp);
+		 break;
+	 }
+		 case A_INT: {
+			 int16_t temp;
+			 temp  =  valFunc->readI();
+			 val = (double) temp ;
+			 if (targetMod != 0)
+			 	targetMod->write(*target,temp);
+		 break;
+	 }
+		 case A_LONG: {
+			 int32_t temp;
+			 temp  =  valFunc->readL();
+			 val = (double) temp ;
+			 if (targetMod != 0)
+			 	targetMod->write(*target,temp);
+		 break;
+	 }
+		 case A_FLOAT:{
+			 float temp;
+			 temp  =  valFunc->readF();
+			 val = (double) temp ;
+			 if (targetMod != 0)
+			 	targetMod->write(*target,temp);
+		 break;
+	 }
+		 case A_DOUBLE:{
+			 double temp;
+			 temp  =  valFunc->readD();
+			 val = (double) temp ;
+			 if (targetMod != 0)
+			 	targetMod->write(*target,temp);
+		 break;
+	 }
+		 case A_TIME: {
+			 uint32_t temp;
+			 temp  =  valFunc->readT();
+			 val = (double) temp ;
+			 if (targetMod != 0)
+			 	targetMod->write(*target,temp);
+		 break;
+	 }
+		 case A_STRING:
+		 return 0;
+	 }
+	 return val;
+ }
+
+	uint8_t readB(){
+		return (uint8_t) process();
 	}
 	uint16_t readU(){
-		if (text!= 0){
-			writeText();
-			return 0;
-		}
-		uint16_t val = valFunc->readU();
-		Controller::Controlled* targetMod = controller->getControlled(target->modID);
-		if (targetMod == 0)
-			return val;
-		targetMod->write(*target,val);
-		return val;
+		return (uint16_t) process();
 	}
 	int16_t readI(){
-		if (text!= 0){
-			writeText();
-			return 0;
-		}
-		int16_t val = valFunc->readI();
-		Controller::Controlled* targetMod = controller->getControlled(target->modID);
-		if (targetMod == 0)
-			return val;
-		targetMod->write(*target,val);
-		return val;
+		return (int16_t) process();
 	}
 	int32_t readL(){
-		if (text!= 0){
-			writeText();
-			return 0;
-		}
-		int32_t val = valFunc->readL();
-		Controller::Controlled* targetMod = controller->getControlled(target->modID);
-		if (targetMod == 0)
-			return val;
-		targetMod->write(*target,val);
-		return val;
+		return (int32_t) process();
 	}
 	float readF(){
-		if (text!= 0){
-			writeText();
-			return 0;
-		}
-		float val = valFunc->readF();
-		Controller::Controlled* targetMod = controller->getControlled(target->modID);
-		if (targetMod == 0)
-			return val;
-		targetMod->write(*target,val);
-		return val;
+				return (float) process();
 	}
 	double readD(){
-		if (text!= 0){
-			writeText();
-			return 0;
-		}
-		double val = valFunc->readD();
-		Controller::Controlled* targetMod = controller->getControlled(target->modID);
-		if (targetMod == 0)
-			return val;
-		targetMod->write(*target,val);
-		return val;
+			return (double) process();
 	}
 	uint32_t readT(){
-		if (text!= 0){
-			writeText();
-			return 0;
-		}
-		uint32_t val = valFunc->readT();
-		Controller::Controlled* targetMod = controller->getControlled(target->modID);
-		if (targetMod == 0)
-			return val;
-		targetMod->write(*target,val);
-		return val;
+				return (uint32_t) process();
 	}
 
 	const char* getName(){
@@ -809,7 +819,6 @@ class TimeFunc:public Func{
 };
 
 class IfFunc:public Func{
-
 	bool parse(uint16_t &pointer,char* text){
 		eval = createFunc(pointer,text,controller);
 		if (eval == 0 )
@@ -1669,7 +1678,7 @@ double slope (double x0, double x1,double y0,double y1){
 			if (y0<y1)
 				b= 999999;
 			else
-				b= -999999; 
+				b= -999999;
 		}else{
 			b = (y1 - y0)/b;
 		}
@@ -1679,7 +1688,7 @@ double slope (double x0, double x1,double y0,double y1){
 class LinearISeg:public ISeg{
 	virtual void updateSeg(){
 		b = slope(getX0(),getX1(),getY0(),getY1());
-		a = getY0() - b*getX0(); 
+		a = getY0() - b*getX0();
 	};
 
 	virtual double calculate(double xTarget){
@@ -1698,9 +1707,9 @@ class CubicHermiteISeg:public ISeg{
 			d0 = slope(getX0(),getX1(),getY0(),getY1());
 		}
 
-		if (next != 0 ){	
+		if (next != 0 ){
 			d1 = slope(getX0(),next->getX1(),getY0(),next->getY1());
-		}else{	
+		}else{
 			d1 = slope(getX0(),getX1(),getY0(),getY1());
 		}
 
@@ -1789,7 +1798,7 @@ ISeg* ISeg::getNext(ISeg* prev,uint16_t &pointer,char* command,Controller* contr
 		Func* fX = 0;
 		Func* fY = 0;
 		if (prev == 0){
-	
+
 			fX = createFunc(pointer,command,controller);
 
 			if (fX == 0)
@@ -1830,7 +1839,7 @@ ISeg* ISeg::getNext(ISeg* prev,uint16_t &pointer,char* command,Controller* contr
 		fY = createFunc(pointer,command,controller);
 		if (fY == 0)
 			return 0;
-		
+
 		next->fx1= fX;
 		next->fy1= fY;
 		return next;
@@ -1855,7 +1864,7 @@ double ISeg::eval(ISeg* startSeg,double inX,uint32_t time){
 			if (inX > startSeg->getX1()){
 				if (startSeg->next == 0 )
 					return startSeg->getY1();
-				else 
+				else
 					startSeg = startSeg->next;
 				continue;
 			}
@@ -1882,7 +1891,6 @@ void ISeg::del(ISeg* start){
 					#endif
 					delete start;
 					if (back == 0){
-						Serial.println("Done!");
 						return;
 					}
 					start = back;
@@ -1945,5 +1953,4 @@ Func* createFunc(uint16_t &pointer,char* text, Controller *controller){
 		delete res;
 		return 0;
 	}
-}	
-
+}

@@ -72,6 +72,14 @@ public:
 				ADDR1 addr = ADDR1(temp,type);
 
 				uint16_t offset = 6;
+
+// TODO Read a value from VARIABLE IN including the ADDR1 and ADDR2 parts
+				// bool isWriteFromVar = false;
+				// if (command[offset] == '$'){
+				// 	isWriteFromVar = true;
+				//
+				// }
+
 				switch(type){
 					case A_BYTE:{
 						uint8_t val;
@@ -300,19 +308,19 @@ public:
 				for (uint8_t x = 0; x < width; x++){
 					for (uint8_t y = 0; y < length ; y++){
 						switch (type){
-							case A_BYTE: logger->print(readB(*addr1Array[x],y));
+							case A_BYTE: logger->print(readB(*addr1Array[x],y+addr2Offset));
 							break;
-							case A_UINT: logger->print(readU(*addr1Array[x],y));
+							case A_UINT: logger->print(readU(*addr1Array[x],y+addr2Offset));
 							break;
-							case A_INT: logger->print(readI(*addr1Array[x],y));
+							case A_INT: logger->print(readI(*addr1Array[x],y+addr2Offset));
 							break;
-							case A_FLOAT: logger->print(readF(*addr1Array[x],y));
+							case A_FLOAT: logger->print(readF(*addr1Array[x],y+addr2Offset));
 							break;
-							case A_LONG: logger->print(readL(*addr1Array[x],y));
+							case A_LONG: logger->print(readL(*addr1Array[x],y+addr2Offset));
 							break;
-							case A_DOUBLE: logger->print(readD(*addr1Array[x],y));
+							case A_DOUBLE: logger->print(readD(*addr1Array[x],y+addr2Offset));
 							break;
-							case A_TIME: logger->print(readT(*addr1Array[x],y));
+							case A_TIME: logger->print(readT(*addr1Array[x],y+addr2Offset));
 							break;
 							case A_STRING: break;
 						}

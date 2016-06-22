@@ -13,7 +13,7 @@ public:
 	const uint16_t INITDELAY = 50;
 
 	void begin(void){
-		 Serial3.begin(2000000); // change this to 1000000 if you havent changed default baud
+		 Serial3.begin(1000000); // change this to 1000000 if you havent changed default baud
 
 		 pinMode(ENABLE_PIN, OUTPUT);
 		 digitalWrite(ENABLE_PIN, enabled);
@@ -63,7 +63,6 @@ public:
 		switch(addr.addr%26+'A'){
 			case 'E':
 				enabled = val == 1;
-				Serial.println(enabled?"Pan on":"pan off");
 				digitalWrite(ENABLE_PIN,enabled);
 				break;
 			default: break;
@@ -72,9 +71,8 @@ public:
 
 	void write(ADDR1 addr,uint16_t val){
 		switch(addr.addr%26+'A'){
-			case 'P': servo->move(1,val);return;
+			case 'P':				Serial.print("Pan");Serial.println(val);  servo->move(1,val);return;
 			case 'T': servo->move(2,val);return;
-			default: Serial.println("o");break;
 		}
 	}
 

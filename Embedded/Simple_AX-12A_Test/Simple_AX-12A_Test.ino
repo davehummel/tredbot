@@ -2,7 +2,7 @@ void setup() {
   pinMode(26,OUTPUT);
   digitalWrite(26,HIGH);
   Serial.begin(400000); // I am using Serial1 (pins 9,10).  If you are using USB serial monitor, switch to Serial
-  Serial3.begin(2000000); // change this to 1000000 if you havent changed default baud
+  Serial3.begin(1000000); // change this to 1000000 if you havent changed default baud
   delay(4000);
   Serial.println("Hit Space to send a command");
 
