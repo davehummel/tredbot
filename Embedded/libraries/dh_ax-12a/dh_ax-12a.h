@@ -23,6 +23,15 @@ public:
 		pinMode(triPin,OUTPUT);
 		digitalWrite(triPin,LOW);
 		stream->flush();
+		lastKnownPos = new uint16_t[deviceCount];
+	  for (uint8_t i = 0; i < deviceCount; i++)
+			lastKnownPos[i] = 9999;
+
+	}
+
+	~ax_12a(){
+		if (lastKnownPos!=0)
+		   delete lastKnownPos;
 	}
 
 	bool setBaud(uint8_t deviceNum,uint8_t baud){
@@ -43,7 +52,12 @@ public:
 	}
 
 	bool move(uint8_t deviceNum, uint16_t pos){
+		 if (lastKnownPos[deviceNum-1]==pos){
 
+		  Serial.print('~');
+		 	return true;
+		}
+	  lastKnownPos[deviceNum-1]=pos;
 	   uint8_t parms[] = {30,(uint8_t)(pos%256),(uint8_t)(pos>>8)};
 	   return execute(deviceNum,3,3, parms);
 
@@ -463,6 +477,7 @@ private:
 	}
 
 	uint8_t devCount;
+	uint16_t* lastKnownPos;
 	Stream* stream;
 	uint8_t triPin ;
 };

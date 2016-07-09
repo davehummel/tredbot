@@ -71,8 +71,8 @@ public:
 
 	void write(ADDR1 addr,uint16_t val){
 		switch(addr.addr%26+'A'){
-			case 'P':				Serial.print("Pan");Serial.println(val);  servo->move(1,val);return;
-			case 'T': servo->move(2,val);return;
+			case 'P':		;  servo->move(1,val);return;
+			case 'T':      servo->move(2,val);return;
 		}
 	}
 
