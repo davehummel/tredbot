@@ -16,7 +16,7 @@
  ****************************************************/
 
 #include <Adafruit_PWMServoDriver.h>
-#include <i2c_t3.h> 
+#include <Wire.h>
 #if defined(ARDUINO_SAM_DUE)
  #define WIRE Wire1
 #else
@@ -50,11 +50,11 @@ void Adafruit_PWMServoDriver::setPWMFreq(float freq) {
   prescaleval /= freq;
   prescaleval -= 1;
   if (ENABLE_DEBUG_OUTPUT) {
-    Serial.print("Estimated pre-scale: "); Serial.println(prescaleval);
+    //Serial.print("Estimated pre-scale: "); Serial.println(prescaleval);
   }
   uint8_t prescale = floor(prescaleval + 0.5);
   if (ENABLE_DEBUG_OUTPUT) {
-    Serial.print("Final pre-scale: "); Serial.println(prescale);
+    //Serial.print("Final pre-scale: "); Serial.println(prescale);
   }
   
   uint8_t oldmode = read8(PCA9685_MODE1);
