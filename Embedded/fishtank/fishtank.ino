@@ -1,4 +1,5 @@
 #include "SPI.h"
+#include <i2c_t3.h>
 #include "ILI9341_t3.h"
 #include <XPT2046_Touchscreen.h>
 #include "CTFont.h"
@@ -9,6 +10,8 @@
 
 #include "ControlledOSStatus.h"
 #include "ControlledLED.h"
+#include "ControlledI2CPWM.h"
+#include "ControlledI2CADC.h"
 #include "ControlledCalc.h"
 #include "ControlledTouchLCD.h"
 #include "ControlledThermometer.h"
@@ -16,6 +19,9 @@
 Logger logger;
 ControlledOSStatus os;
 ControlledLED led;
+ControlledI2CPWM pwm;
+ControlledI2CADC adc;
+
 ControlledTouchLCD disp;
 ControlledCalc calc;
 byte thermoIDs[2] = { 0xAD , 0xC5 };
@@ -27,14 +33,30 @@ Controller controller;
 void setup() {
 
   Serial.begin(115200);
-  delay(1000);
+  Serial1.begin(115200);
+  Wire.begin();
+  
+    delay(100);
+
+  controller.setOutputStream(&Serial1);
+  logger.setStream(&Serial1);
+
+  
+  disp.tch_cs = 8;
+  disp.tft_dc = 9;
+  disp.tft_cs = 10;
+
+  pwm.setWire(&Wire);
+  adc.setWire(&Wire);
 
 Serial.println("Starting Controlled Modules");
 
   controller.loadControlled('Z',&os);
-  controller.loadControlled('B',&led); 
+  controller.loadControlled('A',&adc);
+  controller.loadControlled('P',&pwm);
+  controller.loadControlled('B',&led);
   controller.loadControlled('C',&calc);
-  controller.loadControlled('D',&disp); 
+  controller.loadControlled('D',&disp);
   controller.loadControlled('T',&thermo);
 
   Serial.println("Modules have started!!");
@@ -48,7 +70,7 @@ Serial.println("Starting Controlled Modules");
     controller.run(2,Controller::newString("FUN D6 ?{$BD:BTN==#B34}[?{$UB:YYY<#U4096}[w[$UB:YYY={#I2+$UB:YYY}],#B0],?{$UB:YYY>#U3890}[w[$UB:YYY={#I-2+$UB:YYY}],#B0]]"),'C');
 
       controller.schedule(4,1000,10,false,1,Controller::newString("SET UB:XXX #U3890"),'C');
-  
+
       controller.schedule(4,1000,10,false,1,Controller::newString("SET UB:YYY #U3890"),'C');
   controller.run(2,Controller::newString("RES 12"),'B');
   controller.run(2,Controller::newString("FRQ 3 1000"),'B');
@@ -60,12 +82,12 @@ Serial.println("Starting Controlled Modules");
   controller.run(2,Controller::newString("PWM R 23"),'B');
   controller.run(2,Controller::newString("PWM G 22"),'B');
   controller.run(2,Controller::newString("PWM B 21"),'B');
-  
- controller.execute(&Serial1); 
- 
+
+ controller.execute();
+
   controller.run(2,Controller::newString("B BRT 255"),'D',2);
   controller.run(2,Controller::newString("B ROT 1"),'D',2);
-   
+
     controller.run(2,Controller::newString("0 2 2 T B9 \" Red      Grn       Blu      Wht     Btm\" 255,255,255 0,0,0"),'D');
    controller.run(2,Controller::newString("1 2 20 B 35,20 10 \"   +\" 255,255,255 255,100,100"),'D');
  controller.run(2,Controller::newString("2 8 44 T 8 $UB:RRR 255,0,0 0,0,0"),'D');
@@ -96,8 +118,8 @@ Serial.println("Starting Controlled Modules");
    controller.run(2,Controller::newString("15 194 56 B 35,20 10 \"   -\" 255,155,155 65,0,0"),'D');
  controller.run(2,Controller::newString("FUN 13 UC:FND 4"),'D');
  controller.run(2,Controller::newString("FUN 15 UC:FND 4"),'D');
-  
- controller.execute(&Serial1); 
+
+ controller.execute();
 
  controller.run(2,Controller::newString("18 245 33 B 60,32 12 \"Manual\" 255,255,0 155,155,0"),'D');
  controller.run(2,Controller::newString("30 2 82 T B9 \" Pumps:  Left      Right\" 255,255,255 0,0,0"),'D');
@@ -112,19 +134,20 @@ Serial.println("Starting Controlled Modules");
  controller.run(2,Controller::newString("35 102 124 T 8 $UB:YYY 255,210,180 0,0,0"),'D');
    controller.run(2,Controller::newString("36 96 136 B 35,20 10 \"   -\" 100,60,25 255,210,180"),'D');
  controller.run(2,Controller::newString("FUN 34 UC:FND 6"),'D');
+ controller.run(2,Controller::newString("FUN 36 UC:FND 6"),'D');
 
  controller.run(2,Controller::newString("40 2 162 T B9 \" Top Tmp    Btm Tmp\" 255,255,255 0,0,0"),'D');
  controller.run(2,Controller::newString("41 20 178 T 8 $FT:AAA 180,210,240 0,0,0"),'D');
  controller.run(2,Controller::newString("42 90 178 T 8 $FT:BBB 180,210,240 0,0,0"),'D');
- controller.execute(&Serial1); 
+ controller.execute();
  controller.schedule(1,3,3,false,0,Controller::newString("D"),'D');
  controller.run(2,Controller::newString("Enable"),'T');
 
 }
 
 void loop() {
-        if (Serial1.available()){ 
+        if (Serial1.available()){
           controller.processInput(&Serial1);
         }
-        controller.execute(&Serial1);  
+        controller.execute();
 }
