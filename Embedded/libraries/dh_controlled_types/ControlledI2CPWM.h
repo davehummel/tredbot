@@ -70,8 +70,11 @@ void setPWM(uint8_t num, uint16_t on, uint16_t off) {
 // a zero value as completely off.   Val should be a value from 0 to 4095 inclusive.
 void setPin(uint8_t num, uint16_t val)
 {
+	if (num>25)
+	   num = 25;
   // Clamp value between 0 and 4095 inclusive.
   val = min(val, 4095);
+	vals[num] = val;
     if (val == 4095) {
       // Special value for signal fully on.
       setPWM(num, 4096, 0);
@@ -119,6 +122,14 @@ void reset (){
 
 	}
 
+	uint8_t readB(ADDR1 addr,uint8_t addr2){
+			return vals[addr.addr%26]/16;
+	}
+
+	uint16_t readU(ADDR1 addr,uint8_t addr2){
+			return vals[addr.addr%26];
+	}
+
 	void write(ADDR1 addr,uint8_t val){
 		uint8_t letter = addr.addr%26;
 		setPin(letter,val*16);
@@ -149,6 +160,8 @@ private:
 
 	i2c_t3* wire;
   uint8_t _i2caddr = 0x40 ;
+
+	uint16_t vals[26] = {0};
 };
 
 

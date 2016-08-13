@@ -66,17 +66,17 @@ Serial.println("Starting Controlled Modules");
    controller.run(2,Controller::newString("FUN D2 ?{$BD:BTN==#B7}[?{$UB:BBB<#U4096}[w[$UB:BBB={#I128+$UB:BBB}],#B0],?{$UB:BBB>#U0}[w[$UB:BBB={#I-128+$UB:BBB}],#B0]]"),'C');
    controller.run(2,Controller::newString("FUN D3 ?{$BD:BTN==#B10}[?{$UB:WWW<#U4096}[w[$UB:WWW={#I128+$UB:WWW}],#B0],?{$UB:WWW>#U0}[w[$UB:WWW={#I-128+$UB:WWW}],#B0]]"),'C');
   controller.run(2,Controller::newString("FUN D4 ?{$BD:BTN==#B13}[?{$UB:UUU<#U4096}[w[$UB:UUU={#I128+$UB:UUU}],#B0],?{$UB:UUU>#U0}[w[$UB:UUU={#I-128+$UB:UUU}],#B0]]"),'C');
-   controller.run(2,Controller::newString("FUN D5 ?{$BD:BTN==#B31}[?{$UB:XXX<#U4096}[w[$UB:XXX={#I2+$UB:XXX}],#B0],?{$UB:XXX>#U3890}[w[$UB:XXX={#I-2+$UB:XXX}],#B0]]"),'C');
-    controller.run(2,Controller::newString("FUN D6 ?{$BD:BTN==#B34}[?{$UB:YYY<#U4096}[w[$UB:YYY={#I2+$UB:YYY}],#B0],?{$UB:YYY>#U3890}[w[$UB:YYY={#I-2+$UB:YYY}],#B0]]"),'C');
+   controller.run(2,Controller::newString("FUN D5 ?{$BD:BTN==#B31}[?{$UP:AAA<#U4096}[w[$UP:AAA={#I2+$UP:AAA}],#B0],?{$UP:AAA>#U0}[w[$UP:AAA={#I-2+$UP:AAA}],#B0]]"),'C');
+    controller.run(2,Controller::newString("FUN D6 ?{$BD:BTN==#B34}[?{$UB:YYY<#U4096}[w[$UB:YYY={#I2+$UB:YYY}],#B0],?{$UB:YYY>#U0}[w[$UB:YYY={#I-2+$UB:YYY}],#B0]]"),'C');
 
-      controller.schedule(4,1000,10,false,1,Controller::newString("SET UB:XXX #U3890"),'C');
+      controller.schedule(4,1000,10,false,1,Controller::newString("SET UP:AAA #U3890"),'C');
 
-      controller.schedule(4,1000,10,false,1,Controller::newString("SET UB:YYY #U3890"),'C');
+      controller.schedule(4,1000,10,false,1,Controller::newString("SET UP:BBB #U3890"),'C');
+  
+  controller.run(2,Controller::newString("FRQ 1600"),'P');
   controller.run(2,Controller::newString("RES 12"),'B');
   controller.run(2,Controller::newString("FRQ 3 1000"),'B');
   controller.run(2,Controller::newString("FRQ 5 3500"),'B');
-  controller.run(2,Controller::newString("PWM X 3"),'B');
-  controller.run(2,Controller::newString("PWM Y 4"),'B');
   controller.run(2,Controller::newString("PWM U 5"),'B');
   controller.run(2,Controller::newString("PWM W 20"),'B');
   controller.run(2,Controller::newString("PWM R 23"),'B');
@@ -125,16 +125,19 @@ Serial.println("Starting Controlled Modules");
  controller.run(2,Controller::newString("30 2 82 T B9 \" Pumps:  Left      Right\" 255,255,255 0,0,0"),'D');
 
  controller.run(2,Controller::newString("31 56 100 B 35,20 10 \"   +\" 100,60,25 255,210,180"),'D');
- controller.run(2,Controller::newString("32 62 124 T 8 $UB:XXX 255,210,180 0,0,0"),'D');
+ controller.run(2,Controller::newString("32 62 124 T 8 $UP:AAA 255,210,180 0,0,0"),'D');
    controller.run(2,Controller::newString("33 56 136 B 35,20 10 \"   -\" 100,60,25 255,210,180"),'D');
  controller.run(2,Controller::newString("FUN 31 UC:FND 5"),'D');
  controller.run(2,Controller::newString("FUN 33 UC:FND 5"),'D');
 
  controller.run(2,Controller::newString("34 96 100 B 35,20 10 \"   +\" 100,60,25 255,210,180"),'D');
- controller.run(2,Controller::newString("35 102 124 T 8 $UB:YYY 255,210,180 0,0,0"),'D');
+ controller.run(2,Controller::newString("35 102 124 T 8 $UP:BBB 255,210,180 0,0,0"),'D');
    controller.run(2,Controller::newString("36 96 136 B 35,20 10 \"   -\" 100,60,25 255,210,180"),'D');
  controller.run(2,Controller::newString("FUN 34 UC:FND 6"),'D');
  controller.run(2,Controller::newString("FUN 36 UC:FND 6"),'D');
+
+   controller.run(2,Controller::newString("38 180 124 T 8 $UA:AAA 255,210,180 0,0,0"),'D');
+   controller.run(2,Controller::newString("39 240 124 T 8 $UA:BBB 255,210,180 0,0,0"),'D');
 
  controller.run(2,Controller::newString("40 2 162 T B9 \" Top Tmp    Btm Tmp\" 255,255,255 0,0,0"),'D');
  controller.run(2,Controller::newString("41 20 178 T 8 $FT:AAA 180,210,240 0,0,0"),'D');

@@ -102,6 +102,7 @@ public:
 	}
 
   uint16_t  readADC_SingleEnded(uint8_t channel){
+      Serial.print(channel);
 		if (channel > 3)
 	  {
 	    return 0;
@@ -112,7 +113,7 @@ public:
 	                    ADS1015_REG_CONFIG_CLAT_NONLAT  | // Non-latching (default val)
 	                    ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
 	                    ADS1015_REG_CONFIG_CMODE_TRAD   | // Traditional comparator (default val)
-	                    ADS1015_REG_CONFIG_DR_250SPS   | // 1600 samples per second (default)
+	                    ADS1015_REG_CONFIG_DR_1600SPS   | // 1600 samples per second (default)
 	                    ADS1015_REG_CONFIG_MODE_SINGLE;   // Single-shot mode (default)
 
 	  // Set PGA/voltage range
@@ -145,7 +146,10 @@ public:
 	  delay(ADS1115_CONVERSIONDELAY);
 
 	  // Read the conversion results
-	  return readRegister(_i2caddr, ADS1015_REG_POINTER_CONVERT);
+	  uint16_t temp =  readRegister(_i2caddr, ADS1015_REG_POINTER_CONVERT);
+   Serial.print(">");
+      Serial.println(temp);
+      return temp;
 	}
 
 
