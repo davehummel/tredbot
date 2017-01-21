@@ -8,6 +8,7 @@
  #include <dh_qik2s12v10.h>
  #include <dh_controller.h>
  #include <ControlledLED.h>
+ #include <ControlledSpek9645t.h>
 // #include <ControlledVMeter.h>
 // #include <ControlledPanTilt.h>
 // #include <ControlledLidar.h>
@@ -22,12 +23,14 @@ Logger logger;
 
 void setup(){
 	Serial.begin(115200);
-	Serial1.begin(3500000);
+//	Serial1.begin(3500000);
+  Serial1.begin(115200);
 	delay(1000);
 	Serial.println("StartingA");
-	logger.setStream(&Serial1);
+	logger.setStream(&Serial);
 	controller.loadControlled('B', new ControlledLED());
 	controller.loadControlled('G', new ControlledBN055());
+  controller.loadControlled('R',new ControlledSpek(&Serial1,5));
 	//controller.loadControlled('V', new ControlledVMeter());
 	//controller.loadControlled('L', new ControlledLidar());
 	//controller.loadControlled('S', new ControlledI2CXL());
@@ -40,25 +43,22 @@ void setup(){
 	// Zero the gyro
    // controller.schedule(2,200,0,false,1,Controller::newString("ZERO 20 20"),'N',true);
 	// Schedule a heading calculation to get things setup
-	
 
-	
+
+
 	//Serial1.println("Starting!");
 	Serial.println("StartingB");
-	
-	 controller.schedule(2,2000,10,false,0,Controller::newString("VAL"),'G',true);
+ controller.schedule(10,10,10,false,0,Controller::newString("SET  $FB:"))
+
 		//controller.schedule(250,100/4,100/4,false,100,Controller::newString("SCAN"),'L',true);
 }
 
 
 void loop(){
         if (Serial1.available()){
-          controller.processInput(&Serial1);
+          controller.processInput(&Serial);
         }
-		
-        controller.execute(&Serial1);   
+
+        controller.execute(&Serial);
 
 }
-
-
- 
