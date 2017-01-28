@@ -4,6 +4,10 @@
 #include <Arduino.h>
 //#define DEBUG ON
 
+#define RESTART_ADDR       0xE000ED0C
+#define READ_RESTART()     (*(volatile uint32_t *)RESTART_ADDR)
+#define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
+
 	uint32_t Controller::lastProcessedMSTime = 0;
 
 void Controller::loadControlled(char id,Controlled* controlled){
@@ -343,7 +347,12 @@ void Controller::processInput(Stream* stream){
 
 void Controller::parseBuffer(){
   error.clearError();
+
 	if (inputBuffer[0]=='K'){
+			if (inputBuffer[1]=='R'){
+				reboot();
+				return;
+			}
 		if (bufferCount<3){
 			error.println("Missing data after (K)ill command");
 			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
@@ -620,6 +629,12 @@ bool Controller::kill(uint32_t id){
 	}
 
 	return success;
+}
+
+void Controller::reboot(){
+	WRITE_RESTART(0x5FA0004);
+	delay(10000);
+	return;
 }
 
 void Controller::kill(){

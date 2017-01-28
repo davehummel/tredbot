@@ -102,7 +102,7 @@ public:
 	}
 
   uint16_t  readADC_SingleEnded(uint8_t channel){
-      Serial.print(channel);
+
 		if (channel > 3)
 	  {
 	    return 0;

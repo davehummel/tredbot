@@ -15,7 +15,6 @@
 #include "ControlledCalc.h"
 #include "ControlledTouchLCD.h"
 #include "ControlledThermometer.h"
-#include "FishTankController.h"
 
 
 Logger logger;
@@ -23,8 +22,6 @@ ControlledOSStatus os;
 ControlledLED led;
 ControlledI2CPWM pwm;
 ControlledI2CADC adc;
-
-FishTankController fishTankController;
 
 ControlledTouchLCD disp;
 ControlledCalc calc;
@@ -38,6 +35,7 @@ void setup() {
 
   Serial.begin(115200);
   Serial1.begin(115200);
+  Wire.setDefaultTimeout(10000);
   Wire.begin();
 
     delay(100);
@@ -60,7 +58,6 @@ Serial.println("Starting Controlled Modules");
   controller.loadControlled('P',&pwm);
 
   controller.loadControlled('C',&calc);
-    controller.loadControlled('F',&fishTankController);
   controller.loadControlled('D',&disp);
   controller.loadControlled('T',&thermo);
 
@@ -122,9 +119,8 @@ Serial.println("Starting Controlled Modules");
 
  controller.run(2,Controller::newString("30 2 82 T B9 \" Pumps:  Left      Right\" 255,255,255 0,0,0"),'D');
 
- controller.run(2,Controller::newString("31 56 100 B 35,20 10 \"   +\" 100,60,25 255,210,180"),'D');
  controller.run(2,Controller::newString("32 62 124 T 8 $UP:AAA 255,210,180 0,0,0"),'D');
-   controller.run(2,Controller::newString("33 56 136 B 35,20 10 \"   -\" 100,60,25 255,210,180"),'D');
+
  controller.run(2,Controller::newString("FUN 31 UC:FND 5"),'D');
  controller.run(2,Controller::newString("FUN 33 UC:FND 6"),'D');
 //
@@ -133,9 +129,13 @@ Serial.println("Starting Controlled Modules");
 //   controller.run(2,Controller::newString("36 96 136 B 35,20 10 \"   -\" 100,60,25 255,210,180"),'D');
 // controller.run(2,Controller::newString("FUN 34 UC:FND 6"),'D');
 // controller.run(2,Controller::newString("FUN 36 UC:FND 6"),'D');
+ controller.run(2,Controller::newString("80 0 218 T 8 $SZ:INP 0,255,0 0,10,160"),'D');
+   controller.run(2,Controller::newString("81 0 230 T 8 $SZ:ETX 255,0,0 10,10,10"),'D');
+    controller.run(2,Controller::newString("82 260 230 T B8 $TZ:ETM 200,0,0 10,10,10"),'D');
 
    controller.run(2,Controller::newString("38 180 124 T 8 $FC:VRA 255,210,180 0,0,0"),'D');
    controller.run(2,Controller::newString("39 240 124 T 8 $FC:VRB 255,210,180 0,0,0"),'D');
+   
 
  controller.run(2,Controller::newString("40 2 162 T B9 \" Top Tmp    Btm Tmp\" 255,255,255 0,0,0"),'D');
  controller.run(2,Controller::newString("41 20 178 T 8 $FT:AAA 180,210,240 0,0,0"),'D');

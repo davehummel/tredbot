@@ -370,6 +370,8 @@ public:
 
 	void kill(void);
 
+	void reboot(void);
+
 	void processInput(Stream* serial);
 
 	void parserError(uint16_t offset,const char* errorTitle);
