@@ -536,7 +536,6 @@ private:
 	}
 
 	void set(char command[]){
-		Serial.println(command);
 		uint16_t offset = 4;
 		if (command[offset]=='$')
 			offset++;

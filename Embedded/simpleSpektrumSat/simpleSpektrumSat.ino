@@ -1,5 +1,5 @@
 #define MASK_2048_CHANID 0x7800
-#define MASK_2048_SXPOS 0x07FF 
+#define MASK_2048_SXPOS 0x07FF
 #define MASK_2048_PHASE 0x8000
 
 void setup() {
@@ -43,7 +43,7 @@ int xx = 0;
 void loop() {
 
 // while(Serial1.available() >= 16)
-//  {  
+//  {
 //      if (Serial1.read()!=0){
 //        Serial.print("E");
 //        continue;
@@ -63,13 +63,13 @@ void loop() {
 //    }
 //    Serial.println();
 //  }
-  
+
    while(Serial1.available() >= 16)
-    { 
-      REMOTE_FRAME frame; 
+    {
+      REMOTE_FRAME frame;
       for (uint8_t i = 0 ;i <8; i ++ ){
         uint8_t temp[2];
-        
+
         Serial1.readBytes(temp ,2);
        frame.raw[i*2+0] =temp[1];
        frame.raw[i*2+1] = temp[0];
@@ -92,5 +92,5 @@ void loop() {
       }
     Serial.println();
     }
-  
+
 }

@@ -91,7 +91,7 @@ public:
 
 
 private:
-	bool enabled = false;
+	bool enabled = true;
 	ax_12a *servo;
 };
 

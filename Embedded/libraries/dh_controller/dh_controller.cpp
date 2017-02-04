@@ -4,6 +4,10 @@
 #include <Arduino.h>
 //#define DEBUG ON
 
+#define RESTART_ADDR       0xE000ED0C
+#define READ_RESTART()     (*(volatile uint32_t *)RESTART_ADDR)
+#define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
+
 	uint32_t Controller::lastProcessedMSTime = 0;
 
 void Controller::loadControlled(char id,Controlled* controlled){
@@ -84,7 +88,7 @@ bool additiveInterval, uint32_t runCount, char command[],char controlled,uint8_t
 	entry->controlled = library[controlledIndex];
 	entry->runCount = runCount;
 	entry->executeInterval = executeInterval;
-	logger.sendLineSync(entry->controlled->id,entry->id);
+  //logger.sendLineSync(entry->controlled->id,entry->id);
 	entry->controlled->startSchedule(command,id);
 
 	entry->nextExecuteTime = (uint32_t)millis;
@@ -208,12 +212,13 @@ void Controller::execute(){
 			Serial.print("Running immediate command :");
 			Serial.println(i);
 		#endif
-		logger.sendLineSync(immediate[i]->controlled->id,immediate[i]->id);
+
 		switch(immediate[i]->style){
 			case COMMAND:
 				immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command);
 				break;
 			case READ:
+				logger.sendLineSync(immediate[i]->controlled->id,immediate[i]->id);
 				immediate[i]->controlled->transmit(&logger,(uint32_t)millis,immediate[i]->id,immediate[i]->command);
 				break;
 			case WRITE:
@@ -250,7 +255,7 @@ void Controller::execute(){
 	lastProcessedMSTime +=offset;
 
 	if (transmitTimeOnTick){
-	  logger.sendTimeSync(lastProcessedMSTime);
+	  		logger.sendTimeSync(lastProcessedMSTime);
 	}
 
 
@@ -342,7 +347,12 @@ void Controller::processInput(Stream* stream){
 
 void Controller::parseBuffer(){
   error.clearError();
+
 	if (inputBuffer[0]=='K'){
+			if (inputBuffer[1]=='R'){
+				reboot();
+				return;
+			}
 		if (bufferCount<3){
 			error.println("Missing data after (K)ill command");
 			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
@@ -619,6 +629,12 @@ bool Controller::kill(uint32_t id){
 	}
 
 	return success;
+}
+
+void Controller::reboot(){
+	WRITE_RESTART(0x5FA0004);
+	delay(10000);
+	return;
 }
 
 void Controller::kill(){

@@ -94,11 +94,11 @@ Serial.println("Starting Controlled Modules");
 
 
     controller.run(2,Controller::newString("INT 0 #D-100,#D-5|#D100,#D-5~#D1000,#D0|#D1048,#D0~#D2048,#D5~#D2600,#D5"),'C'); 
-     controller.run(2,Controller::newString("INT 1 #D-180,#D-512~#D-5,#D-180~#D-2,#D-50|#D-.99999,#D0|#D0.9999,#D0|#D2,#D50~#D5,#D180~#D180,#D512"),'C'); 
+     controller.run(2,Controller::newString("INT 1 #D-180,#D-512~#D-5,#D-200~#D-.5,#D-50|#D-.499999,#D0|#D0.49999,#D0|#D.5,#D50~#D5,#D200~#D180,#D512"),'C'); 
  controller.run(28,Controller::newString("FUN C0 w[$DC:VRV={{$DV:VLT+$DC:VRV}/#D2}]"),'C');
     controller.run(28,Controller::newString("FUN C1 w[$DC:VRC={{$DV:CUR+$DC:VRC}/#D2}]"),'C');
    controller.run(27,Controller::newString("FUN F0 w[$DC:VRH={$DC:VRH+i0[$UR:DDD]}],?{$DC:VRH>#D360}[w[$DC:VRH={$DC:VRH-#D360}],#D0],?{$DC:VRH<#D0}[w[$DC:VRH={$DC:VRH+#D360}],#D0]"),'C');
- controller.run(27,Controller::newString("FUN F1 w[$DC:VRT={$FF:HED.0-$DC:VRH}],?{$DC:VRT>#D180}[w[$DC:VRT={$DC:VRT-#D360}],#D0],w[$IM:DDD=i1[$DC:VRT]]"),'C');
+ controller.run(27,Controller::newString("FUN F1 w[$DC:VRT={$FF:HED.0-$DC:VRH}],?[$DC:VRT>#D180]{w[$IM:DDD=i1[{#D180-$DC:VRT}],?[$DC:VRT<#D-180]{w[$IM:DDD=i1[{#D360+$DC:VRT}]],w[$IM:DDD=i1[$DC:VRT]]}"),'C');
 
 
 
@@ -114,7 +114,7 @@ Serial.println("Starting Controlled Modules");
    controller.run(2,Controller::newString("7 220 80 T 8 $UR:DDD 255,255,255 0,0,0"),'D');
 
 //         controller.run(2,Controller::newString("12 250 65 T 10 $UC:FNP.1 255,255,255 0,0,0"),'D');
-                    controller.run(2,Controller::newString("13 250 45 T 10 $DC:VRT 255,100,100 0,0,0"),'D');
+                    controller.run(2,Controller::newString("13 250 45 T 10 $UC:VRP 255,255,255 0,0,0"),'D');
 //   controller.run(2,Controller::newString("8 0 218 T 8 $SZ:INP 0,255,0 0,10,160"),'D');
 //    controller.run(2,Controller::newString("9 0 230 T 8 $SZ:ETX 255,0,0 10,10,10"),'D');
 //    controller.run(2,Controller::newString("10 260 230 T B8 $TZ:ETM 200,0,0 10,10,10"),'D');

@@ -3,7 +3,7 @@
 #include "Stream.h"
 #include "Arduino.h"
 
-#define DEBUG 1
+//#define DEBUG 1
 
 #define BUFFER_SIZE 128
 #define READCYCLEDELAY 10
@@ -53,8 +53,6 @@ public:
 
 	bool move(uint8_t deviceNum, uint16_t pos){
 		 if (lastKnownPos[deviceNum-1]==pos){
-
-		  Serial.print('~');
 		 	return true;
 		}
 	  lastKnownPos[deviceNum-1]=pos;
