@@ -144,6 +144,8 @@ Serial.println("Starting Controlled Modules");
  controller.schedule(1,3,3,false,0,Controller::newString("D"),'D');
  controller.run(2,Controller::newString("Enable"),'T');
 
+  controller.run(2,Controller::newString("B ZZZ 1 0"),'Z',1);
+
 }
 
 void loop() {
