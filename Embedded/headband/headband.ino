@@ -7,17 +7,32 @@
     
     #define PWRHOLD_PIN 5
     #define BTN_THRESH 1022
+
+    #define PLAY_RES_MS 100l
+    #define PLAY_DUR_MS 10000l
+
+
+    #define TEN_SEC_TONE 22
+    #define MIN_TONE 15
+    #define FIVE_MIN_TONE 11
+
+    #define DELAY 20
     
     enum class LightMode { Normal=0, Bright=1, Red=2, /*Move,*/ Power=3, Time=4, Off=5 };  
     CRGB leds[NUM_LEDS];
     uint16_t timeInSec = 0;
+    uint32_t timeInMS = 0;
     LightMode lightMode = LightMode::Normal;
     LightMode prevMode = LightMode::Off;
     float powerLvl=0;
 
     uint16_t offsetTime = 0;
     uint16_t pauseStartTime = 0;
-    bool isPaused = false;
+    bool isPaused = true;
+
+    uint8_t playback [PLAY_DUR_MS/PLAY_RES_MS]={0};
+
+    uint32_t playbackStop = 0;
 
     
     
@@ -44,26 +59,101 @@ void setup() {
 }
 
 void loop() {
-   digitalWrite (13,HIGH);
-   timeInSec = millis()/500;
+   uint32_t rawTime = millis();
+   timeInSec = rawTime/500;
+   digitalWrite (13,timeInSec%2);
    if (timeInSec/60 > 30){
         digitalWrite (PWRHOLD_PIN,LOW); // shut down in 30 minutes
         delay(10000);
    }
    timeInSec = timeInSec - offsetTime;
+   timeInMS = rawTime*2 - offsetTime * 1000;
    testPwr();
    testButton();
+   definePlayback();
    doLights();
    doSound();
-   delay(50);
+   rawTime = millis() - rawTime;
+   if (rawTime<DELAY)
+   delay(DELAY-rawTime);
+}
+
+void definePlayback(){
+  if (timeInMS<playbackStop)
+    return;
+  if (isPaused)
+    return;
+          uint16_t tempTime = timeInSec;
+          uint8_t seconds = tempTime % 10;
+          tempTime -= seconds; // correct for over shot of first part
+          tempTime = tempTime / 10;
+          uint8_t tenSeconds = tempTime % 6;
+          tempTime = tempTime / 6;
+          uint8_t minutes = tempTime % 5;
+          tempTime = tempTime / 5;
+          uint8_t fiveMinutes = tempTime;
+
+          uint16_t index = 0;
+          if (tenSeconds !=0 ){
+            for (uint8_t i = 0 ; i < tenSeconds ; i++){
+              playback[index] = TEN_SEC_TONE;
+              index++;
+              playback[index] = TEN_SEC_TONE;
+              index++;
+              playback[index] = 0;
+              index++;
+              playback[index] = 0;
+              index++;
+            }
+          }else{
+          for (uint8_t i = 0 ; i < minutes ; i++){
+            playback[index] = MIN_TONE;
+            index++;
+            playback[index] = MIN_TONE;
+            index++;
+            playback[index] = MIN_TONE;
+            index++;
+            playback[index] = MIN_TONE;
+            index++;
+            playback[index] = 0;
+            index++;
+            playback[index] = 0;
+            index++;
+ 
+          }
+            for (uint8_t i = 0 ; i < fiveMinutes ; i++){
+              playback[index] = FIVE_MIN_TONE;
+              index++;
+              playback[index] = FIVE_MIN_TONE;
+              index++;
+              playback[index] = FIVE_MIN_TONE;
+              index++;
+              playback[index] = FIVE_MIN_TONE;
+              index++;
+              playback[index] = FIVE_MIN_TONE;
+              index++;
+              playback[index] = FIVE_MIN_TONE;
+              index++;
+              playback[index] = 0;
+              index++;
+              playback[index] = 0;
+              index++;
+            }
+          }
+          for (;index<PLAY_DUR_MS/PLAY_RES_MS;index++)
+            playback[index]=0; 
 }
 
 void doSound(){
-  if ((millis()/250)%2){
-    tone(SND_PIN,600);
-  }else{
-    noTone(SND_PIN);
-  }
+    if (isPaused){
+      noTone(SND_PIN);
+      return;
+    }
+    uint16_t snd = playback[(timeInMS%PLAY_DUR_MS)/PLAY_RES_MS]*256;
+    if (snd>0)
+      tone(SND_PIN,snd);
+    else
+      noTone(SND_PIN);
 }
 
    void doLights(){
