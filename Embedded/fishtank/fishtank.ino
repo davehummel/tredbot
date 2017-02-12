@@ -40,8 +40,8 @@ void setup() {
 
     delay(100);
 
-  controller.setOutputStream(&Serial);
-  logger.setStream(&Serial);
+  controller.setOutputStream(&Serial1);
+  logger.setStream(&Serial1);
 
 
   disp.tch_cs = 8;
@@ -63,8 +63,8 @@ Serial.println("Starting Controlled Modules");
 
   Serial.println("Modules have started!!");
 
-    controller.run(2,Controller::newString("INT 0 #U5000,#F10/#U7500,#F6~#U8500,#F5~#U9500,#F4~#U11000,#F3~#U12500,#F2~#U14000,#F1~#U17200,#F0/#U19000,#F-1"),'C');
-    controller.run(2,Controller::newString("INT 1 #U2600,#F10/#U3200,#F6~#U4325,#F5~#U4700,#F4~#U5150,#F3~#U5950,#F2~#U7000,#F1~#U8100,#F0/#U9000,#F-1"),'C');
+//    controller.run(2,Controller::newString("INT 0 #U5000,#F10/#U7500,#F6~#U8500,#F5~#U9500,#F4~#U11000,#F3~#U12500,#F2~#U14000,#F1~#U17200,#F0/#U19000,#F-1"),'C');
+//    controller.run(2,Controller::newString("INT 1 #U2600,#F10/#U3200,#F6~#U4325,#F5~#U4700,#F4~#U5150,#F3~#U5950,#F2~#U7000,#F1~#U8100,#F0/#U9000,#F-1"),'C');
 
 
   controller.run(2,Controller::newString("FUN P0 w[$UP:AAA={#F3600+{#F500*{{$FC:VRB-$FC:VRA}^#B3}}}]"),'C');
