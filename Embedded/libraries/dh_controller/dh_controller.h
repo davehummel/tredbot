@@ -21,7 +21,6 @@
 
 class Controller{
 public:
-
 		class Controlled{
 
 		public:
@@ -396,6 +395,8 @@ public:
 
 	static char* newString(const char original[]);
 
+		static char lastProcessedLine[255];
+
 	static uint32_t lastProcessedMSTime;
 
 	bool transmitTimeOnTick = false;
@@ -417,8 +418,6 @@ private:
 	bool addTimedEntry(Entry* entry);
 
 	Controller::Controlled* library[26];
-
-
 
 	Logger logger;
 

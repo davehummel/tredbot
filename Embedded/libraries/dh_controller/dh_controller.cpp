@@ -9,6 +9,7 @@
 #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
 
 	uint32_t Controller::lastProcessedMSTime = 0;
+  char Controller::lastProcessedLine[255]={0};
 
 void Controller::loadControlled(char id,Controlled* controlled){
 	#ifdef DEBUG
@@ -344,9 +345,10 @@ void Controller::processInput(Stream* stream){
 
 }
 
-
 void Controller::parseBuffer(){
   error.clearError();
+
+	memcpy (inputBuffer, lastProcessedLine,(bufferCount<254?bufferCount:254));
 
 	if (inputBuffer[0]=='K'){
 			if (inputBuffer[1]=='R'){
