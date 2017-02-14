@@ -9,7 +9,8 @@
 #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
 
 	uint32_t Controller::lastProcessedMSTime = 0;
-  char Controller::lastProcessedLine[255]={0};
+ char Controller::lastProcessedLine[255];
+  char Controller::lastProcessedError[255];
 
 void Controller::loadControlled(char id,Controlled* controlled){
 	#ifdef DEBUG
@@ -328,7 +329,20 @@ void Controller::processInput(Stream* stream){
 	while (stream->available()){
 		char next = stream->read();
 		if (next == '\n'||next == '\r'){
+
 			parseBuffer();
+
+				memcpy (lastProcessedLine,inputBuffer,(bufferCount<254?bufferCount:254));
+
+					if (bufferCount>=254)
+						lastProcessedLine[254] = '\0';
+
+			if (getErrorLogger().getErrorTime()>0){
+				logger.startBatchSend('Z',0);
+				logger.print(getErrorLogger().getErrorTime());
+				logger.batchSend();
+				memcpy (lastProcessedError,inputBuffer,(bufferCount<254?bufferCount:254));
+			}
 			bufferCount = 0;
 			inputBuffer[0] = '#';
 			inputBuffer[1] = '\0';
@@ -346,9 +360,8 @@ void Controller::processInput(Stream* stream){
 }
 
 void Controller::parseBuffer(){
-  error.clearError();
 
-	memcpy (inputBuffer, lastProcessedLine,(bufferCount<254?bufferCount:254));
+  error.clearError();
 
 	if (inputBuffer[0]=='K'){
 			if (inputBuffer[1]=='R'){

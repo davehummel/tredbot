@@ -254,6 +254,10 @@ public:
 				if (length == 0)
 					return false;
 				ADDRTYPE type = addr1Array[0]->type;
+				if (type == A_STRING){
+						length = 1;
+						width = 1;
+				}
 				for (uint8_t i=0 ; i< width ; i ++){
 					#ifdef DEBUG
 						Serial.print(".");
@@ -283,7 +287,16 @@ public:
 					 size*=8;
 					break;
 					case A_STRING:
-					 size *=64;
+					  char* temp = readS(*addr1Array[0],addr2Offset);
+							for(size=0; size<1024;size++){
+								 if (temp[size] == '\0'){
+									 break;
+								 }
+							}
+							logger->startStreamSend(size,id,instID);
+							logger->print(temp,size);
+						 uint16_t remainder = logger->streamSend();
+						 return remainder == 0 ;
 					break;
 				}
 				//
@@ -396,6 +409,8 @@ public:
 	static char* newString(const char original[]);
 
 		static char lastProcessedLine[255];
+
+	 static char lastProcessedError[255];
 
 	static uint32_t lastProcessedMSTime;
 

@@ -4,6 +4,7 @@
 
 const uint16_t INP = ADDR1::solveADDR("INP");
 const uint16_t ETX = ADDR1::solveADDR("ETX");
+const uint16_t LTX = ADDR1::solveADDR("LTX");
 const uint16_t LST = ADDR1::solveADDR("LST");
 const uint16_t ETM = ADDR1::solveADDR("ETM");
 const uint16_t TIM = ADDR1::solveADDR("TIM");
@@ -51,7 +52,9 @@ public:
 
 			if (addr.addr == ETX) return controller->getErrorLogger().getErrorText();
 
-			if (addr.addr == LST) return controller->lastProcessedLine;
+		  if (addr.addr == LST) return controller->lastProcessedLine;
+
+		  if (addr.addr == LTX) return controller->lastProcessedError;
 
 		return 0;
 	}

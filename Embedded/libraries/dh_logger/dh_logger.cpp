@@ -234,6 +234,11 @@ void ErrorLogger::clearError(){
 	errorCode = NONE;
 	errorTime = 0;
 	errorComplete = false;
+	
+	errBufCount = 0;
+	errorCode = NONE;
+	errorTime = 0;
+	errorComplete = false;
 }
 
 char* ErrorLogger::getErrorText(){

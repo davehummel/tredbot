@@ -1,4 +1,5 @@
 void setup() {
+  Serial.begin(115200);
 pinMode(23,INPUT);
 pinMode(22,INPUT);
 }

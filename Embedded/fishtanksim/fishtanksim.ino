@@ -19,7 +19,8 @@ void setup() {
   Serial.begin(115200);
   Serial1.begin(115200);
 
-    delay(100);
+    delay(1000);
+
 
   controller.setOutputStream(&Serial);
   logger.setStream(&Serial1);
