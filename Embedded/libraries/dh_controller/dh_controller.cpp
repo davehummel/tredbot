@@ -342,6 +342,10 @@ void Controller::processInput(Stream* stream){
 				logger.print(getErrorLogger().getErrorTime());
 				logger.batchSend();
 				memcpy (lastProcessedError,inputBuffer,(bufferCount<254?bufferCount:254));
+			}else{
+				logger.startBatchSend('Z',0);
+				logger.print(0l);
+				logger.batchSend();
 			}
 			bufferCount = 0;
 			inputBuffer[0] = '#';
