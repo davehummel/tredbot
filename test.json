@@ -1,0 +1,10 @@
+{
+     "replace" : {
+          "name" : "and",
+          "code" : "XYX"
+          "pre" {
+            "name" : " not",
+            "code" : "Z"
+          }
+     }
+}
