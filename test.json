@@ -1,10 +1,19 @@
 {
-     "replace" : {
+    "translate" : [
+        {
           "name" : "and",
           "code" : "XYX"
           "pre" {
             "name" : " not",
             "code" : "Z"
+            }
+          },{
+          "name" : "or",
+          "code" : "JYX"
+          "pre" {
+            "name" : " not",
+            "code" : "Z"
           }
-     }
+        }
+   ]
 }
