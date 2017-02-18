@@ -3,16 +3,14 @@
         {
           "name" : "and",
           "code" : "XYX"
-          "pre" {
-            "name" : " not",
-            "code" : "Z"
+          "post" {
+            "Z":" not"
             }
           },{
           "name" : "or",
           "code" : "JYX"
           "pre" {
-            "name" : " not",
-            "code" : "Z"
+            "Z":"either "
           }
         }
    ]
