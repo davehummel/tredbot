@@ -18,7 +18,7 @@
           "code" : "TR"
           "pre" {
             "R":"wo",
-            "C":"every "
+            "C":"every"
           }
           "post" {
              "Y":"man",
@@ -29,6 +29,7 @@
         "name" : "apple",
         "code" : "DJF"
         "pre" {
+          "GG":"each ",
           "RTD":"red ",
           "C":"shiny "
         }
