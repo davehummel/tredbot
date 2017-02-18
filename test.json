@@ -25,5 +25,27 @@
              "E":"men"
           }
         }
+        ,{
+        "name" : "apple",
+        "code" : "DJF"
+        "pre" {
+          "RTD":"red ",
+          "C":"shiny "
+        }
+        "post" {
+           "Y":" core"
+        }
+      }
+      ,{
+      "name" : "are",
+      "code" : "TPS"
+    }
+    ,{
+          "name" : "inside",
+          "code" : "POW"
+          "post" {
+             "Y":" out"
+          }
+      }
    ]
 }
