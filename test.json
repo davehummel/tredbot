@@ -13,5 +13,17 @@
             "Z":"either "
           }
         }
+          ,{
+          "name" : "",
+          "code" : "TR"
+          "pre" {
+            "R":"wo ",
+            "C":"every "
+          }
+          "post" {
+             "Y":"man",
+             "E":"men"
+          }
+        }
    ]
 }
