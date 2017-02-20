@@ -611,6 +611,8 @@ void Controller::parseBuffer(){
 
 bool Controller::addTimedEntry(Entry* entry){
 
+kill(entry->id);
+
 if (timedSize>=MAX_SCHED)
   return false;
 

@@ -76,8 +76,8 @@ Serial.println("Starting Controlled Modules");
 //       controller.schedule(610,100,100,false,0,Controller::newString("SET $FC:VRA $UA:AAA"),'C');
 //      controller.schedule(611,100,100,false,0,Controller::newString("SET $FC:VRB $UA:BBB"),'C');
 
-      controller.schedule(614,900,500,false,0,Controller::newString("EXE P0"),'C');
-   controller.schedule(615,1000,500,false,0,Controller::newString("EXE P1"),'C');
+ //     controller.schedule(614,900,500,false,0,Controller::newString("EXE P0"),'C');
+ //  controller.schedule(615,1000,500,false,0,Controller::newString("EXE P1"),'C');
 
       controller.schedule(616,1000,10,false,0,Controller::newString("SET $UP:EEE #L0" ),'C');
       controller.schedule(616,1000,10,false,0,Controller::newString("SET $UP:FFF #L0"),'C');
