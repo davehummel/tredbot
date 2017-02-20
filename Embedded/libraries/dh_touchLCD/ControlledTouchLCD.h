@@ -783,21 +783,21 @@ public:
 			uint16_t pointer = 4;
 			uint8_t zID;
 			if (!Controller::parse_uint8(zID,pointer,command) ){
-				controller->getErrorLogger().println("Unable to parse zID:");
-				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+				controller->getErrorLogger()->println("Unable to parse zID:");
+				controller->getErrorLogger()->finished(_time,ErrorLogger::MOD_PARSER);
 				return ;
 			}
 			if (zID > MAX_DRAW){
-			controller->getErrorLogger().print("zID is too large:");
-				controller->getErrorLogger().println(zID);
-				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+			controller->getErrorLogger()->print("zID is too large:");
+				controller->getErrorLogger()->println(zID);
+				controller->getErrorLogger()->finished(_time,ErrorLogger::MOD_PARSER);
 				return ;
 			}
 
 			if (items[zID]== 0){
-				controller->getErrorLogger().print("No drawble for id:");
-				controller->getErrorLogger().println(zID);
-				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+				controller->getErrorLogger()->print("No drawble for id:");
+				controller->getErrorLogger()->println(zID);
+				controller->getErrorLogger()->finished(_time,ErrorLogger::MOD_PARSER);
 				return;
 			}
 
@@ -813,8 +813,8 @@ public:
 			pointer++;
 
 			if (!Controller::parse_uint8(items[zID]->funcAddr2,pointer,command) ){
-				controller->getErrorLogger().println("Unable to parse Addr2:");
-				controller->getErrorLogger().finished(_time,ErrorLogger::MOD_PARSER);
+				controller->getErrorLogger()->println("Unable to parse Addr2:");
+				controller->getErrorLogger()->finished(_time,ErrorLogger::MOD_PARSER);
 				return ;
 			}
 

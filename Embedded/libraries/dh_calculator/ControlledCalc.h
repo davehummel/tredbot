@@ -253,13 +253,6 @@ public:
 		Func* func = 0;
 		if (getFunc(func,addr,addr2)){
 			if (func == 0){
-				char x[4];
-				x[3] = '\0';
-				addr.getChars(x);
-				Serial.print(x);
-				Serial.print(":");
-				Serial.print(addr2);
-				Serial.println(" Missed!");
 							return 0;
 			}else
 				return func->readU();
@@ -514,11 +507,8 @@ private:
 		}
 
 		if (command[offset]!='\0'){
-			Serial.println("Failed to completely parse input:");
-			Serial.println(command);
-			for (uint16_t i = 0; i < offset; i++)
-				Serial.print(' ');
-			Serial.println('^');
+			controller->getErrorLogger()->setParseError(command,offset,"Failed to completely parse function");
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 			if (func!=0)
 				delete func;
 			return;
@@ -539,27 +529,33 @@ private:
 		uint16_t offset = 4;
 		if (command[offset]=='$')
 			offset++;
-		ADDR1 dest(offset,command);
+		ADDR1 dest(offset,command,controller->getErrorLogger());
+		if (dest.type == BAD_TYPE){
+			controller->getErrorLogger()->setParseError(command,offset,"Failed to parse address to set");
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
+			return;
+		}
 		Controlled* targetMod = controller->getControlled(dest.modID);
 		if (targetMod == 0){
-			Serial.println("Failed to find mod");
+			controller->getErrorLogger()->setParseError(command,offset,"Failed to find modID to set");
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 			return;
 		}
 		offset++;
+
 		Func* func = createFunc(offset,command,controller);
-		if (command[offset]!='\0'){
-			Serial.println("Failed to completely parse input:");
-			Serial.println(command);
-			for (uint16_t i = 0; i < offset; i++)
-				Serial.print('=');
-			Serial.println('<');
-			if (func!=0)
-				delete func;
+
+		if (func == 0){
+
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 			return;
 		}
 
-		if (func == 0){
-			Serial.println("Failed to creat function");
+		if (command[offset]!='\0'){
+			controller->getErrorLogger()->setParseError(command,offset,"Unexpect content left over");
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
+			if (func!=0)
+				delete func;
 			return;
 		}
 
@@ -572,6 +568,10 @@ private:
 			case A_FLOAT: targetMod->write(dest,func->readF());break;
 			case A_DOUBLE: targetMod->write(dest,func->readD());break;
 			case A_STRING:break;
+			case BAD_TYPE:
+			controller->getErrorLogger()->setParseError(command,offset,"Bad type in set");
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
+			break;
 		}
 
 		delete func;
@@ -579,39 +579,58 @@ private:
 
 	void exe(char command[]){
 		uint16_t offset = 4;
-		char modID = command[offset];
+		while (command[offset]!='\0'){
+			char modID = command[offset];
 
-		modID-='A';
-		if (modID > 25 )
+			modID-='A';
+			if (modID > 25 ){
+				controller->getErrorLogger()->setParseError(command,offset,"Can only exec a function A-Z");
+				controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
+				return;
+			}
+
+			offset++;
+			uint8_t num ;
+			if (!Controller::parse_uint8(num,offset,command)){
+				controller->getErrorLogger()->setParseError(command,offset,"Failed to parse function number");
+				controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
+				return;
+			}
+
+			if (num>=FUNC_COUNT){
+				controller->getErrorLogger()->setParseError(command,offset,"Function number too high");
+				controller->getErrorLogger()->print("Can only exec a function num less than ");
+				controller->getErrorLogger()->println(FUNC_COUNT);
+				controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 			return;
+			}
+			Func** temp = functions[(uint8_t)modID];
 
-		offset++;
-		uint8_t num ;
-		Controller::parse_uint8(num,offset,command);
+			if (temp == 0)
+				return;
 
-		if (num>=FUNC_COUNT)
-			return;
-		Func** temp = functions[(uint8_t)modID];
+			Func* func = temp[num];
 
-		if (temp == 0)
-			return;
+			if (func == 0)
+				return;
 
-		Func* func = temp[num];
+			ADDRTYPE type =  func->getType();
 
-		if (func == 0)
-			return;
-
-		ADDRTYPE type =  func->getType();
-
-		switch (type){
-			case A_BYTE:func->readB();break;
-			case A_UINT:func->readU();break;
-			case A_INT:func->readI();break;
-			case A_LONG:func->readL();break;
-			case A_FLOAT:func->readF();break;
-			case A_DOUBLE:func->readD();break;
-			case A_TIME:func->readT();break;
-			case A_STRING:break;
+			switch (type){
+				case A_BYTE:func->readB();break;
+				case A_UINT:func->readU();break;
+				case A_INT:func->readI();break;
+				case A_LONG:func->readL();break;
+				case A_FLOAT:func->readF();break;
+				case A_DOUBLE:func->readD();break;
+				case A_TIME:func->readT();break;
+				case A_STRING:break;
+				case BAD_TYPE:
+				controller->getErrorLogger()->setParseError(command,offset,"Bad type to read from function");
+				controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
+				 return;
+			}
+			offset++;
 		}
 
 	}
@@ -623,11 +642,15 @@ private:
 		uint16_t offset = 4;
 		uint8_t interpID = 0;
 		if (!Controller::parse_uint8(interpID,offset,command)){
-			Serial.println("Failed to parse target interp ID");
+			controller->getErrorLogger()->setParseError(command,offset,"Failed to parse interpolation number");
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 			return;
 		}
 		if (interpID >= MAX_INTERPS){
-			Serial.println("Interp ID too large");
+			controller->getErrorLogger()->setParseError(command,offset,"Interpolation number is to high");
+			controller->getErrorLogger()->print("Can only exec an interpolation num less than ");
+			controller->getErrorLogger()->println(MAX_INTERPS);
+			controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 			return;
 		}
 

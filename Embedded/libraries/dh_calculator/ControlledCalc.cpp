@@ -8,12 +8,12 @@ class InterpFunc:public Func{
 		bool parse(uint16_t &pointer,char* text){
 
 			if (!Controller::parse_uint8(interpFuncID,pointer,text)){
-				Serial.println("Unable to parse interp function id");
+				controller->getErrorLogger()->println("Could not parse interp id");
 				return false;
 			}
 
 			if (text[pointer]!='['){
-				Serial.println("Missing opening bracket for interp");
+				controller->getErrorLogger()->println("Missing opening bracket for interp");
 				return false;
 			}
 
@@ -22,13 +22,16 @@ class InterpFunc:public Func{
 			eval = createFunc(pointer,text,controller);
 
 			if (eval == 0 ){
-				Serial.println("Failed to parse function to pass to interp");
+				controller->getErrorLogger()->println("Failed to parse function to pass to interp");
 				return false;
 			}
 
 			if (text[pointer]!=']'){
-				Serial.println("Missing closing bracket for interp,deleting parsed function");
+				controller->getErrorLogger()->print("Found '");
+				controller->getErrorLogger()->print(text[pointer]);
+				controller->getErrorLogger()->println("' expect closing bracket ']' for interp");
 				delete eval;
+				eval = 0;
 				return false;
 			}
 
@@ -425,6 +428,7 @@ class LiteralFunc:public Func{
 				break;
 			}
 			case A_STRING: return false;
+			case BAD_TYPE: return false;
 		}
 
 		innerVal->controller = controller;
@@ -480,7 +484,7 @@ class VariableFunc:public Func{
 		if (text[pointer]=='.'){
 			pointer++;
 			if (!Controller::parse_uint8(addr2,pointer,text)){
-				Serial.println("Expected addr2 number");
+				controller->getErrorLogger()->println("Expected addr2 number");
 				return false;
 			}
 		}else{
@@ -514,6 +518,7 @@ class VariableFunc:public Func{
 			case A_DOUBLE: return (uint8_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (uint8_t) controlled->readT(addr1,addr2);
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -527,6 +532,7 @@ class VariableFunc:public Func{
 			case A_DOUBLE: return (uint16_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (uint16_t) controlled->readT(addr1,addr2);
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -540,6 +546,7 @@ class VariableFunc:public Func{
 			case A_DOUBLE: return (int16_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (int16_t) controlled->readT(addr1,addr2);
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -553,6 +560,7 @@ class VariableFunc:public Func{
 			case A_DOUBLE: return (int32_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (int32_t) controlled->readT(addr1,addr2);
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -566,6 +574,7 @@ class VariableFunc:public Func{
 			case A_DOUBLE: return (float) controlled->readD(addr1,addr2);
 			case A_TIME: return (float) controlled->readT(addr1,addr2);
 			case A_STRING: return 0;
+		  case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -579,6 +588,7 @@ class VariableFunc:public Func{
 			case A_DOUBLE: return (double) controlled->readD(addr1,addr2);
 			case A_TIME: return (double) controlled->readT(addr1,addr2);
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -592,6 +602,7 @@ class VariableFunc:public Func{
 			case A_DOUBLE: return (uint32_t) controlled->readD(addr1,addr2);
 			case A_TIME: return (uint32_t) controlled->readT(addr1,addr2);
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -641,17 +652,17 @@ class WriteFunc:public Func{
 						return true;
 					}
 					if (x=='\0'){
-						Serial.println("Write text operator missing closing \"");
+						controller->getErrorLogger()->println("Write text operator missing closing \"");
 						return false;
 					}
 				}
-				Serial.println("Write text too long");
+				controller->getErrorLogger()->println("Write text too long");
 				return false;
 		}else{
 			valFunc = createFunc(pointer,input,controller);
 			pointer++;
 			if (valFunc == 0){
-				Serial.println("Couldn't parse function to assign for write");
+				controller->getErrorLogger()->println("Couldn't parse function to assign for write");
 				return false;
 			}
 			return true;
@@ -730,6 +741,7 @@ class WriteFunc:public Func{
 	 }
 		 case A_STRING:
 		 return 0;
+		 case BAD_TYPE: return 0;
 	 }
 	 return val;
  }
@@ -1026,6 +1038,7 @@ public:
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -1039,6 +1052,7 @@ public:
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -1052,6 +1066,7 @@ public:
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -1065,6 +1080,7 @@ public:
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -1078,6 +1094,7 @@ public:
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -1091,6 +1108,7 @@ public:
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -1104,6 +1122,7 @@ public:
 			case A_DOUBLE: return  evalD();
 			case A_TIME: return  evalT();
 			case A_STRING: return 0;
+			case BAD_TYPE: return 0;
 		}
 		return 0;
 	}
@@ -1480,7 +1499,7 @@ class ColorFunc:public Func{
 
 	r = createFunc(pointer,text,controller);
 		if (r == 0 ){
-			Serial.println("Failed to parse red");
+			controller->getErrorLogger()->println("Failed to parse red");
 			return false;
 		}
 		pointer++;
@@ -1488,7 +1507,7 @@ class ColorFunc:public Func{
 		if (g == 0 ){
 			delete r;
 			r = 0;
-			Serial.println("Failed to parse green");
+			controller->getErrorLogger()->println("Failed to parse green");
 			return false;
 		}
 		pointer++;
@@ -1498,7 +1517,7 @@ class ColorFunc:public Func{
 			r = 0;
 			delete g;
 			g = 0;
-			Serial.println("Failed to parse blue");
+			controller->getErrorLogger()->println("Failed to parse blue");
 			return false;
 		}
 		pointer++;
@@ -1768,12 +1787,7 @@ ISeg* ISeg::parse(uint16_t &pointer,char* command,Controller* controller){
 
 			if (temp == 0){
 				ISeg::del(start);
-				Serial.print("Failed to parse interpolation at:");
-				Serial.println(command[pointer]);
-				Serial.println(command);
-				for (uint16_t i = 0 ; i < pointer; i++)
-					Serial.print(" ");
-				Serial.println('^');
+				controller->getErrorLogger()->setParseError(command,pointer,"Failed to parse interpolation");
 				return 0;
 			}
 
@@ -1820,7 +1834,9 @@ ISeg* ISeg::getNext(ISeg* prev,uint16_t &pointer,char* command,Controller* contr
 			case '|': next = new ISeg(); break;
 			case '/': next = new LinearISeg(); break;
 			case '~': next = new CubicHermiteISeg(); break;
-			default: return 0;
+			default:
+				controller->getErrorLogger()->setParseError(command,pointer,"Unkown interp type, expected | or / or ~");
+				return 0;
 		}
 
 		next->fx0= fX;
@@ -1851,9 +1867,6 @@ double ISeg::eval(ISeg* startSeg,double inX,uint32_t time){
 		Serial.println(inX);
 		#endif
 		if (startSeg == 0){
-			#ifdef DEBUG
-			Serial.println("Failed eval - no start seg");
-			#endif
 			return 0;
 		}
 
@@ -1923,14 +1936,15 @@ Func* createFunc(uint16_t &pointer,char* text, Controller *controller){
 		case 'c':res = new CastFunc(); break;
 		case '[':res = new ColorFunc(); break;
 
-		default: Serial.print("Unrecognized function type:");Serial.println(text[pointer]);return 0;
-	}
+		default:
 
+					controller->getErrorLogger()->setParseError(text,pointer,"Unknown function");
+		return 0;
+	}
 	pointer++;
 	res->controller = controller;
 
 	if (res->parse(pointer,text)){
-
 		Func *simpler;
 		if (res->simplify(simpler)){
 			 delete res;
@@ -1939,18 +1953,9 @@ Func* createFunc(uint16_t &pointer,char* text, Controller *controller){
 		}
 		return res;
 	}else{
-		Serial.print("Failed to parse function \'");
-		Serial.print(res->getName());
-		Serial.print("\' at ");
-		Serial.print(pointer);
-		Serial.print(":");
-		Serial.println(text[pointer]);
-		Serial.println(text);
-		for (uint16_t i = 0 ; i< pointer; i++){
-			Serial.print(" ");
-		}
-		Serial.println("^");
+		controller->getErrorLogger()->setParseError(text,pointer,"Failed to parse function");
 		delete res;
+
 		return 0;
 	}
 }

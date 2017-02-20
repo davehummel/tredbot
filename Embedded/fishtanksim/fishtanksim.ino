@@ -4,12 +4,15 @@
 #include "ControlledOSStatus.h"
 
 #include "ControlledCalc.h"
+#include "ControlledLED.h"
 
 
 Logger logger;
 ControlledOSStatus os;
 
 ControlledCalc calc;
+
+ControlledLED led;
 
 Controller controller;
 
@@ -20,13 +23,16 @@ void setup() {
   Serial1.begin(115200);
 
     delay(1000);
-
-
+  
   controller.setOutputStream(&Serial);
-  logger.setStream(&Serial1);
+  controller.setErrorStream(&Serial1);
 
 
 Serial.println("Starting Controlled Modules");
+
+  controller.loadControlled('A',&led);
+
+  controller.loadControlled('P',&led);
 
   controller.loadControlled('Z',&os);
 

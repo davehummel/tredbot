@@ -6,10 +6,11 @@
 
 #define HEADER_SIZE 9
 #define ERR_BUFF 1024
+#define LOG_BUFF 1024
 
 enum ADDRTYPE
 {
-	A_BYTE,A_UINT,A_INT,A_TIME,A_LONG,A_FLOAT,A_DOUBLE,A_STRING
+	A_BYTE,A_UINT,A_INT,A_TIME,A_LONG,A_FLOAT,A_DOUBLE,A_STRING,BAD_TYPE
 };
 
 
@@ -55,12 +56,11 @@ public:
 		type = intype;
 	}
 
-	ADDR1(uint16_t &offset, const char* text){
+	ADDR1(uint16_t &offset, const char* text,Print* error = 0){
 		if (! parseType(type,text[offset])){
-
-			Serial.println("Unable to parse Addr type [B,U,I,L,F,D,T,S]:");
-
-			type = A_BYTE;
+			if (error) error->println("Unable to parse Addr type, expected on of [B,U,I,L,F,D,T,S]");
+			type = BAD_TYPE;
+			return;
 		}
 		offset++;
 		modID = text[offset];
@@ -68,8 +68,9 @@ public:
 			modID = 'A';
 		offset++;
 		if (text[offset]!=':'){
-			Serial.println("Missing ':' in var");
+			if (error) error->println("Missing ':' in address, expected T(ype)M(od):ADR(ess)");
 			addr = 0;
+			type = BAD_TYPE;
 			return;
 		}
 		offset++;
@@ -117,7 +118,6 @@ public:
 	bool print(float val);
 	bool print(double val);
 	bool print(const char text[], uint8_t len);
-
 	bool startStreamSend(uint16_t sendSize, char mod, uint32_t instID);
 	bool startBatchSend(char mod, uint32_t instID);
 	uint16_t streamSend();
@@ -136,7 +136,7 @@ private:
 	uint16_t streamRemainder;
 	char module;
 	uint32_t id;
-	char buffer[255];
+	char buffer[LOG_BUFF];
 	bool inStreamSend = false;
 	bool inBatchSend = false;
 };
@@ -147,10 +147,13 @@ public:
 		NONE,OS_PARSER,OS_MISC,MOD_PARSER
 	};
 
+ Stream* stream = 0;
 
 	char* getErrorText();
 
 	uint32_t getErrorTime();
+
+	uint16_t getCharLoc();
 
 	ERROR_CODE getErrorCode();
 
@@ -160,11 +163,18 @@ public:
 
   virtual size_t write(uint8_t);
 
+	void setParseError(char input[],uint16_t charPos,const char* message);
+
 private:
+
 	char errorBuffer[ERR_BUFF];
 	uint16_t errBufCount=0;
 
 	bool errorComplete = false;
+
+	bool hasParseError = false;
+
+  uint16_t charLoc;
 
 	ERROR_CODE errorCode = NONE;
 	uint32_t errorTime;

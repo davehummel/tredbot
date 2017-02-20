@@ -86,9 +86,9 @@ public:
 	float readF(ADDR1 addr,uint8_t addr2){
 			uint8_t num = addr.addr%26;
 			if (num>=deviceCount){
-				controller->getErrorLogger().print("Thermo ");
-				controller->getErrorLogger().print((char)(num+'A'));
-				controller->getErrorLogger().print("is not supported. ");
+				controller->getErrorLogger()->print("Thermo ");
+				controller->getErrorLogger()->print((char)(num+'A'));
+				controller->getErrorLogger()->print("is not supported. ");
 				return 0 ;
 			}
 

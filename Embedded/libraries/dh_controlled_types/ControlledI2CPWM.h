@@ -104,15 +104,15 @@ void reset (){
 				  double sampleRate;
 					uint16_t temp = 4;
 					if (!Controller::parse_double(sampleRate,temp,command)){
-						controller->getErrorLogger().println("FRQ must be set to a number.");
+						controller->getErrorLogger()->println("FRQ must be set to a number.");
 						return;
 					}
 					setPWMFreq(sampleRate);
 				break;
 			}
 		}
-				controller->getErrorLogger().print("Bad I2CPWM command:");
-				controller->getErrorLogger().println(command);
+				controller->getErrorLogger()->print("Bad I2CPWM command:");
+				controller->getErrorLogger()->println(command);
 		}
 
 	void startSchedule(char command[], uint32_t id){

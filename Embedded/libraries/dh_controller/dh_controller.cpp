@@ -9,8 +9,7 @@
 #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
 
 	uint32_t Controller::lastProcessedMSTime = 0;
- char Controller::lastProcessedLine[255];
-  char Controller::lastProcessedError[255];
+ char Controller::lastProcessedLine[LAST_LINE_SIZE];
 
 void Controller::loadControlled(char id,Controlled* controlled){
 	#ifdef DEBUG
@@ -207,6 +206,11 @@ void Controller::setOutputStream(Stream* output){
 	logger.setStream(output);
 }
 
+void Controller::setErrorStream(Stream* output){
+	// First check immediate run queue
+	error.stream=(output);
+}
+
 void Controller::execute(){
 
 	for (int i = 0; i < immediateSize; i ++){
@@ -220,7 +224,7 @@ void Controller::execute(){
 				immediate[i]->controlled->execute((uint32_t)millis,immediate[i]->id,immediate[i]->command);
 				break;
 			case READ:
-				logger.sendLineSync(immediate[i]->controlled->id,immediate[i]->id);
+				//logger.sendLineSync(immediate[i]->controlled->id,immediate[i]->id);
 				immediate[i]->controlled->transmit(&logger,(uint32_t)millis,immediate[i]->id,immediate[i]->command);
 				break;
 			case WRITE:
@@ -248,11 +252,11 @@ void Controller::execute(){
 	if (offset == 0)
 		return;
 
-	if (offset > 1){
-		Serial.print('#');
-		Serial.print(offset);
-		Serial.print('#');
-	}
+	// if (offset > 1){
+	// 	Serial.print('#');
+	// 	Serial.print(offset);
+	// 	Serial.print('#');
+	// }
 
 	lastProcessedMSTime +=offset;
 
@@ -329,31 +333,18 @@ void Controller::processInput(Stream* stream){
 	while (stream->available()){
 		char next = stream->read();
 		if (next == '\n'||next == '\r'){
-
 			parseBuffer();
-
 				memcpy (lastProcessedLine,inputBuffer,(bufferCount<254?bufferCount:254));
-
-					if (bufferCount>=254)
+				if (bufferCount>=254)
 						lastProcessedLine[254] = '\0';
 
-			if (getErrorLogger().getErrorTime()>0){
-				logger.startBatchSend('Z',0);
-				logger.print(getErrorLogger().getErrorTime());
-				logger.batchSend();
-				memcpy (lastProcessedError,inputBuffer,(bufferCount<254?bufferCount:254));
-			}else{
-				logger.startBatchSend('Z',0);
-				logger.print(0l);
-				logger.batchSend();
-			}
 			bufferCount = 0;
 			inputBuffer[0] = '#';
 			inputBuffer[1] = '\0';
 		}else{
 			inputBuffer[bufferCount] = next;
 			inputBuffer[bufferCount+1] = '\0';
-			if (bufferCount == INP_BUFF-1){
+			if (bufferCount == INP_BUFF_SIZE-1){
 				bufferCount = 0;
 			}else{
 				bufferCount++;
@@ -365,22 +356,21 @@ void Controller::processInput(Stream* stream){
 
 void Controller::parseBuffer(){
 
-  error.clearError();
-
 	if (inputBuffer[0]=='K'){
 			if (inputBuffer[1]=='R'){
 				reboot();
 				return;
 			}
 		if (bufferCount<3){
-			error.println("Missing data after (K)ill command");
+			error.setParseError(inputBuffer,1,"Missing data after (K)ill command");
 			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 		uint16_t offset = 2;
 		uint32_t id=0;
 		if (!parse_uint32(id,offset,inputBuffer)){
-			//printError(offset,"instruction id");
+			error.setParseError(inputBuffer,offset,"Missing instruction id");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
  	#ifdef DEBUG
@@ -396,7 +386,7 @@ void Controller::parseBuffer(){
 
 	if (inputBuffer[0]=='P'){
 		if (bufferCount<3){
-			error.println("Missing data after (P)rogram command");
+			error.setParseError(inputBuffer,1,"Missing data after (P)rogram command");
 			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
@@ -404,7 +394,8 @@ void Controller::parseBuffer(){
 		uint16_t offset = 2;
 
 		if (!parse_uint8(id,offset,inputBuffer)){
-			//printError(offset,"program id");
+			error.setParseError(inputBuffer,offset,"Missing program id");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 
@@ -438,14 +429,16 @@ void Controller::parseBuffer(){
 
 	if (inputBuffer[0]=='R'){
 		if (bufferCount<3){
-			Serial.println("Missing data after (R)un program command");
+			error.setParseError(inputBuffer,1,"Missing data after (R)un program command");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 		uint8_t id=0;
 		uint16_t offset = 2;
 
 		if (!parse_uint8(id,offset,inputBuffer)){
-			//printError(offset,"run id");
+			error.setParseError(inputBuffer,offset,"Missing program run id");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 
@@ -475,14 +468,15 @@ void Controller::parseBuffer(){
 			} else if (inputBuffer[1] == 'W'){
 				style = WRITE;
 			} else {
-				error.println("(S)chedule command must be 'SC','SR ','SW '");
+				error.setParseError(inputBuffer,1,"(S)chedule command must be 'SC','SR ','SW '");
 				error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 				return;
 			}
 
 		uint32_t runCount;
 		if (!parse_uint32(id, offset, inputBuffer)){
-			//printError(offset,"instruction id");
+			error.setParseError(inputBuffer,offset,"Bad instruction id");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 
@@ -494,14 +488,16 @@ void Controller::parseBuffer(){
 		offset += 2;
 
 		if (!parse_uint16(timeDelay, offset, inputBuffer)){
-			//printError(offset,"schedule initial delay");
+			error.setParseError(inputBuffer,offset,"Bad start delay (ms)");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 
 		offset++;
 
 		if (!parse_uint16(timeInterval, offset, inputBuffer)){
-			//printError(offset,"schedule interval");
+			error.setParseError(inputBuffer,offset,"Bad interval time (ms)");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 
@@ -510,7 +506,8 @@ void Controller::parseBuffer(){
 
 
 		if (!parse_uint32(runCount, offset, inputBuffer)){
-			//printError(offset,"Run count");
+			error.setParseError(inputBuffer,offset,"Bad run count");
+			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
 
@@ -522,7 +519,7 @@ void Controller::parseBuffer(){
 			command[i] = inputBuffer[i + offset];
 		}
 		if (command[bufferCount - offset] != '\0') {
-			error.println("Incomplete Input");
+			error.setParseError(inputBuffer,offset,"Incomplete command");
 			error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 			return;
 		}
@@ -552,12 +549,10 @@ void Controller::parseBuffer(){
 	}
 
 	if (inputBuffer[0]!='I'){
-		error.print("Command must start with I,S,SW,SR,IW,IR,K,R,P");
+		error.print("Command must start with IC,SC,SW,SR,IW,IR,K,R,P");
 		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return;
 	}
-
-
 
 	uint32_t id = 0;
 	uint16_t offset = 3;
@@ -577,7 +572,7 @@ void Controller::parseBuffer(){
 			}
 
 	if (!parse_uint32(id, offset, inputBuffer)){
-		error.println("Bad instruction ID");
+		error.setParseError(inputBuffer,offset,"Bad instruction id");
 		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return;
 	}
@@ -595,7 +590,7 @@ void Controller::parseBuffer(){
 		command[i] = inputBuffer[i+offset];
 	}
 	if (command[bufferCount-offset]!='\0'){
-		error.println("Incomplete input");
+		error.setParseError(inputBuffer,offset,"Incomplete command");
 		error.finished(lastProcessedMSTime,ErrorLogger::OS_PARSER);
 		return;
 	}
@@ -866,7 +861,7 @@ char* Controller::getInputBuffer(){
 
 char* Controller::newString(const char original[]){
 	uint16_t size;
-	for (size = 0 ; size < INP_BUFF-1 ; size++){
+	for (size = 0 ; size < INP_BUFF_SIZE-1 ; size++){
 		if (original[size]=='\0')
 			break;
 	}

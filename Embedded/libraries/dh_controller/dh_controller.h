@@ -10,8 +10,8 @@
 #define MAX_IMMED 100
 #define MAX_PROG 100
 #define MAX_SCHED 512
-#define INP_BUFF 1024
-
+#define INP_BUFF_SIZE 1024
+#define LAST_LINE_SIZE 255
 
 #define COMMAND 0
 #define READ 1
@@ -376,6 +376,8 @@ public:
 
 	void setOutputStream(Stream* stream);
 
+		void setErrorStream(Stream* stream);
+
 	void execute();
 
 	bool kill(uint32_t id);
@@ -390,8 +392,12 @@ public:
 
 	char* getInputBuffer();
 
-	inline ErrorLogger getErrorLogger(){
-		return error;
+	inline ErrorLogger* getErrorLogger(){
+		return &error;
+	}
+
+	inline Logger* getLogger(){
+		return &logger;
 	}
 
 	static bool parse_uint8(uint8_t &val, uint16_t &pointer,char* text);
@@ -408,9 +414,7 @@ public:
 
 	static char* newString(const char original[]);
 
-		static char lastProcessedLine[255];
-
-	 static char lastProcessedError[255];
+	static char lastProcessedLine[LAST_LINE_SIZE];
 
 	static uint32_t lastProcessedMSTime;
 
@@ -445,7 +449,7 @@ private:
 	uint8_t immediateSize = 0;
 	uint8_t timedSize = 0;
 
-	char inputBuffer[INP_BUFF];
+	char inputBuffer[INP_BUFF_SIZE];
 	uint16_t bufferCount=0;
 	ErrorLogger error;
 

@@ -75,12 +75,19 @@ bool Logger::print(double val) {
 	return true;
 }
 bool Logger::print(const char text[], uint8_t len) {
+	if (len == 0){
+		for (; len <1024; len++){
+			if (text[len]=='\0')
+				break;
+		}
+	}
 	if (!validate(len))
 		return false;
-		memcpy(buffer+byteCount,text,len);
-		byteCount+=len;
-		return true;
+	memcpy(buffer+byteCount,text,len);
+	byteCount+=len;
+  return true;
 }
+
 
 bool Logger::batchSend() {
 	if (!inBatchSend)
@@ -169,9 +176,10 @@ bool Logger::startStreamSend(uint16_t sendSize, char mod, uint32_t instID) {
 
 uint16_t Logger::streamSend() {
 	if (!inStreamSend)
-		return 999;
-	if (streamRemainder > 0)
+		return 9999;
+	if (streamRemainder > 0){
 		return streamRemainder;
+	}
 	flushBuffer();
 	inStreamSend = false;
 	return 0;
@@ -181,7 +189,7 @@ bool Logger::validate(uint8_t size) {
 	if (!inStreamSend && !inBatchSend)
 		return false;
 
-	if (255 - byteCount < size) {
+	if (LOG_BUFF - byteCount < size) {
 		if (inStreamSend) {
 			flushBuffer();
 		}
@@ -234,11 +242,27 @@ void ErrorLogger::clearError(){
 	errorCode = NONE;
 	errorTime = 0;
 	errorComplete = false;
-	
+
+ charLoc = 0;
+ hasParseError = false;
 	errBufCount = 0;
+	errorBuffer[0] = '\0';
 	errorCode = NONE;
 	errorTime = 0;
 	errorComplete = false;
+}
+
+void ErrorLogger::setParseError(char input[],uint16_t charPos,const char* message){
+	  if (!hasParseError){
+			println(input);
+			for (uint16_t i = 0; i < charPos; i++)
+				print(' ');
+			println('^');
+			hasParseError = true;
+		}
+		print(message);
+		print(" @ ");
+		println(charPos);
 }
 
 char* ErrorLogger::getErrorText(){
@@ -255,8 +279,9 @@ ErrorLogger::ERROR_CODE ErrorLogger::getErrorCode(){
 }
 
 size_t ErrorLogger::write(uint8_t ch){
-	if (errorComplete)
-		return 0;
+	if (errorComplete){
+		clearError();
+	}
 	if (errBufCount == ERR_BUFF-1){
 		return 0;
 	}
@@ -269,4 +294,7 @@ void ErrorLogger::finished(uint32_t time, ERROR_CODE code){
 	errorComplete = true;
 	errorTime = time;
 	errorCode = code;
+	if (stream!=0){
+		stream->println(errorBuffer);
+	}
 }
