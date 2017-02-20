@@ -42,9 +42,9 @@
       "code" : "TPS"
     }
     ,{
-          "name" : "inside",
+          "name" : "side",
           "code" : "POW"
-          "post" {
+          "pre" {
              "Y":" out"
           }
       }
