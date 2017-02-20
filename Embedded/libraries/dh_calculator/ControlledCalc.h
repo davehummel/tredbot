@@ -606,13 +606,22 @@ private:
 			}
 			Func** temp = functions[(uint8_t)modID];
 
-			if (temp == 0)
+			if (temp == 0){
+				controller->getErrorLogger()->print("No functions exist for mod ");
+				controller->getErrorLogger()->println((char)('A'+modID));
+				controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 				return;
+			}
 
 			Func* func = temp[num];
 
-			if (func == 0)
-				return;
+			if (func == 0){
+					controller->getErrorLogger()->print("No functions exist for number ");
+					controller->getErrorLogger()->print((char)('A'+modID));
+					controller->getErrorLogger()->print(num);
+					controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
+					return;
+				}
 
 			ADDRTYPE type =  func->getType();
 
@@ -630,6 +639,8 @@ private:
 				controller->getErrorLogger()->finished(Controller::lastProcessedMSTime,ErrorLogger::MOD_PARSER);
 				 return;
 			}
+			if (command[offset]=='\0')
+				return;
 			offset++;
 		}
 
