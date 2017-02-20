@@ -38,10 +38,10 @@ void setup() {
   Wire.setDefaultTimeout(10000);
   Wire.begin();
 
-    delay(100);
+    delay(400);
 
   controller.setOutputStream(&Serial1);
-  logger.setStream(&Serial1);
+  controller.setErrorStream(&Serial);
 
 
   disp.tch_cs = 8;
@@ -67,19 +67,17 @@ Serial.println("Starting Controlled Modules");
 //    controller.run(2,Controller::newString("INT 1 #U2600,#F10/#U3200,#F6~#U4325,#F5~#U4700,#F4~#U5150,#F3~#U5950,#F2~#U7000,#F1~#U8100,#F0/#U9000,#F-1"),'C');
 
 
-  controller.run(2,Controller::newString("FUN P0 w[$UP:AAA={#F3600+{#F500*{{$FC:VRB-$FC:VRA}^#B3}}}]"),'C');
-  controller.run(2,Controller::newString("FUN P1 w[$UP:BBB={#F3600+{#F500*{{$FC:VRA-$FC:VRB}^#B3}}}]"),'C');
   // controller.run(2,Controller::newString("SET $FC:VRM 3800"),'C');
 //   controller.run(2,Controller::newString("FUN D5 w[$UP:AAA={$UP:AAA+#U100}]"),'C');
 //   controller.run(2,Controller::newString("FUN D6 w[$UP:AAA={$UP:AAA-#U10}]"),'C');
 
-      controller.schedule(610,1000,1000,false,0,Controller::newString("SET $FC:VRA i0[$UA:AAA]"),'C');
-      controller.schedule(611,1000,1000,false,0,Controller::newString("SET $FC:VRB i1[$UA:BBB]"),'C');
+   //   controller.schedule(610,1000,1000,false,0,Controller::newString("SET $FC:VRA i0[$UA:AAA]"),'C');
+   //   controller.schedule(611,1000,1000,false,0,Controller::newString("SET $FC:VRB i1[$UA:BBB]"),'C');
 //       controller.schedule(610,100,100,false,0,Controller::newString("SET $FC:VRA $UA:AAA"),'C');
 //      controller.schedule(611,100,100,false,0,Controller::newString("SET $FC:VRB $UA:BBB"),'C');
 
-      controller.schedule(614,1000,1000,false,0,Controller::newString("EXE P0"),'C');
-   controller.schedule(615,1000,1000,false,0,Controller::newString("EXE P1"),'C');
+      controller.schedule(614,900,500,false,0,Controller::newString("EXE P0"),'C');
+   controller.schedule(615,1000,500,false,0,Controller::newString("EXE P1"),'C');
 
       controller.schedule(616,1000,10,false,0,Controller::newString("SET $UP:EEE #L0" ),'C');
       controller.schedule(616,1000,10,false,0,Controller::newString("SET $UP:FFF #L0"),'C');
