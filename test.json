@@ -40,6 +40,9 @@
       ,{
       "name" : "are",
       "code" : "TPS"
+      "post" {
+         "T":" the"
+      }
     }
     ,{
           "name" : "side",
