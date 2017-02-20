@@ -1,68 +1,61 @@
 {
-    "translate" : [
-        {
-          "name" : "and",
-          "code" : "XYX"
-          "post" {
-            "Z":" not"
-            }
-          },{
-          "name" : "of",
-          "code" : "JYX"
-          "pre" {
-            "Z":"either "
-          }
-          "post" {
-             "T":" the"
-          }
-        }
-          ,{
-          "name" : "",
-          "code" : "TR"
-          "pre" {
-            "R":"wo",
-            "C":"every "
-          }
-          "post" {
-             "Y":"man",
-             "E":"men"
-          }
-        }
-        ,{
-        "name" : "apple",
-        "code" : "DJF"
-        "pre" {
-          "GG":"each ",
-          "RTD":"red ",
-          "C":"shiny "
-        }
-        "post" {
-           "Y":" core"
-        }
-      }
-      ,{
-      "name" : "are",
-      "code" : "TPS"
-      "post" {
-         "T":" the"
-      }
-    }
-    ,{
-          "name" : "side",
-          "code" : "POW"
-          "pre" {
-             "Y":"out"
-          }
-      }
-      ,{
-            "name" : "orange",
-            "code" : "HYT"
-            "pre" {
-               "Y":"spicy "
-            }
-            "post" {
-               "Y":" peel"
-            }
-        }
-   ]
+	"translate": [{
+		"name": "and",
+		"code": "XYX",
+		"post": {
+			"Z": " not"
+		}
+	}, {
+		"name": "of",
+		"code": "JYX",
+		"pre": {
+			"Z": "either "
+		},
+		"post": {
+			"T": " the"
+		}
+	}, {
+		"name": "",
+		"code": "TR",
+		"pre": {
+			"R": "wo",
+			"C": "every "
+		},
+		"post": {
+			"Y": "man",
+			"E": "men"
+		}
+	}, {
+		"name": "apple",
+		"code": "DJF",
+		"pre": {
+			"GG": "each ",
+			"RTD": "red ",
+			"C": "shiny "
+		},
+		"post": {
+			"Y": " core"
+		}
+	}, {
+		"name": "are",
+		"code": "TPS",
+		"post": {
+			"T": " the"
+		}
+	}, {
+		"name": "side",
+		"code": "POW",
+		"pre": {
+			"Y": "out"
+		}
+	}, {
+		"name": "orange",
+		"code": "HYT",
+		"pre": {
+			"Y": "spicy "
+		},
+		"post": {
+			"Y": " peel"
+		}
+	}]
 }
