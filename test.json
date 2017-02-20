@@ -12,6 +12,9 @@
           "pre" {
             "Z":"either "
           }
+          "post" {
+             "T":" the"
+          }
         }
           ,{
           "name" : "",
